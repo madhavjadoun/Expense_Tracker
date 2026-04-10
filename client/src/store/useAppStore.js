@@ -47,7 +47,11 @@ function sortByDateDesc(a, b) {
 export const useAppStore = create((set, get) => ({
   user: null,
 
-  theme: localStorage.getItem("theme") || "dark",
+  theme: (() => {
+    const saved = localStorage.getItem("theme") || "dark";
+    document.documentElement.classList.toggle("dark", saved === "dark");
+    return saved;
+  })(),
   toggleTheme: () => set((s) => {
     const nextTheme = s.theme === "dark" ? "light" : "dark";
     localStorage.setItem("theme", nextTheme);
