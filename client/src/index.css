@@ -1,6 +1,5 @@
 @import "tailwindcss";
 
-/* Global defaults (dark mode by default) */
 html,
 body {
   height: 100%;
@@ -26,93 +25,100 @@ body {
     "Segoe UI Emoji";
 }
 
-/* Subtle text rendering for SaaS UI */
 * {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Animated gradient background helpers */
 @keyframes gradientShift {
   0% {
     transform: translate3d(-10%, -8%, 0) scale(1);
   }
+
   50% {
     transform: translate3d(10%, 8%, 0) scale(1.05);
   }
+
   100% {
     transform: translate3d(-10%, -8%, 0) scale(1);
   }
 }
 
-/* Glass look + subtle border */
 .glass {
   background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(148, 163, 184, 0.14); /* slate-400-ish */
+  border: 1px solid rgba(148, 163, 184, 0.14);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
 }
 
-/* Glow shadow used across cards/buttons */
 .glow {
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.06) inset,
     0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
-/* Nice scrollbar (WebKit) */
 ::-webkit-scrollbar {
   width: 10px;
 }
+
 ::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.12);
   border-radius: 999px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.18);
 }
 
-/* Light mode inversion mapping the hardcoded dark colors dynamically */
+/* Light mode */
 html:not(.dark) {
   filter: invert(1) hue-rotate(180deg);
 }
 
-html:not(.dark) img,
+html:not(.dark) img:not(.profile-avatar),
 html:not(.dark) video,
 html:not(.dark) [style*="background-image"],
-html:not(.dark) button[aria-label="Toggle theme"] > svg {
+html:not(.dark) button[aria-label="Toggle theme"]>svg {
   filter: invert(1) hue-rotate(180deg);
 }
 
-/* Fix React Phone Input Flags & Dropdown in Light Mode */
+html:not(.dark) .profile-avatar {
+  filter: invert(1) hue-rotate(180deg) !important;
+  -webkit-filter: invert(1) hue-rotate(180deg) !important;
+}
+
+/* Fix React Phone Input */
 html:not(.dark) .react-tel-input .country-list,
 html:not(.dark) .react-tel-input .selected-flag .flag {
   filter: invert(1) hue-rotate(180deg);
 }
 
-/* React Phone Input Layout Overrides */
 .react-tel-input .country-list {
   margin-top: 6px !important;
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
   @apply rounded-xl border border-white/10;
 }
+
 .react-tel-input .country-list .country {
   padding: 8px 12px !important;
   display: flex !important;
   align-items: center !important;
   transition: background-color 0.15s ease;
 }
+
 .react-tel-input .country-list .country .flag {
   margin-top: 0 !important;
 }
+
 .react-tel-input .country-list .country .country-name {
   margin-left: 10px !important;
   margin-right: 6px !important;
   font-size: 0.85rem;
 }
+
 .react-tel-input .country-list .country:hover {
   background-color: rgba(148, 163, 184, 0.15) !important;
 }
+
 .react-tel-input .country-list .country.highlight {
   background-color: rgba(148, 163, 184, 0.25) !important;
 }
-

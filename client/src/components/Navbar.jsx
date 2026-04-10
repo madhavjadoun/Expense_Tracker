@@ -87,7 +87,7 @@ export default function Navbar({ onLogout, onHamburger }) {
           >
             {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
           </button>
-          
+
           <div className="relative" ref={notifRef}>
             <button
               type="button"
@@ -141,13 +141,12 @@ export default function Navbar({ onLogout, onHamburger }) {
                       notifications.map((n) => (
                         <div
                           key={n.id}
-                          className={`rounded-xl border px-3 py-2 text-xs ${
-                            n.type === "error"
+                          className={`rounded-xl border px-3 py-2 text-xs ${n.type === "error"
                               ? "border-red-400/25 bg-red-500/10 text-red-100"
                               : n.type === "success"
                                 ? "border-emerald-400/25 bg-emerald-500/10 text-emerald-100"
                                 : "border-white/10 bg-white/4 text-white/75"
-                          }`}
+                            }`}
                         >
                           <div className="flex items-center justify-between gap-2">
                             <div className="line-clamp-2">{n.message}</div>
@@ -178,12 +177,8 @@ export default function Navbar({ onLogout, onHamburger }) {
               <img
                 src={avatar}
                 alt="Profile avatar"
-                className="h-full w-full object-cover"
-                style={{
-                  filter: "none",
-                  mixBlendMode: "normal",
-                  isolation: "isolate",
-                }}
+                className="h-full w-full object-cover profile-avatar"
+                style={{ filter: 'none', WebkitFilter: 'none' }}
               />
             ) : (
               <span className="text-xs font-semibold text-white/80">{initials}</span>

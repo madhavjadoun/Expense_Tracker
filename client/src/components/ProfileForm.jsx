@@ -122,15 +122,11 @@ export default function ProfileForm() {
             className="grid h-11 w-11 place-items-center overflow-hidden rounded-full bg-gradient-to-br from-blue-500/25 to-emerald-500/20 ring-1 ring-white/10"
           >
             {displayAvatar ? (
-              <img 
-                src={displayAvatar} 
-                alt="Profile avatar" 
-                className="h-full w-full object-cover"
-                style={{
-                  filter: "none",
-                  mixBlendMode: "normal",
-                  isolation: "isolate",
-                }}
+              <img
+                src={displayAvatar}
+                alt="Profile avatar"
+                className="h-full w-full object-cover profile-avatar"
+                style={{ filter: 'none', WebkitFilter: 'none' }}
               />
             ) : (
               <span className="text-xs font-semibold text-white/85">{initials}</span>
