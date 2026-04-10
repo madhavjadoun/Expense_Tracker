@@ -5,7 +5,7 @@ import { auth } from "../firebase";
 // Central API utility (frontend ↔ backend)
 // Base URL: from env or fallback
 const client = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:5001/api",
+  baseURL: import.meta.env.VITE_API_URL || "https://expense-tracker-rouge-chi-43.vercel.app",
   headers: {
     "Content-Type": "application/json",
   },
@@ -55,51 +55,86 @@ function pickData(res) {
 
 export const api = {
   async fetchProfile() {
-    const res = await client.get("/profile");
-    return pickData(res);
+    try {
+      const res = await client.get("/api/profile");
+      return pickData(res);
+    } catch (error) {
+      console.error("API fetchProfile Error:", error);
+      throw error;
+    }
   },
 
   async saveProfile(payload) {
-    const res = await client.put("/profile", payload);
-    return pickData(res);
+    try {
+      const res = await client.put("/api/profile", payload);
+      return pickData(res);
+    } catch (error) {
+      console.error("API saveProfile Error:", error);
+      throw error;
+    }
   },
 
   async fetchAnalyticsSummary() {
-    const res = await client.get("/analytics/summary");
-    return pickData(res);
+    try {
+      const res = await client.get("/api/analytics/summary");
+      return pickData(res);
+    } catch (error) {
+      console.error("API fetchAnalyticsSummary Error:", error);
+      throw error;
+    }
   },
 
   async fetchExpenses() {
-    const res = await client.get("/expenses");
-    const data = pickData(res) || [];
-    return Array.isArray(data) ? data.map(normalizeExpense) : [];
+    try {
+      const res = await client.get("/api/expenses");
+      const data = pickData(res) || [];
+      return Array.isArray(data) ? data.map(normalizeExpense) : [];
+    } catch (error) {
+      console.error("API fetchExpenses Error:", error);
+      throw error;
+    }
   },
 
   async addExpense(expense) {
-    const res = await client.post("/expenses/add", {
-      amount: expense.amount,
-      category: expense.category,
-      note: expense.note,
-      date: expense.date,
-    });
-    const data = pickData(res);
-    return normalizeExpense(data);
+    try {
+      const res = await client.post("/api/expenses/add", {
+        amount: expense.amount,
+        category: expense.category,
+        note: expense.note,
+        date: expense.date,
+      });
+      const data = pickData(res);
+      return normalizeExpense(data);
+    } catch (error) {
+      console.error("API addExpense Error:", error);
+      throw error;
+    }
   },
 
   async deleteExpense(id) {
-    const res = await client.delete(`/expenses/${id}`);
-    const data = pickData(res);
-    return normalizeExpense(data);
+    try {
+      const res = await client.delete(`/api/expenses/${id}`);
+      const data = pickData(res);
+      return normalizeExpense(data);
+    } catch (error) {
+      console.error("API deleteExpense Error:", error);
+      throw error;
+    }
   },
 
   async updateExpense(id, expense) {
-    const res = await client.put(`/expenses/${id}`, {
-      amount: expense.amount,
-      category: expense.category,
-      note: expense.note,
-      date: expense.date,
-    });
-    const data = pickData(res);
-    return normalizeExpense(data);
+    try {
+      const res = await client.put(`/api/expenses/${id}`, {
+        amount: expense.amount,
+        category: expense.category,
+        note: expense.note,
+        date: expense.date,
+      });
+      const data = pickData(res);
+      return normalizeExpense(data);
+    } catch (error) {
+      console.error("API updateExpense Error:", error);
+      throw error;
+    }
   },
 };

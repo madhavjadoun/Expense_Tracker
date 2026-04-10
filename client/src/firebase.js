@@ -3,10 +3,12 @@ import { getAuth } from "firebase/auth";
 
 // Paste your Firebase project credentials here.
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  apiKey: "AIzaSyBlBJSAbphDldd9IV-3idILEpvAhzzl-rc",
+  authDomain: "first-ea8d1.firebaseapp.com",
+  projectId: "first-ea8d1",
+  storageBucket: "first-ea8d1.firebasestorage.app",
+  messagingSenderId: "787485827792",
+  appId: "1:787485827792:web:064c0a4b0ea62ef88cb4d5"
 };
 
 const app = initializeApp(firebaseConfig);
