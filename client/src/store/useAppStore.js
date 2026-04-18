@@ -388,6 +388,7 @@ export const useAppStore = create((set, get) => ({
     const prev        = get().expenses;
     const next        = prev.filter((e) => e.id !== id);
     const insights    = generateInsights(next, get().budgetMonthly);
+    // Optimistic: remove from UI immediately
     set({ expenses: next, insights });
     const wasNotified = get().budgetExceededNotified;
     const isExceeded  = insights?.budgetStatus === "exceeded";
@@ -397,17 +398,27 @@ export const useAppStore = create((set, get) => ({
     } else if (!isExceeded && wasNotified) {
       set({ budgetExceededNotified: false });
     }
+
+    // Clean up workspace map immediately (don't wait for API)
+    const nextMap = { ...get().workspaceExpenseMap };
+    delete nextMap[id];
+    saveJSON(WS_EXPENSE_MAP_KEY, nextMap);
+    set({ workspaceExpenseMap: nextMap });
+
     try {
       await api.deleteExpense(id);
-      // Clean up workspace map entry
-      const nextMap = { ...get().workspaceExpenseMap };
-      delete nextMap[id];
-      saveJSON(WS_EXPENSE_MAP_KEY, nextMap);
-      set({ workspaceExpenseMap: nextMap });
       return { ok: true };
     } catch (e) {
+      const msg = e?.message || "";
+      // If "not found" — expense was already deleted or never in backend. Don't rollback.
+      if (msg.toLowerCase().includes("not found") || msg.toLowerCase().includes("404")) {
+        return { ok: true };
+      }
+      // For genuine server errors — rollback UI
       set({ expenses: prev, insights: generateInsights(prev, get().budgetMonthly) });
-      return { ok: false, message: e?.message || "Failed to delete expense." };
+      // Restore workspace map
+      saveJSON(WS_EXPENSE_MAP_KEY, { ...get().workspaceExpenseMap, [id]: prev.find(e => e.id === id)?.workspaceId });
+      return { ok: false, message: msg || "Failed to delete expense." };
     }
   },
 
