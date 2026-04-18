@@ -37,10 +37,8 @@ app.use(express.static(publicDir));
 const distDir = path.join(__dirname, "client", "dist");
 app.use(express.static(distDir));
 
-// Test route (Requirement #5)
-app.get("/", (req, res) => {
-  res.send("API is running...");
-});
+// Health check (does not override React SPA)
+app.get("/api/health", (req, res) => res.json({ status: "ok" }));
 
 // API routes (all protected by requireAuth → req.userId)
 const expenseRoutes  = require("./routes/expenseRoutes");
