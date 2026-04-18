@@ -8,11 +8,14 @@ import { useAppStore } from "./store/useAppStore";
 import { Toaster } from "react-hot-toast";
 import { auth } from "./firebase";
 
-const AuthPage = lazy(() => import("./pages/AuthPage"));
-const DashboardPage = lazy(() => import("./pages/DashboardPage"));
-const ExpensesPage = lazy(() => import("./pages/ExpensesPage"));
-const AnalyticsPage = lazy(() => import("./pages/AnalyticsPage"));
-const ProfilePage = lazy(() => import("./pages/ProfilePage"));
+const AuthPage      = lazy(() => import("./pages/AuthPage"));
+const DashboardPage  = lazy(() => import("./pages/DashboardPage"));
+const ExpensesPage   = lazy(() => import("./pages/ExpensesPage"));
+const AnalyticsPage  = lazy(() => import("./pages/AnalyticsPage"));
+const ProfilePage    = lazy(() => import("./pages/ProfilePage"));
+const PlansPage      = lazy(() => import("./pages/PlansPage"));
+const SplitPage      = lazy(() => import("./pages/SplitPage"));
+const JoinPage       = lazy(() => import("./pages/JoinPage"));
 
 export default function App() {
   const location = useLocation();
@@ -77,7 +80,10 @@ export default function App() {
               <Suspense fallback={<Loader show label="Loading page…" />}>
                 <AuthPage
                   initialMode="login"
-                  onAuthSuccess={() => navigate("/dashboard", { replace: true })}
+                  onAuthSuccess={() => {
+                    const redirect = new URLSearchParams(window.location.search).get("redirect");
+                    navigate(redirect || "/dashboard", { replace: true });
+                  }}
                 />
               </Suspense>
             )
@@ -92,7 +98,10 @@ export default function App() {
               <Suspense fallback={<Loader show label="Loading page…" />}>
                 <AuthPage
                   initialMode="signup"
-                  onAuthSuccess={() => navigate("/dashboard", { replace: true })}
+                  onAuthSuccess={() => {
+                    const redirect = new URLSearchParams(window.location.search).get("redirect");
+                    navigate(redirect || "/dashboard", { replace: true });
+                  }}
                 />
               </Suspense>
             )
@@ -146,7 +155,32 @@ export default function App() {
               </Suspense>
             }
           />
+          <Route
+            path="/plans"
+            element={
+              <Suspense fallback={<Loader show label="Loading…" />}>
+                <PlansPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/split"
+            element={
+              <Suspense fallback={<Loader show label="Loading…" />}>
+                <SplitPage />
+              </Suspense>
+            }
+          />
         </Route>
+
+        <Route
+          path="/app/join/:token"
+          element={
+            <Suspense fallback={<Loader show label="Loading…" />}>
+              <JoinPage />
+            </Suspense>
+          }
+        />
 
         <Route
           path="*"

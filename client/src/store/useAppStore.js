@@ -9,9 +9,31 @@ import {
 import { auth } from "../firebase";
 import { notify, useNotificationStore } from "./useNotificationStore";
 import { useUserStore } from "./useUserStore";
-import {
-  generateInsights,
-} from "../utils/budgetInsights";
+import { generateInsights } from "../utils/budgetInsights";
+import { usePlanStore, isExpenseLimitReached } from "./usePlanStore";
+
+// ─── localStorage helpers ────────────────────────────────────────────────────────────────
+const WS_EXPENSE_MAP_KEY = "xpense_ws_expense_map";
+const WS_BUDGETS_KEY     = "xpense_ws_budgets";
+
+function loadJSON(key, fallback) {
+  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
+  catch { return fallback; }
+}
+function saveJSON(key, value) {
+  try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
+}
+
+/**
+ * Re-apply stored workspaceId values to a fresh array of expenses from the
+ * backend (which has no knowledge of client-side workspaces).
+ */
+function applyWorkspaceMap(expenses, map) {
+  return expenses.map((e) => ({
+    ...e,
+    workspaceId: map[e.id] ?? "default",
+  }));
+}
 
 function normalizeFirebaseUser(user) {
   if (!user) return null;
@@ -72,7 +94,21 @@ export const useAppStore = create((set, get) => ({
 
   expenses: [],
 
-  // Monthly budget (per Firebase uid in localStorage — see setBudgetMonthly)
+  /**
+   * Client-side map: expenseId → workspaceId.
+   * Persisted in localStorage so workspaceId survives page refresh and
+   * backend re-fetches (backend has no workspace concept).
+   */
+  workspaceExpenseMap: loadJSON(WS_EXPENSE_MAP_KEY, {}),
+
+  /**
+   * Per-workspace monthly budgets for non-default workspaces.
+   * Map: workspaceId → number.
+   * Default workspace budget is stored in budgetMonthly (MongoDB-synced).
+   */
+  workspaceBudgets: loadJSON(WS_BUDGETS_KEY, {}),
+
+  // Monthly budget (per Firebase uid, default workspace — synced with MongoDB)
   budgetMonthly: 0,
 
   // Generated insights (UI-only)
@@ -240,20 +276,19 @@ export const useAppStore = create((set, get) => ({
   fetchExpenses: async () => {
     set((s) => ({
       loading: { ...s.loading, expenses: true },
-      error: { ...s.error, expenses: null },
+      error:   { ...s.error,   expenses: null },
     }));
     try {
-      const expenses = await api.fetchExpenses();
-      const nextExpenses = expenses.slice().sort(sortByDateDesc);
-      const budgetMonthly = get().budgetMonthly;
-      const insights = generateInsights(nextExpenses, budgetMonthly);
-      set((s) => ({
-        expenses: nextExpenses,
-        insights,
-        loading: { ...s.loading, expenses: false },
-      }));
+      const raw       = await api.fetchExpenses();
+      const map       = get().workspaceExpenseMap;
+      // Re-apply client-side workspaceId to every expense from the backend
+      const hydrated  = applyWorkspaceMap(raw, map);
+      const sorted    = hydrated.slice().sort(sortByDateDesc);
+      const budget    = get().budgetMonthly;
+      const insights  = generateInsights(sorted, budget);
+      set((s) => ({ expenses: sorted, insights, loading: { ...s.loading, expenses: false } }));
       const wasNotified = get().budgetExceededNotified;
-      const isExceeded = insights?.budgetStatus === "exceeded";
+      const isExceeded  = insights?.budgetStatus === "exceeded";
       if (isExceeded && !wasNotified) {
         notify({ type: "error", message: "Budget exceeded." });
         set({ budgetExceededNotified: true });
@@ -264,29 +299,47 @@ export const useAppStore = create((set, get) => ({
     } catch (e) {
       set((s) => ({
         loading: { ...s.loading, expenses: false },
-        error: { ...s.error, expenses: e?.message || "Failed to load expenses." },
+        error:   { ...s.error, expenses: e?.message || "Failed to load expenses." },
       }));
       return { ok: false };
     }
   },
 
   addExpenseOptimistic: async (draftExpense) => {
+    // ── Plan limit guard ───────────────────────────────────────────────────
+    const planId = usePlanStore.getState().planId;
+    if (isExpenseLimitReached(planId, get().expenses.length)) {
+      return { ok: false, limitReached: true, message: "Limit reached! Upgrade your plan to add more expenses." };
+    }
+
+    // ── Workspace tag ───────────────────────────────────────────────────
+    const workspaceId = draftExpense.workspaceId ?? "default";
+
+    const tempId = crypto.randomUUID();
     const optimistic = {
-      id: crypto.randomUUID(),
-      amount: Number(draftExpense.amount),
-      category: draftExpense.category,
-      note: draftExpense.note || "",
-      date: new Date().toISOString(),
+      id:          tempId,
+      amount:      Number(draftExpense.amount),
+      category:    draftExpense.category,
+      note:        draftExpense.note || "",
+      date:        new Date().toISOString(),
+      workspaceId, // ← always attached
+      isRecurring:  Boolean(draftExpense.isRecurring),
+      recurringType: draftExpense.isRecurring ? draftExpense.recurringType : null,
       _optimistic: true,
     };
 
+    // Store workspaceId in the persistent map immediately (temp ID)
+    const mapWithTemp = { ...get().workspaceExpenseMap, [tempId]: workspaceId };
+    saveJSON(WS_EXPENSE_MAP_KEY, mapWithTemp);
+    set({ workspaceExpenseMap: mapWithTemp });
+
     const prev = get().expenses;
     const nextExpenses = [optimistic, ...prev].slice().sort(sortByDateDesc);
-    const budgetMonthly = get().budgetMonthly;
-    const insights = generateInsights(nextExpenses, budgetMonthly);
+    const insights     = generateInsights(nextExpenses, get().budgetMonthly);
     set({ expenses: nextExpenses, insights });
+
     const wasNotified = get().budgetExceededNotified;
-    const isExceeded = insights?.budgetStatus === "exceeded";
+    const isExceeded  = insights?.budgetStatus === "exceeded";
     if (isExceeded && !wasNotified) {
       notify({ type: "error", message: "Budget exceeded." });
       set({ budgetExceededNotified: true });
@@ -296,32 +349,48 @@ export const useAppStore = create((set, get) => ({
 
     try {
       const saved = await api.addExpense(optimistic);
+
+      // Migrate temp ID → real ID in the workspace map
+      const prevMap   = get().workspaceExpenseMap;
+      const nextMap   = { ...prevMap, [saved.id]: workspaceId };
+      delete nextMap[tempId];
+      saveJSON(WS_EXPENSE_MAP_KEY, nextMap);
+      set({ workspaceExpenseMap: nextMap });
+
       set((s) => {
         const updated = s.expenses
-          .map((e) => (e.id === optimistic.id ? { ...saved } : e))
+          .map((e) => (e.id === tempId ? { ...saved, workspaceId } : e))
           .slice()
           .sort(sortByDateDesc);
-        const insights = generateInsights(updated, get().budgetMonthly);
-        return { expenses: updated, insights };
+        return { expenses: updated, insights: generateInsights(updated, get().budgetMonthly) };
       });
       return { ok: true };
     } catch (e) {
-      // Rollback on failure
-      const budgetMonthly = get().budgetMonthly;
-      const insights = generateInsights(prev, budgetMonthly);
-      set({ expenses: prev, insights });
+      // Rollback — remove temp entry from map too
+      const rolledMap = { ...get().workspaceExpenseMap };
+      delete rolledMap[tempId];
+      saveJSON(WS_EXPENSE_MAP_KEY, rolledMap);
+      set({ expenses: prev, workspaceExpenseMap: rolledMap,
+            insights: generateInsights(prev, get().budgetMonthly) });
       return { ok: false, message: e?.message || "Failed to add expense." };
     }
   },
 
+  /** Per-workspace budget (non-default workspaces only). */
+  setWorkspaceBudget: (workspaceId, amount) => {
+    const safe = Number(amount) || 0;
+    const next = { ...get().workspaceBudgets, [workspaceId]: safe };
+    saveJSON(WS_BUDGETS_KEY, next);
+    set({ workspaceBudgets: next });
+  },
+
   deleteExpenseOptimistic: async (id) => {
-    const prev = get().expenses;
-    const nextExpenses = prev.filter((e) => e.id !== id);
-    const budgetMonthly = get().budgetMonthly;
-    const insights = generateInsights(nextExpenses, budgetMonthly);
-    set({ expenses: nextExpenses, insights });
+    const prev        = get().expenses;
+    const next        = prev.filter((e) => e.id !== id);
+    const insights    = generateInsights(next, get().budgetMonthly);
+    set({ expenses: next, insights });
     const wasNotified = get().budgetExceededNotified;
-    const isExceeded = insights?.budgetStatus === "exceeded";
+    const isExceeded  = insights?.budgetStatus === "exceeded";
     if (isExceeded && !wasNotified) {
       notify({ type: "error", message: "Budget exceeded." });
       set({ budgetExceededNotified: true });
@@ -330,26 +399,30 @@ export const useAppStore = create((set, get) => ({
     }
     try {
       await api.deleteExpense(id);
+      // Clean up workspace map entry
+      const nextMap = { ...get().workspaceExpenseMap };
+      delete nextMap[id];
+      saveJSON(WS_EXPENSE_MAP_KEY, nextMap);
+      set({ workspaceExpenseMap: nextMap });
       return { ok: true };
     } catch (e) {
-      // Rollback on failure
-      const insights = generateInsights(prev, get().budgetMonthly);
-      set({ expenses: prev, insights });
+      set({ expenses: prev, insights: generateInsights(prev, get().budgetMonthly) });
       return { ok: false, message: e?.message || "Failed to delete expense." };
     }
   },
 
   updateExpenseOptimistic: async (id, patch) => {
-    const prev = get().expenses;
+    const prev        = get().expenses;
+    // Preserve workspaceId through the update — never let backend data overwrite it
+    const existingWs  = prev.find((e) => e.id === id)?.workspaceId ?? "default";
     const nextExpenses = prev
-      .map((e) => (e.id === id ? { ...e, ...patch } : e))
+      .map((e) => (e.id === id ? { ...e, ...patch, workspaceId: existingWs } : e))
       .slice()
       .sort(sortByDateDesc);
-    const budgetMonthly = get().budgetMonthly;
-    const insights = generateInsights(nextExpenses, budgetMonthly);
+    const insights    = generateInsights(nextExpenses, get().budgetMonthly);
     set({ expenses: nextExpenses, insights });
     const wasNotified = get().budgetExceededNotified;
-    const isExceeded = insights?.budgetStatus === "exceeded";
+    const isExceeded  = insights?.budgetStatus === "exceeded";
     if (isExceeded && !wasNotified) {
       notify({ type: "error", message: "Budget exceeded." });
       set({ budgetExceededNotified: true });
@@ -360,16 +433,15 @@ export const useAppStore = create((set, get) => ({
       const saved = await api.updateExpense(id, patch);
       set((s) => {
         const updated = s.expenses
-          .map((e) => (e.id === id ? { ...saved } : e))
+          // Preserve workspaceId — backend response doesn't include it
+          .map((e) => (e.id === id ? { ...saved, workspaceId: existingWs } : e))
           .slice()
           .sort(sortByDateDesc);
-        const insights = generateInsights(updated, get().budgetMonthly);
-        return { expenses: updated, insights };
+        return { expenses: updated, insights: generateInsights(updated, get().budgetMonthly) };
       });
       return { ok: true };
     } catch (e) {
-      const insights = generateInsights(prev, get().budgetMonthly);
-      set({ expenses: prev, insights });
+      set({ expenses: prev, insights: generateInsights(prev, get().budgetMonthly) });
       return { ok: false, message: e?.message || "Failed to update expense." };
     }
   },

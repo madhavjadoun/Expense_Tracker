@@ -8,6 +8,7 @@ import Button from "../components/Button";
 import { Skeleton } from "../components/Skeleton";
 import Modal from "../components/Modal";
 import { useAppStore } from "../store/useAppStore";
+import { useWorkspaceStore } from "../store/useWorkspaceStore";
 import { notify } from "../store/useNotificationStore";
 
 const categories = [
@@ -32,17 +33,27 @@ export default function ExpensesPage() {
 
   const location = useLocation();
   const user = useAppStore((s) => s.user);
-  const expenses = useAppStore((s) => s.expenses);
+  const allExpenses = useAppStore((s) => s.expenses);
   const loading = useAppStore((s) => s.loading?.expenses);
   const error = useAppStore((s) => s.error?.expenses);
   const fetchExpenses = useAppStore((s) => s.fetchExpenses);
   const addExpenseOptimistic = useAppStore((s) => s.addExpenseOptimistic);
   const deleteExpenseOptimistic = useAppStore((s) => s.deleteExpenseOptimistic);
   const updateExpenseOptimistic = useAppStore((s) => s.updateExpenseOptimistic);
+
+  // Workspace filter
+  const activeWorkspaceId = useWorkspaceStore((s) => s.activeWorkspaceId);
+  const activeWs = useWorkspaceStore((s) => s.workspaces.find((w) => w.id === s.activeWorkspaceId));
+  const expenses = useMemo(
+    () => allExpenses.filter((e) => (e.workspaceId ?? "default") === activeWorkspaceId),
+    [allExpenses, activeWorkspaceId]
+  );
   const [form, setForm] = useState({
     amount: "",
     category: "food",
     note: "",
+    isRecurring: false,
+    recurringType: "monthly",
   });
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -70,11 +81,11 @@ export default function ExpensesPage() {
   };
 
   useEffect(() => {
-    // Refresh when switching accounts or entering the route.
-    if (location.pathname === "/expenses" && user?.uid) {
+    // Only fetch if the store is empty — data loaded on login is reused instantly.
+    if (location.pathname === "/expenses" && user?.uid && allExpenses.length === 0) {
       fetchExpenses();
     }
-  }, [fetchExpenses, location.pathname, user?.uid]);
+  }, [fetchExpenses, location.pathname, user?.uid, allExpenses.length]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -177,12 +188,14 @@ export default function ExpensesPage() {
       amount,
       category: form.category,
       note: form.note?.trim() || "",
+      workspaceId: activeWorkspaceId,
+      isRecurring: form.isRecurring,
+      recurringType: form.isRecurring ? form.recurringType : null,
     });
 
     if (res.ok) {
-
-      notify({ type: "success", message: "Expense added" });
-      setForm((f) => ({ ...f, amount: "", note: "" }));
+      notify({ type: "success", message: form.isRecurring ? "Recurring expense added" : "Expense added" });
+      setForm((f) => ({ ...f, amount: "", note: "", isRecurring: false, recurringType: "monthly" }));
     } else {
       console.error("Failed to add expense:", res.message);
       notify({ type: "error", message: res.message || "Something went wrong" });
@@ -231,17 +244,57 @@ export default function ExpensesPage() {
     }
   }
 
+  function exportToCSV() {
+    if (!visibleExpenses || visibleExpenses.length === 0) return;
+
+    const headers = ["Date", "Description", "Amount", "Category"];
+    const rows = visibleExpenses.map((exp) => [
+      new Date(exp.date).toLocaleDateString(),
+      `"${(exp.note || "").replace(/"/g, '""')}"`,
+      Number(exp.amount).toFixed(2),
+      exp.category,
+    ]);
+
+    const csvContent = [headers, ...rows].map((row) => row.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "expenses.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <div className="mx-auto w-full max-w-6xl">
       <div className="mb-5 flex items-end justify-between gap-4">
         <div>
-          <div className="text-xs text-white/50">Expenses</div>
+          <div className="text-xs text-white/50">
+            Expenses
+            {activeWs && activeWs.id !== "default" && (
+              <span className="ml-1.5 rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-medium text-white/50">
+                {activeWs.name}
+              </span>
+            )}
+          </div>
           <div className="text-xl font-semibold text-white/90">
             All expenses
           </div>
         </div>
-        <div className="text-sm font-semibold text-white/85">
-          {loading ? "—" : formatMoney(total)}
+        <div className="flex items-center gap-3">
+          <div className="text-sm font-semibold text-white/85">
+            {loading ? "—" : formatMoney(total)}
+          </div>
+          <button
+            type="button"
+            onClick={exportToCSV}
+            disabled={visibleExpenses.length === 0}
+            className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-white/70 transition hover:border-emerald-400/30 hover:bg-emerald-500/10 hover:text-emerald-300 disabled:pointer-events-none disabled:opacity-35"
+          >
+            ↓ Export CSV
+          </button>
         </div>
       </div>
 
@@ -289,6 +342,32 @@ export default function ExpensesPage() {
                   setForm((f) => ({ ...f, note: e.target.value }))
                 }
               />
+
+              {/* ── Recurring toggle ── */}
+              <label className="flex cursor-pointer items-center gap-2.5 rounded-xl border border-white/10 bg-white/4 px-3 py-2.5 transition hover:bg-white/6">
+                <input
+                  type="checkbox"
+                  checked={form.isRecurring}
+                  onChange={(e) => setForm((f) => ({ ...f, isRecurring: e.target.checked }))}
+                  className="h-3.5 w-3.5 cursor-pointer accent-emerald-400 rounded"
+                />
+                <span className="text-xs font-medium text-white/70">🔁 Recurring expense</span>
+              </label>
+
+              {/* ── Recurrence type dropdown — visible only if recurring is ON ── */}
+              {form.isRecurring && (
+                <label className="block space-y-1">
+                  <span className="text-xs font-medium text-white/70">Repeat every</span>
+                  <select
+                    className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-emerald-400/35 focus:ring-2 focus:ring-emerald-400/15"
+                    value={form.recurringType}
+                    onChange={(e) => setForm((f) => ({ ...f, recurringType: e.target.value }))}
+                  >
+                    <option value="monthly">Month</option>
+                    <option value="weekly">Week</option>
+                  </select>
+                </label>
+              )}
 
               <Button type="button" onClick={(e) => { e.preventDefault(); addExpense(); }}>Add</Button>
             </div>
@@ -475,13 +554,18 @@ export default function ExpensesPage() {
                             ? `${e.note.slice(0, 48)}...`
                             : e.note || "Expense"}
                         </div>
-                        <div className="mt-0.5 text-xs text-white/50">
-                          {categoryIcon[e.category] || "💰"} {e.category} •{" "}
-                          {new Date(e.date).toLocaleDateString(undefined, {
-                            year: "numeric",
-                            month: "short",
-                            day: "2-digit",
-                          })}
+                        <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-white/50">
+                          <span>{categoryIcon[e.category] || "💰"} {e.category} • {new Date(e.date).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "2-digit" })}</span>
+                          {e.isRecurring && (
+                            <span className="inline-flex items-center gap-1 rounded-md border border-emerald-400/20 bg-emerald-400/10 px-1.5 py-0.5 text-[10px] font-medium text-emerald-300">
+                              🔁 Recurring · {e.recurringType}
+                            </span>
+                          )}
+                          {e.isAutoGenerated && (
+                            <span className="inline-flex items-center rounded-md border border-white/10 bg-white/5 px-1.5 py-0.5 text-[10px] text-white/40">
+                              auto
+                            </span>
+                          )}
                         </div>
                         {e.note && e.note.length > 48 ? (
                           <button
@@ -525,6 +609,12 @@ export default function ExpensesPage() {
         open={Boolean(editingExpense)}
         onClose={() => setEditingExpense(null)}
         title="Edit expense"
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="ghost" onClick={(e) => { e.preventDefault(); setEditingExpense(null); }}>Cancel</Button>
+            <Button type="button" onClick={(e) => { e.preventDefault(); saveEdit(); }}>Save</Button>
+          </div>
+        }
       >
         <div className="space-y-3">
           <Input
@@ -541,9 +631,7 @@ export default function ExpensesPage() {
               onChange={(e) => setEditForm((f) => ({ ...f, category: e.target.value }))}
             >
               {categories.map((c) => (
-                <option key={c.key} value={c.key}>
-                  {c.label}
-                </option>
+                <option key={c.key} value={c.key}>{c.label}</option>
               ))}
             </select>
           </label>
@@ -561,12 +649,6 @@ export default function ExpensesPage() {
               onChange={(e) => setEditForm((f) => ({ ...f, note: e.target.value }))}
             />
           </label>
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="ghost" onClick={(e) => { e.preventDefault(); setEditingExpense(null); }}>
-              Cancel
-            </Button>
-            <Button type="button" onClick={(e) => { e.preventDefault(); saveEdit(); }}>Save</Button>
-          </div>
         </div>
       </Modal>
 
@@ -574,27 +656,26 @@ export default function ExpensesPage() {
         open={Boolean(deleteCandidate)}
         onClose={() => setDeleteCandidate(null)}
         title="Delete expense"
-      >
-        <div className="space-y-3">
-          <div className="text-sm text-white/70">
-            Are you sure you want to delete this expense?
-          </div>
+        footer={
           <div className="flex justify-end gap-2">
-            <Button type="button" variant="ghost" onClick={(e) => { e.preventDefault(); setDeleteCandidate(null); }}>
-              Cancel
-            </Button>
+            <Button type="button" variant="ghost" onClick={(e) => { e.preventDefault(); setDeleteCandidate(null); }}>Cancel</Button>
             <Button
               type="button"
-              onClick={async (e) => {
+              onClick={(e) => {
                 e.preventDefault();
-                if (!deleteCandidate?.id) return;
-                await deleteExpense(deleteCandidate.id);
+                const idToDelete = deleteCandidate?.id;
+                if (!idToDelete) return;
                 setDeleteCandidate(null);
+                deleteExpense(idToDelete);
               }}
             >
               Confirm
             </Button>
           </div>
+        }
+      >
+        <div className="text-sm text-white/70">
+          Are you sure you want to delete this expense?
         </div>
       </Modal>
     </div>

@@ -1,50 +1,59 @@
 const Expense = require("../models/Expense");
 
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+/**
+ * Compute the next run date from a base date.
+ * Always works in UTC to avoid timezone drift.
+ */
+function computeNextRunDate(base, type) {
+  const d = new Date(base);
+  if (type === "weekly")  d.setUTCDate(d.getUTCDate() + 7);
+  if (type === "monthly") d.setUTCMonth(d.getUTCMonth() + 1);
+  return d;
+}
+
+// ─── addExpense ───────────────────────────────────────────────────────────────
 /**
  * POST /api/expenses/add
- * Add a new expense.
  */
 async function addExpense(req, res) {
   try {
-    const { amount, category, date, note } = req.body;
+    const {
+      amount, category, date, note,
+      workspaceId,
+      isRecurring, recurringType,
+    } = req.body;
 
-    // Basic validation (required fields)
+    // Validation
     if (amount === undefined || amount === null || amount === "") {
-      return res.status(400).json({
-        success: false,
-        message: "Amount is required.",
-      });
+      return res.status(400).json({ success: false, message: "Amount is required." });
     }
-
     if (!category) {
-      return res.status(400).json({
-        success: false,
-        message: "Category is required.",
-      });
+      return res.status(400).json({ success: false, message: "Category is required." });
     }
-
-    // Optional: a little extra validation for better API behavior
     const numericAmount = Number(amount);
-    if (Number.isNaN(numericAmount)) {
-      return res.status(400).json({
-        success: false,
-        message: "Amount must be a number.",
-      });
+    if (Number.isNaN(numericAmount) || numericAmount <= 0) {
+      return res.status(400).json({ success: false, message: "Amount must be a positive number." });
     }
 
-    if (numericAmount <= 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Amount must be greater than 0.",
-      });
+    // Recurring fields
+    let nextRunDate = null;
+    if (isRecurring && recurringType) {
+      const baseDate = date ? new Date(date) : new Date();
+      nextRunDate = computeNextRunDate(baseDate, recurringType);
     }
 
     const expense = await Expense.create({
-      userId: req.userId,
-      amount: numericAmount,
+      userId:       req.userId,
+      workspaceId:  workspaceId || "default",
+      amount:       numericAmount,
       category,
       date,
       note,
+      isRecurring:    Boolean(isRecurring),
+      recurringType:  isRecurring ? recurringType : null,
+      nextRunDate,
     });
 
     return res.status(200).json({
@@ -53,7 +62,6 @@ async function addExpense(req, res) {
       data: expense,
     });
   } catch (err) {
-    // Mongoose validation errors come here too (like enum mismatch)
     return res.status(500).json({
       success: false,
       message: "Server error while adding expense.",
@@ -62,13 +70,18 @@ async function addExpense(req, res) {
   }
 }
 
+// ─── getAllExpenses ───────────────────────────────────────────────────────────
 /**
  * GET /api/expenses
- * Get all expenses (latest first).
+ * Supports optional ?workspaceId= query param.
  */
 async function getAllExpenses(req, res) {
   try {
-    const expenses = await Expense.find({ userId: req.userId }).sort({ date: -1 });
+    const { workspaceId } = req.query;
+    const filter = { userId: req.userId };
+    if (workspaceId) filter.workspaceId = workspaceId;
+
+    const expenses = await Expense.find(filter).sort({ date: -1 });
 
     return res.status(200).json({
       success: true,
@@ -84,23 +97,20 @@ async function getAllExpenses(req, res) {
   }
 }
 
+// ─── getSummary ───────────────────────────────────────────────────────────────
 /**
  * GET /api/expenses/summary
- * Summary:
- * - total expense
- * - category-wise totals (MongoDB aggregation)
+ * Supports optional ?workspaceId= query param.
  */
 async function getSummary(req, res) {
   try {
-    // Group expenses by category and sum amounts
+    const { workspaceId } = req.query;
+    const matchStage = { userId: req.userId };
+    if (workspaceId) matchStage.workspaceId = workspaceId;
+
     const grouped = await Expense.aggregate([
-      { $match: { userId: req.userId } },
-      {
-        $group: {
-          _id: "$category",
-          total: { $sum: "$amount" },
-        },
-      },
+      { $match: matchStage },
+      { $group: { _id: "$category", total: { $sum: "$amount" } } },
       { $sort: { _id: 1 } },
     ]);
 
@@ -113,10 +123,7 @@ async function getSummary(req, res) {
 
     return res.status(200).json({
       success: true,
-      data: {
-        totalExpense,
-        categoryTotals,
-      },
+      data: { totalExpense, categoryTotals },
     });
   } catch (err) {
     return res.status(500).json({
@@ -127,110 +134,62 @@ async function getSummary(req, res) {
   }
 }
 
-/**
- * DELETE /api/expenses/:id
- * Delete an expense by id.
- */
+// ─── deleteExpense ────────────────────────────────────────────────────────────
 async function deleteExpense(req, res) {
   try {
     const { id } = req.params;
+    if (!id) return res.status(400).json({ success: false, message: "Expense id is required." });
 
-    if (!id) {
-      return res.status(400).json({
-        success: false,
-        message: "Expense id is required.",
-      });
-    }
+    const deleted = await Expense.findOneAndDelete({ _id: id, userId: req.userId });
+    if (!deleted) return res.status(404).json({ success: false, message: "Expense not found." });
 
-    const deleted = await Expense.findOneAndDelete({
-      _id: id,
-      userId: req.userId,
-    });
-
-    if (!deleted) {
-      return res.status(404).json({
-        success: false,
-        message: "Expense not found.",
-      });
-    }
-
-    return res.status(200).json({
-      success: true,
-      message: "Expense deleted successfully.",
-      data: deleted,
-    });
+    return res.status(200).json({ success: true, message: "Expense deleted.", data: deleted });
   } catch (err) {
-    return res.status(500).json({
-      success: false,
-      message: "Server error while deleting expense.",
-      error: err.message,
-    });
+    return res.status(500).json({ success: false, message: "Server error.", error: err.message });
   }
 }
 
-/**
- * PUT /api/expenses/:id
- * Update an existing expense by id.
- */
+// ─── updateExpense ────────────────────────────────────────────────────────────
 async function updateExpense(req, res) {
   try {
     const { id } = req.params;
-    const { amount, category, date, note } = req.body;
+    const { amount, category, date, note, isRecurring, recurringType } = req.body;
 
-    if (!id) {
-      return res.status(400).json({
-        success: false,
-        message: "Expense id is required.",
-      });
-    }
+    if (!id) return res.status(400).json({ success: false, message: "Expense id is required." });
 
     const updates = {};
     if (amount !== undefined) {
-      const numericAmount = Number(amount);
-      if (Number.isNaN(numericAmount) || numericAmount <= 0) {
-        return res.status(400).json({
-          success: false,
-          message: "Amount must be a valid number greater than 0.",
-        });
-      }
-      updates.amount = numericAmount;
+      const n = Number(amount);
+      if (Number.isNaN(n) || n <= 0)
+        return res.status(400).json({ success: false, message: "Amount must be a positive number." });
+      updates.amount = n;
     }
-    if (category !== undefined) updates.category = category;
-    if (date !== undefined) updates.date = date;
-    if (note !== undefined) updates.note = note;
+    if (category   !== undefined) updates.category = category;
+    if (date       !== undefined) updates.date = date;
+    if (note       !== undefined) updates.note = note;
+    if (isRecurring !== undefined) {
+      updates.isRecurring   = Boolean(isRecurring);
+      updates.recurringType = isRecurring ? (recurringType || null) : null;
+      // Recompute nextRunDate
+      if (isRecurring && recurringType) {
+        const base = date ? new Date(date) : new Date();
+        updates.nextRunDate = computeNextRunDate(base, recurringType);
+      } else {
+        updates.nextRunDate = null;
+      }
+    }
 
     const updated = await Expense.findOneAndUpdate(
       { _id: id, userId: req.userId },
       updates,
       { new: true }
     );
+    if (!updated) return res.status(404).json({ success: false, message: "Expense not found." });
 
-    if (!updated) {
-      return res.status(404).json({
-        success: false,
-        message: "Expense not found.",
-      });
-    }
-
-    return res.status(200).json({
-      success: true,
-      message: "Expense updated successfully.",
-      data: updated,
-    });
+    return res.status(200).json({ success: true, message: "Expense updated.", data: updated });
   } catch (err) {
-    return res.status(500).json({
-      success: false,
-      message: "Server error while updating expense.",
-      error: err.message,
-    });
+    return res.status(500).json({ success: false, message: "Server error.", error: err.message });
   }
 }
 
-module.exports = {
-  addExpense,
-  getAllExpenses,
-  getSummary,
-  deleteExpense,
-  updateExpense,
-};
-
+module.exports = { addExpense, getAllExpenses, getSummary, deleteExpense, updateExpense };

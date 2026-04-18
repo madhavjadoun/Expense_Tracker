@@ -69,24 +69,24 @@ body {
   background: rgba(255, 255, 255, 0.18);
 }
 
-/* Light mode */
+/* ── Light mode ──────────────────────────────────────────────────────────────
+   The app uses hardcoded dark Tailwind classes everywhere, so we use CSS
+   invert to flip the whole page to light. Images are double-inverted back
+   to their original colors so photos are NEVER colour-distorted.
+   ─────────────────────────────────────────────────────────────────────────── */
 html:not(.dark) {
   filter: invert(1) hue-rotate(180deg);
 }
 
-html:not(.dark) img:not(.profile-avatar),
+/* Double-invert: these elements should show their REAL colors */
+html:not(.dark) img,
 html:not(.dark) video,
 html:not(.dark) [style*="background-image"],
-html:not(.dark) button[aria-label="Toggle theme"]>svg {
+html:not(.dark) button[aria-label="Toggle theme"] > svg {
   filter: invert(1) hue-rotate(180deg);
 }
 
-html:not(.dark) .profile-avatar {
-  filter: invert(1) hue-rotate(180deg) !important;
-  -webkit-filter: invert(1) hue-rotate(180deg) !important;
-}
-
-/* Fix React Phone Input */
+/* Phone input elements */
 html:not(.dark) .react-tel-input .country-list,
 html:not(.dark) .react-tel-input .selected-flag .flag {
   filter: invert(1) hue-rotate(180deg);

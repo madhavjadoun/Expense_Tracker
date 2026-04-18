@@ -171,14 +171,20 @@ export default function Navbar({ onLogout, onHamburger }) {
             onClick={() => navigate("/profile")}
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
-            className="grid h-9 w-9 place-items-center rounded-full bg-gradient-to-br from-blue-500/20 to-emerald-500/15 ring-1 ring-white/10 overflow-hidden cursor-pointer"
+            className="relative grid h-9 w-9 place-items-center rounded-full bg-gradient-to-br from-blue-500/20 to-emerald-500/15 ring-1 ring-white/10 overflow-hidden cursor-pointer"
           >
             {avatar ? (
               <img
                 src={avatar}
                 alt="Profile avatar"
-                className="h-full w-full object-cover profile-avatar"
-                style={{ filter: 'none', WebkitFilter: 'none' }}
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  objectPosition: "center",
+                }}
               />
             ) : (
               <span className="text-xs font-semibold text-white/80">{initials}</span>

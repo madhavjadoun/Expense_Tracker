@@ -19,6 +19,7 @@ import ScrollReveal from "../components/ScrollReveal";
 import { Skeleton, SkeletonText } from "../components/Skeleton";
 import ChartSwitcher from "../components/ChartSwitcher";
 import { useAppStore } from "../store/useAppStore";
+import { useWorkspaceStore } from "../store/useWorkspaceStore";
 
 function DarkTooltipContent({ active, payload, label, total, currency }) {
   if (!active || !payload || !payload.length) return null;
@@ -51,12 +52,21 @@ function DarkTooltipContent({ active, payload, label, total, currency }) {
 }
 
 export default function AnalyticsPage() {
-  const loading = useAppStore((s) => s.loading?.expenses);
-  const error = useAppStore((s) => s.error?.expenses);
-  const expenses = useAppStore((s) => s.expenses);
+  const loading  = useAppStore((s) => s.loading?.expenses);
+  const error    = useAppStore((s) => s.error?.expenses);
+  const allExpenses = useAppStore((s) => s.expenses);
   const currency = useAppStore((s) => s.currency);
-  const [chartType, setChartType] = useState("line"); // pie | bar | line
-  const [period, setPeriod] = useState("weekly"); // weekly | monthly
+
+  // Filter expenses to the active workspace (same as Dashboard & Expenses pages)
+  const activeWorkspaceId = useWorkspaceStore((s) => s.activeWorkspaceId);
+  const activeWs = useWorkspaceStore((s) => s.workspaces.find((w) => w.id === s.activeWorkspaceId));
+  const expenses = useMemo(
+    () => allExpenses.filter((e) => (e.workspaceId ?? "default") === activeWorkspaceId),
+    [allExpenses, activeWorkspaceId]
+  );
+
+  const [chartType, setChartType] = useState("line");
+  const [period, setPeriod]       = useState("weekly");
 
   function startOfDay(d) {
     return new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -217,10 +227,15 @@ export default function AnalyticsPage() {
     <div className="mx-auto w-full max-w-6xl">
       <div className="mb-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
         <div>
-          <div className="text-xs text-white/50">Analytics</div>
-          <div className="text-xl font-semibold text-white/90">
-            Spending insights
+          <div className="text-xs text-white/50">
+            Analytics
+            {activeWs && activeWs.id !== "default" && (
+              <span className="ml-1.5 rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-medium text-white/50">
+                {activeWs.name}
+              </span>
+            )}
           </div>
+          <div className="text-xl font-semibold text-white/90">Spending insights</div>
         </div>
 
         <div className="flex items-center gap-3">

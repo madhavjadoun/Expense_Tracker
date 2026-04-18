@@ -1,15 +1,19 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { motion as Motion } from "framer-motion";
-import { LayoutDashboard, Wallet, BarChart3, User } from "lucide-react";
+import { LayoutDashboard, Wallet, BarChart3, User, CreditCard, SplitSquareVertical } from "lucide-react";
+import WorkspaceDropdown from "./WorkspaceDropdown";
 
 const navItems = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/expenses", label: "Expenses", icon: Wallet },
+  { to: "/expenses",  label: "Expenses",  icon: Wallet },
   { to: "/analytics", label: "Analytics", icon: BarChart3 },
-  { to: "/profile", label: "Profile", icon: User },
+  { to: "/split",     label: "Split",     icon: SplitSquareVertical },
+  { to: "/profile",   label: "Profile",   icon: User },
+  { to: "/plans",     label: "Plans",     icon: CreditCard },
 ];
 
 function SidebarContent({ collapsed, onToggleCollapsed, onNavigate }) {
+  const navigate = useNavigate();
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between gap-3 px-4 py-4">
@@ -56,6 +60,9 @@ function SidebarContent({ collapsed, onToggleCollapsed, onNavigate }) {
         </button>
       </div>
 
+      {/* ── Workspace picker ── */}
+      <WorkspaceDropdown collapsed={collapsed} />
+
       <nav className="flex-1 space-y-1 px-3 pb-4">
         {navItems.map((item) => (
           <NavLink
@@ -90,16 +97,20 @@ function SidebarContent({ collapsed, onToggleCollapsed, onNavigate }) {
       </nav>
 
       <div className="px-4 pb-4">
-        <div className="rounded-2xl border border-white/10 bg-white/4 p-3">
+        <button
+          type="button"
+          onClick={() => { navigate("/plans"); onNavigate?.(); }}
+          className="w-full rounded-2xl border border-white/10 bg-white/4 p-3 text-left transition hover:bg-white/7 hover:border-emerald-400/20"
+        >
           <div className="text-xs font-medium text-white/70">
             {collapsed ? "Pro" : "Pro plan"}
           </div>
           {!collapsed ? (
             <div className="mt-1 text-xs text-white/45">
-              Clean UX, smooth motion.
+              Upgrade for more features →
             </div>
           ) : null}
-        </div>
+        </button>
       </div>
     </div>
   );

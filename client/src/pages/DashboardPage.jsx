@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion as Motion } from "framer-motion";
 import { Plus } from "lucide-react";
 import GlassCard from "../components/GlassCard";
@@ -9,6 +9,7 @@ import Modal from "../components/Modal";
 import Input from "../components/Input";
 import Button from "../components/Button";
 import { useAppStore } from "../store/useAppStore";
+import { useWorkspaceStore } from "../store/useWorkspaceStore";
 import { notify } from "../store/useNotificationStore";
 import { calculateBudget } from "../utils/budgetInsights";
 
@@ -33,18 +34,50 @@ export default function DashboardPage() {
   }, [currency]);
 
   const userName = useAppStore((s) => s.user?.name || "User");
-  const expenses = useAppStore((s) => s.expenses);
-  const loading = useAppStore((s) => s.loading?.expenses);
-  const error = useAppStore((s) => s.error?.expenses);
-  const budgetMonthly = useAppStore((s) => s.budgetMonthly);
-  const setBudgetMonthly = useAppStore((s) => s.setBudgetMonthly);
-  const insights = useAppStore((s) => s.insights);
+  const allExpenses        = useAppStore((s) => s.expenses);
+  const loading            = useAppStore((s) => s.loading?.expenses);
+  const error              = useAppStore((s) => s.error?.expenses);
+  const budgetMonthly      = useAppStore((s) => s.budgetMonthly);      // default workspace (MongoDB)
+  const setBudgetMonthly   = useAppStore((s) => s.setBudgetMonthly);
+  const workspaceBudgets   = useAppStore((s) => s.workspaceBudgets);   // other workspaces (localStorage)
+  const setWorkspaceBudget = useAppStore((s) => s.setWorkspaceBudget);
+  const insights           = useAppStore((s) => s.insights);
   const addExpenseOptimistic = useAppStore((s) => s.addExpenseOptimistic);
+
+  // Workspace filter
+  const activeWorkspaceId = useWorkspaceStore((s) => s.activeWorkspaceId);
+  const activeWs = useWorkspaceStore((s) => s.workspaces.find((w) => w.id === s.activeWorkspaceId));
+  const expenses = useMemo(
+    () => allExpenses.filter((e) => (e.workspaceId ?? "default") === activeWorkspaceId),
+    [allExpenses, activeWorkspaceId]
+  );
+
+  // Effective budget for the active workspace:
+  // default workspace → budgetMonthly (synced with MongoDB)
+  // other workspaces  → workspaceBudgets[id] (localStorage only)
+  const isDefaultWs     = activeWorkspaceId === "default";
+  const effectiveBudget = isDefaultWs
+    ? budgetMonthly
+    : (workspaceBudgets[activeWorkspaceId] ?? 0);
+
+  function saveEffectiveBudget(value) {
+    if (isDefaultWs) {
+      setBudgetMonthly(value);
+    } else {
+      setWorkspaceBudget(activeWorkspaceId, value);
+    }
+  }
 
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [expenseForm, setExpenseForm] = useState({ amount: "", category: "food", note: "" });
 
-  const [budgetInput, setBudgetInput] = useState(String(budgetMonthly || ""));
+  const [budgetInput, setBudgetInput] = useState(String(effectiveBudget || ""));
+
+  // Sync the budgetInput field whenever the active workspace changes
+  useEffect(() => {
+    setBudgetInput(String(effectiveBudget || ""));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeWorkspaceId]);
   const now = useMemo(() => new Date(), []);
 
   const greeting = useMemo(() => {
@@ -55,8 +88,8 @@ export default function DashboardPage() {
   }, [userName]);
 
   const budgetCalc = useMemo(
-    () => calculateBudget(expenses, budgetMonthly),
-    [expenses, budgetMonthly]
+    () => calculateBudget(expenses, effectiveBudget),
+    [expenses, effectiveBudget]
   );
 
   const monthTotals = useMemo(() => {
@@ -186,7 +219,13 @@ export default function DashboardPage() {
     <div className="mx-auto w-full max-w-6xl px-6 py-2 sm:px-8">
       <div className="mb-8 flex items-start justify-between gap-4">
         <div>
-          <div className="text-xs text-white/50">Dashboard</div>
+          <div className="text-xs text-white/50">Dashboard
+            {activeWs && activeWs.id !== "default" && (
+              <span className="ml-1.5 rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-medium text-white/50">
+                {activeWs.name}
+              </span>
+            )}
+          </div>
           <Motion.div
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
@@ -233,7 +272,7 @@ export default function DashboardPage() {
                       const val = e.target.value;
                       setBudgetInput(val);
                       const num = Number(val);
-                      if (!Number.isNaN(num)) setBudgetMonthly(num);
+                      if (!Number.isNaN(num)) saveEffectiveBudget(num);
                     }}
                     placeholder="e.g. 1000"
                     className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none transition focus:border-emerald-400/35 focus:ring-2 focus:ring-emerald-400/15"
@@ -504,6 +543,7 @@ export default function DashboardPage() {
                 amount,
                 category: expenseForm.category,
                 note: expenseForm.note?.trim() || "",
+                workspaceId: activeWorkspaceId,
               });
               if (res.ok) {
                 notify({ type: "success", message: "Expense added" });

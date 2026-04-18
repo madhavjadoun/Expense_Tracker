@@ -12,7 +12,9 @@ const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
+const path = require("path");
 const { initFirebaseAdmin } = require("./firebaseAdmin");
+const { startRecurringCron } = require("./scripts/recurringCron");
 
 // Load variables from .env into process.env
 dotenv.config();
@@ -27,19 +29,32 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// Serve static files from client/public (preview.png, favicon, etc.)
+const publicDir = path.join(__dirname, "client", "public");
+app.use(express.static(publicDir));
+
 // Test route (Requirement #5)
 app.get("/", (req, res) => {
   res.send("API is running...");
 });
 
 // API routes (all protected by requireAuth → req.userId)
-const expenseRoutes = require("./routes/expenseRoutes");
-const profileRoutes = require("./routes/profileRoutes");
+const expenseRoutes  = require("./routes/expenseRoutes");
+const profileRoutes  = require("./routes/profileRoutes");
 const analyticsRoutes = require("./routes/analyticsRoutes");
+const inviteRoutes   = require("./routes/inviteRoutes");
+const workspaceRoutes = require("./routes/workspaceRoutes");
 
+// Public OG preview route — hit by WhatsApp / social crawlers
+// GET /join/:token → serves OG meta HTML then redirects to React frontend
+app.use("/join", inviteRoutes);
+
+// API routes
 app.use("/api/expenses", expenseRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/analytics", analyticsRoutes);
+app.use("/api/invite", inviteRoutes);
+app.use("/api/workspaces", workspaceRoutes);
 
 // MongoDB connection (Requirement #2)
 async function connectDB() {
@@ -81,6 +96,10 @@ const PORT = process.env.PORT || 5001;
 connectDB().then(() => {
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
+    // Start cron AFTER DB is connected
+    try { startRecurringCron(); } catch (e) {
+      console.warn("[CRON] node-cron not installed — skipping recurring job. Run: npm install node-cron");
+    }
   });
 });
 
