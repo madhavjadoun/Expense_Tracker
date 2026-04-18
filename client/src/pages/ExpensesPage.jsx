@@ -178,37 +178,38 @@ export default function ExpensesPage() {
     setSortOption("latest");
   }
 
-  async function addExpense() {
+  function addExpense() {
     const amount = Number(form.amount);
     if (!amount || Number.isNaN(amount) || amount <= 0) return;
 
+    const successMsg = form.isRecurring ? "Recurring expense added" : "Expense added";
+    // Reset form and notify immediately
+    notify({ type: "success", message: successMsg });
+    setForm((f) => ({ ...f, amount: "", note: "", isRecurring: false, recurringType: "monthly" }));
 
-
-    const res = await addExpenseOptimistic({
+    // Fire API in background
+    addExpenseOptimistic({
       amount,
       category: form.category,
       note: form.note?.trim() || "",
       workspaceId: activeWorkspaceId,
       isRecurring: form.isRecurring,
       recurringType: form.isRecurring ? form.recurringType : null,
+    }).then((res) => {
+      if (!res.ok && !res.limitReached) {
+        notify({ type: "error", message: res.message || "Failed to save expense" });
+      }
     });
-
-    if (res.ok) {
-      notify({ type: "success", message: form.isRecurring ? "Recurring expense added" : "Expense added" });
-      setForm((f) => ({ ...f, amount: "", note: "", isRecurring: false, recurringType: "monthly" }));
-    } else {
-      console.error("Failed to add expense:", res.message);
-      notify({ type: "error", message: res.message || "Something went wrong" });
-    }
   }
 
-  async function deleteExpense(id) {
-    const res = await deleteExpenseOptimistic(id);
-    if (res.ok) {
-      notify({ type: "success", message: "Expense deleted" });
-    } else {
-      notify({ type: "error", message: res.message || "Something went wrong" });
-    }
+  function deleteExpense(id) {
+    // Optimistic: store already removes instantly
+    notify({ type: "success", message: "Expense deleted" });
+    deleteExpenseOptimistic(id).then((res) => {
+      if (!res.ok) {
+        notify({ type: "error", message: res.message || "Failed to delete" });
+      }
+    });
   }
 
   function openEdit(expense) {

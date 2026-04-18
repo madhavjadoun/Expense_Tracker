@@ -533,25 +533,27 @@ export default function DashboardPage() {
           />
           <div className="mt-4 flex justify-end gap-2">
             <Button type="button" variant="ghost" onClick={() => setQuickAddOpen(false)}>Cancel</Button>
-            <Button type="button" onClick={async () => {
+            <Button type="button" onClick={() => {
               const amount = Number(expenseForm.amount);
               if (!amount || Number.isNaN(amount) || amount <= 0) {
                 notify({ type: "error", message: "Invalid amount" });
                 return;
               }
-              const res = await addExpenseOptimistic({
+              // Close modal immediately for instant UX
+              setQuickAddOpen(false);
+              setExpenseForm({ amount: "", category: "food", note: "" });
+              notify({ type: "success", message: "Expense added" });
+              // API call runs in background — optimistic update already shows it
+              addExpenseOptimistic({
                 amount,
                 category: expenseForm.category,
                 note: expenseForm.note?.trim() || "",
                 workspaceId: activeWorkspaceId,
+              }).then((res) => {
+                if (!res.ok && !res.limitReached) {
+                  notify({ type: "error", message: res.message || "Failed to save expense" });
+                }
               });
-              if (res.ok) {
-                notify({ type: "success", message: "Expense added" });
-                setExpenseForm({ amount: "", category: "food", note: "" });
-                setQuickAddOpen(false);
-              } else {
-                notify({ type: "error", message: res.message || "Something went wrong" });
-              }
             }}>
               Add
             </Button>
