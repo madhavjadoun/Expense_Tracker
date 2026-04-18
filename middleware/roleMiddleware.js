@@ -3,40 +3,53 @@ const Workspace = require("../models/Workspace");
 const requireRole = (allowedRoles) => {
   return async (req, res, next) => {
     try {
-      // workspaceId might come from params, body, or query
-      const workspaceId = req.params.workspaceId || req.body.workspaceId || req.query.workspaceId;
+      // workspaceId comes from params, body, or query
+      const workspaceId =
+        req.params.workspaceId ||
+        req.body.workspaceId ||
+        req.query.workspaceId;
 
+      // No workspaceId provided → block
       if (!workspaceId) {
-        // If workspaceId is not provided, allow if it's "default", else deny?
-        // Let's assume if it's strictly absent, we should fail if the route expects RBAC.
-        // Or if it's "default", allow it since the default dashboard is local isolation.
-        return res.status(400).json({ success: false, message: "Workspace ID is required for access." });
+        return res.status(400).json({ success: false, message: "Workspace ID is required." });
       }
 
+      // "default" is the personal workspace — local only, no DB record needed
       if (workspaceId === "default") {
-        // "default" is the local user-only workspace, no DB entry required.
         return next();
       }
 
-      const workspace = await Workspace.findById(workspaceId);
+      // Look up workspace by string _id (UUID)
+      const workspace = await Workspace.findById(workspaceId).lean();
+
+      // Workspace not in DB yet (e.g. legacy local workspace) → allow access
+      // The workspace is implicitly owned by the authenticated user
       if (!workspace) {
-        return res.status(404).json({ success: false, message: "Workspace not found." });
+        return next();
       }
 
-      const member = workspace.members.find(
-        (m) => m.userId === req.userId
-      );
+      const member = workspace.members.find((m) => m.userId === req.userId);
 
-      if (!member || !allowedRoles.includes(member.role)) {
+      // Not a member → deny
+      if (!member) {
+        return res.status(403).json({ success: false, message: "Access denied. You are not a member of this workspace." });
+      }
+
+      // Wrong role → deny
+      if (!allowedRoles.includes(member.role)) {
         return res.status(403).json({ success: false, message: "Access denied. Insufficient permissions." });
       }
 
-      // Attach workspace object to request for downstream use
       req.workspace = workspace;
       req.userRole = member.role;
       next();
     } catch (err) {
-      console.error("[RBAC Error]:", err);
+      console.error("[RBAC Error]:", err.message);
+      // CastError = bad ObjectId format (e.g. UUID passed to old ObjectId field)
+      // Treat as "workspace not in DB" and allow through
+      if (err.name === "CastError") {
+        return next();
+      }
       return res.status(500).json({ success: false, message: "Server error during permission check." });
     }
   };

@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 
 const workspaceSchema = new mongoose.Schema({
+  _id: { type: String },   // UUID from frontend (crypto.randomUUID)
   name: { type: String, required: true },
   owner: { type: String, required: true },
   members: [
@@ -14,6 +15,7 @@ const workspaceSchema = new mongoose.Schema({
     }
   ],
   createdAt: { type: Date, default: Date.now },
-});
+}, { _id: false }); // disable auto ObjectId generation
+
 
 module.exports = mongoose.model("Workspace", workspaceSchema);

@@ -1,6 +1,5 @@
 const express = require("express");
 const { requireAuth } = require("../middleware/requireAuth");
-const { requireRole } = require("../middleware/roleMiddleware");
 const Workspace = require("../models/Workspace");
 const Expense = require("../models/Expense");
 
@@ -9,40 +8,62 @@ const router = express.Router();
 // ── POST /api/workspaces ───────────────────────────────────────────────────────
 // Creates a new workspace and sets the creator as owner.
 router.post("/", requireAuth, async (req, res) => {
-  const { name, id } = req.body;
-  if (!name || !id) return res.status(400).json({ success: false, message: "Name and id required." });
-
   try {
-    const workspace = await Workspace.create({
-      _id: id, // Syncing MongoDB ObjectId/String directly with frontend's UUID
-      name,
-      owner: req.userId,
-      members: [{ userId: req.userId, role: "owner" }]
-    });
+    const { name, id } = req.body;
+    if (!name || !id) {
+      return res.status(400).json({ success: false, message: "Name and id required." });
+    }
+
+    // Upsert — if already created (e.g. from invite flow), return existing
+    let workspace = await Workspace.findById(id);
+    if (!workspace) {
+      workspace = await Workspace.create({
+        _id: id,
+        name,
+        owner: req.userId,
+        members: [{ userId: req.userId, role: "owner" }],
+      });
+    }
 
     return res.status(200).json({ success: true, data: workspace });
   } catch (err) {
-    return res.status(500).json({ success: false, message: "Error creating workspace", error: err.message });
+    console.error("[WS CREATE]", err.message);
+    // Handle duplicate key gracefully
+    if (err.code === 11000) {
+      return res.status(200).json({ success: true, message: "Workspace already exists." });
+    }
+    return res.status(500).json({ success: false, message: "Error creating workspace.", error: err.message });
   }
 });
 
 // ── DELETE /api/workspaces/:workspaceId ───────────────────────────────────────
-// Deletes workspace. Only allowed if owner.
-router.delete("/:workspaceId", requireAuth, requireRole(["owner"]), async (req, res) => {
+// Deletes workspace. Only the owner can do this.
+router.delete("/:workspaceId", requireAuth, async (req, res) => {
   try {
     const { workspaceId } = req.params;
 
-    // We can assume req.workspace exists because of requireRole
-    if (req.workspace.owner !== req.userId) {
-       return res.status(403).json({ success: false, message: "Only owner can delete workspace" });
+    // Look up workspace — if not in DB it's a local-only workspace, allow delete locally
+    let workspace = null;
+    try {
+      workspace = await Workspace.findById(workspaceId);
+    } catch (_) {
+      workspace = null;
     }
 
-    await Workspace.findByIdAndDelete(workspaceId);
-    await Expense.deleteMany({ workspaceId }); // clean up expenses
+    if (workspace) {
+      // Verify the caller is the owner
+      if (workspace.owner !== req.userId) {
+        return res.status(403).json({ success: false, message: "Only the owner can delete this workspace." });
+      }
+      await Workspace.findByIdAndDelete(workspaceId);
+      await Expense.deleteMany({ workspaceId });
+    }
+    // If workspace not in DB — it was local-only, nothing to delete server-side
 
-    return res.status(200).json({ success: true, message: "Workspace deleted" });
+    return res.status(200).json({ success: true, message: "Workspace deleted." });
   } catch (err) {
-    return res.status(500).json({ success: false, message: "Error deleting workspace", error: err.message });
+    console.error("[WS DELETE]", err.message);
+    return res.status(500).json({ success: false, message: "Error deleting workspace.", error: err.message });
   }
 });
 

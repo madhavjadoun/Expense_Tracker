@@ -77,9 +77,10 @@ export const api = {
     }
   },
 
-  async fetchAnalyticsSummary() {
+  async fetchAnalyticsSummary(workspaceId) {
     try {
-      const res = await client.get("/api/analytics/summary");
+      const wId = workspaceId || localStorage.getItem("xpense_active_workspace")?.replace(/"/g, '') || "default";
+      const res = await client.get(`/api/analytics/summary?workspaceId=${wId}`);
       return pickData(res);
     } catch (error) {
       console.error("API fetchAnalyticsSummary Error:", error);
@@ -87,9 +88,10 @@ export const api = {
     }
   },
 
-  async fetchExpenses() {
+  async fetchExpenses(workspaceId) {
     try {
-      const res = await client.get("/api/expenses");
+      const wId = workspaceId || localStorage.getItem("xpense_active_workspace")?.replace(/"/g, '') || "default";
+      const res = await client.get(`/api/expenses?workspaceId=${wId}`);
       const data = pickData(res) || [];
       return Array.isArray(data) ? data.map(normalizeExpense) : [];
     } catch (error) {
@@ -100,12 +102,13 @@ export const api = {
 
   async addExpense(expense) {
     try {
+      const wId = expense.workspaceId || localStorage.getItem("xpense_active_workspace")?.replace(/"/g, '') || "default";
       const res = await client.post("/api/expenses/add", {
         amount: expense.amount,
         category: expense.category,
         note: expense.note,
         date: expense.date,
-        workspaceId: expense.workspaceId || "default",
+        workspaceId: wId,
         isRecurring: Boolean(expense.isRecurring),
         recurringType: expense.isRecurring ? expense.recurringType : null,
       });
@@ -117,9 +120,10 @@ export const api = {
     }
   },
 
-  async deleteExpense(id) {
+  async deleteExpense(id, workspaceId) {
     try {
-      const res = await client.delete(`/api/expenses/${id}`);
+      const wId = workspaceId || localStorage.getItem("xpense_active_workspace")?.replace(/"/g, '') || "default";
+      const res = await client.delete(`/api/expenses/${id}?workspaceId=${wId}`);
       const data = pickData(res);
       return normalizeExpense(data);
     } catch (error) {
@@ -140,11 +144,13 @@ export const api = {
 
   async updateExpense(id, expense) {
     try {
+      const wId = expense.workspaceId || localStorage.getItem("xpense_active_workspace")?.replace(/"/g, '') || "default";
       const res = await client.put(`/api/expenses/${id}`, {
         amount: expense.amount,
         category: expense.category,
         note: expense.note,
         date: expense.date,
+        workspaceId: wId,
       });
       const data = pickData(res);
       return normalizeExpense(data);
