@@ -33,6 +33,10 @@ app.use(express.json());
 const publicDir = path.join(__dirname, "client", "public");
 app.use(express.static(publicDir));
 
+// Serve the React frontend build
+const distDir = path.join(__dirname, "client", "dist");
+app.use(express.static(distDir));
+
 // Test route (Requirement #5)
 app.get("/", (req, res) => {
   res.send("API is running...");
@@ -55,6 +59,11 @@ app.use("/api/profile", profileRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api/invite", inviteRoutes);
 app.use("/api/workspaces", workspaceRoutes);
+
+// Catch-all: serve React SPA for any unmatched route (handles /app/join/:token etc.)
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "client", "dist", "index.html"));
+});
 
 // MongoDB connection (Requirement #2)
 async function connectDB() {
