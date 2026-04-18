@@ -15,10 +15,10 @@ const BACKEND_URL =
 const CLIENT_ORIGIN =
   process.env.CLIENT_ORIGIN || "https://expense-tracker-rouge-chi-43.vercel.app";
 
-// ── GET /join/:token ───────────────────────────────────────────────────────────
-// Serves an HTML page with OG meta tags for social preview.
-// Bots/crawlers see the meta tags; real users are JS-redirected to the React app.
-router.get("/join/:token", (req, res) => {
+// ── GET /join/:token ─────────────────────────────────────────────────────────
+// Mounted at /join in server.js → full path: GET /join/:token
+// Serves OG meta HTML for social crawlers; redirects real users to React app.
+router.get("/:token", (req, res) => {
   const { token } = req.params;
 
   let expired = false;
