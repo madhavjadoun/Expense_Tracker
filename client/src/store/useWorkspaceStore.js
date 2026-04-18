@@ -82,13 +82,10 @@ export const useWorkspaceStore = create((set, get) => ({
 
   deleteWorkspace: async (id) => {
     if (id === "default") return { ok: false, message: "Cannot delete default workspace." };
-    
-    // Call backend to verify owner and delete globally
-    const res = await api.deleteWorkspace(id);
-    if (!res.ok) return res;
 
-    // Proceed to delete locally if backend succeeds
-    const next = get().workspaces.filter((w) => w.id !== id);
+    // ── Optimistic update: remove from UI instantly ──────────────────────
+    const prev = get().workspaces;
+    const next = prev.filter((w) => w.id !== id);
     saveToLS(LS_WS_KEY, next);
     let activeId = get().activeWorkspaceId;
     if (activeId === id) {
@@ -96,6 +93,17 @@ export const useWorkspaceStore = create((set, get) => ({
       saveToLS(LS_CUR_KEY, activeId);
     }
     set({ workspaces: next, activeWorkspaceId: activeId });
+
+    // ── Background API call ──────────────────────────────────────────────
+    const res = await api.deleteWorkspace(id);
+    if (!res.ok) {
+      // Rollback if API explicitly rejects (e.g. 403 not owner)
+      saveToLS(LS_WS_KEY, prev);
+      saveToLS(LS_CUR_KEY, get().activeWorkspaceId);
+      set({ workspaces: prev });
+      return res;
+    }
+
     return { ok: true };
   },
 
