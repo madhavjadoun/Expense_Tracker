@@ -6,20 +6,22 @@ import { useAppStore } from "../store/useAppStore";
 
 export default function JoinPage() {
   const { token } = useParams();
-  const navigate   = useNavigate();
-  const user       = useAppStore((s) => s.user);
+  const navigate = useNavigate();
+  const user = useAppStore((s) => s.user);
   const workspaces = useWorkspaceStore((s) => s.workspaces);
   const setActiveWorkspace = useWorkspaceStore((s) => s.setActiveWorkspace);
 
-  const [status, setStatus]   = useState("verifying"); // verifying | success | error
+  const [status, setStatus] = useState("verifying"); // verifying | success | error
   const [message, setMessage] = useState("");
 
   useEffect(() => {
+
     if (!token) {
       setStatus("error");
       setMessage("No invite token found in the URL.");
       return;
     }
+    sessionStorage.setItem("pending_invite_token", token);
 
     if (!user) {
       const currentPath = `/app/join/${token}`;
@@ -50,13 +52,13 @@ export default function JoinPage() {
         localStorage.setItem("xpense_workspaces", JSON.stringify([...workspaces, newWs]));
       } else {
         // Upgrade existing local workspace object with role and actual name
-        const updatedWorkspaces = workspaces.map((w) => 
+        const updatedWorkspaces = workspaces.map((w) =>
           w.id === workspaceId ? { ...w, role: result.role || "member", name: result.name || w.name } : w
         );
         useWorkspaceStore.setState({ workspaces: updatedWorkspaces });
         localStorage.setItem("xpense_workspaces", JSON.stringify(updatedWorkspaces));
       }
-      
+
       setActiveWorkspace(workspaceId);
       setStatus("success");
       setTimeout(() => navigate("/dashboard", { replace: true }), 1600);

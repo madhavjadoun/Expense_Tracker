@@ -20,6 +20,14 @@
     ],
     "routes": [
         {
+            "src": "/join/(.*)",
+            "dest": "server.js"
+        },
+        {
+            "src": "/api/(.*)",
+            "dest": "server.js"
+        },
+        {
             "src": "/(.*)",
             "dest": "server.js"
         }

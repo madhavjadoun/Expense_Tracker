@@ -45,11 +45,12 @@ const expenseRoutes  = require("./routes/expenseRoutes");
 const profileRoutes  = require("./routes/profileRoutes");
 const analyticsRoutes = require("./routes/analyticsRoutes");
 const inviteRoutes   = require("./routes/inviteRoutes");
+const joinRoutes     = require("./routes/joinRoutes");
 const workspaceRoutes = require("./routes/workspaceRoutes");
 
 // Public OG preview route — hit by WhatsApp / social crawlers
 // GET /join/:token → serves OG meta HTML then redirects to React frontend
-app.use("/join", inviteRoutes);
+app.use("/join", joinRoutes);
 
 // API routes
 app.use("/api/expenses", expenseRoutes);

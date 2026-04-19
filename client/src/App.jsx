@@ -74,7 +74,7 @@ export default function App() {
         <Route
           path="/login"
           element={
-            isAuthed ? (
+            isAuthed && new URLSearchParams(window.location.search).get("redirect") === null ? (
               <Navigate to="/dashboard" replace />
             ) : (
               <Suspense fallback={<Loader show label="Loading page…" />}>
@@ -82,7 +82,18 @@ export default function App() {
                   initialMode="login"
                   onAuthSuccess={() => {
                     const redirect = new URLSearchParams(window.location.search).get("redirect");
-                    navigate(redirect || "/dashboard", { replace: true });
+                    if (redirect) {
+                      sessionStorage.removeItem("pending_invite_token");
+                      navigate(redirect, { replace: true });
+                      return;
+                    }
+                    const pendingToken = sessionStorage.getItem("pending_invite_token");
+                    if (pendingToken) {
+                      sessionStorage.removeItem("pending_invite_token");
+                      navigate(`/app/join/${pendingToken}`, { replace: true });
+                      return;
+                    }
+                    navigate("/dashboard", { replace: true });
                   }}
                 />
               </Suspense>
@@ -92,7 +103,7 @@ export default function App() {
         <Route
           path="/signup"
           element={
-            isAuthed ? (
+            isAuthed && new URLSearchParams(window.location.search).get("redirect") === null ? (
               <Navigate to="/dashboard" replace />
             ) : (
               <Suspense fallback={<Loader show label="Loading page…" />}>
@@ -100,7 +111,18 @@ export default function App() {
                   initialMode="signup"
                   onAuthSuccess={() => {
                     const redirect = new URLSearchParams(window.location.search).get("redirect");
-                    navigate(redirect || "/dashboard", { replace: true });
+                    if (redirect) {
+                      sessionStorage.removeItem("pending_invite_token");
+                      navigate(redirect, { replace: true });
+                      return;
+                    }
+                    const pendingToken = sessionStorage.getItem("pending_invite_token");
+                    if (pendingToken) {
+                      sessionStorage.removeItem("pending_invite_token");
+                      navigate(`/app/join/${pendingToken}`, { replace: true });
+                      return;
+                    }
+                    navigate("/dashboard", { replace: true });
                   }}
                 />
               </Suspense>
