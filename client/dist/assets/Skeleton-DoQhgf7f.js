@@ -1,0 +1,1 @@
+import{_ as e}from"./useAppStore-DfwRSXq5.js";var t=e();function n({className:e=``}){return(0,t.jsx)(`div`,{className:`animate-pulse rounded-xl bg-white/5 ring-1 ring-white/10 ${e}`})}function r({lines:e=2}){return(0,t.jsx)(`div`,{className:`space-y-2`,children:Array.from({length:e}).map((e,r)=>(0,t.jsx)(n,{className:r===0?`h-3 w-3/4`:`h-3 w-2/3`},r))})}export{r as n,n as t};

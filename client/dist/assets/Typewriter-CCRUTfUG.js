@@ -1,0 +1,1 @@
+import{T as e,_ as t,b as n}from"./useAppStore-DfwRSXq5.js";var r=e(n(),1),i=t();function a({text:e,speed:t=50}){let[n,a]=(0,r.useState)(``);return(0,r.useEffect)(()=>{let n=0,r=setInterval(()=>{a(e.slice(0,n+1)),n++,n>=e.length&&clearInterval(r)},t);return()=>clearInterval(r)},[e,t]),(0,i.jsx)(`span`,{children:n})}export{a as t};
