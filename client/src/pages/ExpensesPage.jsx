@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion as Motion } from "framer-motion";
-import { useLocation } from "react-router-dom";
 import GlassCard from "../components/GlassCard";
 import ScrollReveal from "../components/ScrollReveal";
 import Input from "../components/Input";
@@ -31,8 +30,6 @@ export default function ExpensesPage() {
       }).format(n);
   }, [currency]);
 
-  const location = useLocation();
-  const user = useAppStore((s) => s.user);
   const allExpenses = useAppStore((s) => s.expenses);
   const loading = useAppStore((s) => s.loading?.expenses);
   const error = useAppStore((s) => s.error?.expenses);
@@ -80,12 +77,7 @@ export default function ExpensesPage() {
     other: "💰",
   };
 
-  useEffect(() => {
-    // Only fetch if the store is empty — data loaded on login is reused instantly.
-    if (location.pathname === "/expenses" && user?.uid && allExpenses.length === 0) {
-      fetchExpenses();
-    }
-  }, [fetchExpenses, location.pathname, user?.uid, allExpenses.length]);
+
 
   useEffect(() => {
     const timer = setTimeout(() => {

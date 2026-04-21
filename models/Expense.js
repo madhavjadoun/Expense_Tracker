@@ -71,7 +71,11 @@ const expenseSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// Compound index — the most common query is { userId, workspaceId }.
+// MongoDB uses this instead of two separate single-field index lookups.
+expenseSchema.index({ userId: 1, workspaceId: 1 }, { name: "userId_workspaceId" });
+
 // Compound index for efficient recurring-expense queries in the cron job
-expenseSchema.index({ isRecurring: 1, nextRunDate: 1 });
+expenseSchema.index({ isRecurring: 1, nextRunDate: 1 }, { name: "recurring_cron" });
 
 module.exports = mongoose.model("Expense", expenseSchema);

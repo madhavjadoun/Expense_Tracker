@@ -74,6 +74,9 @@ async function addExpense(req, res) {
 /**
  * GET /api/expenses
  * Supports optional ?workspaceId= query param.
+ * Uses .lean() to skip Mongoose document hydration — plain JS objects are
+ * faster to serialize and consume less memory.
+ * Caps results at 500 to prevent large payloads on unbounded collections.
  */
 async function getAllExpenses(req, res) {
   try {
@@ -81,11 +84,16 @@ async function getAllExpenses(req, res) {
     const filter = { userId: req.userId };
     if (workspaceId) filter.workspaceId = workspaceId;
 
-    const expenses = await Expense.find(filter).sort({ date: -1 });
+    const LIMIT = 500;
+    const expenses = await Expense.find(filter)
+      .sort({ date: -1 })
+      .limit(LIMIT)
+      .lean();
 
     return res.status(200).json({
       success: true,
       count: expenses.length,
+      truncated: expenses.length === LIMIT, // hint to client: there may be more
       data: expenses,
     });
   } catch (err) {

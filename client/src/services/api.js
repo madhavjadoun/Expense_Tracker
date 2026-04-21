@@ -184,6 +184,16 @@ export const api = {
     }
   },
 
+  async fetchWorkspaces() {
+    try {
+      const res = await client.get("/api/workspaces");
+      return pickData(res) || [];
+    } catch (error) {
+      console.error("API fetchWorkspaces Error:", error);
+      throw error;
+    }
+  },
+
   async createWorkspace(name, id) {
     try {
       const res = await client.post("/api/workspaces", { name, id });
@@ -202,5 +212,21 @@ export const api = {
       console.error("API deleteWorkspace Error:", error);
       return { ok: false, message: error.message };
     }
-  }
+  },
+
+  /**
+   * Permanently delete the authenticated user's account.
+   * The server deletes all DB data first, then the Firebase Auth user.
+   * Returns { ok: true } on success or { ok: false, message } on failure.
+   */
+  async deleteAccount() {
+    try {
+      const res = await client.delete("/api/profile/me");
+      const data = res?.data;
+      if (data?.success === false) throw new Error(data.message || "Delete failed.");
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, message: error.message || "Failed to delete account." };
+    }
+  },
 };

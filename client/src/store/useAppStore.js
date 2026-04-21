@@ -11,10 +11,28 @@ import { notify, useNotificationStore } from "./useNotificationStore";
 import { useUserStore } from "./useUserStore";
 import { generateInsights } from "../utils/budgetInsights";
 import { usePlanStore, isExpenseLimitReached } from "./usePlanStore";
+import { useWorkspaceStore } from "./useWorkspaceStore";
 
 // ─── localStorage helpers ────────────────────────────────────────────────────────────────
 const WS_EXPENSE_MAP_KEY = "xpense_ws_expense_map";
 const WS_BUDGETS_KEY     = "xpense_ws_budgets";
+
+/** Per-user budget cache key (default workspace only). Scoped by uid. */
+function budgetCacheKey(uid) {
+  return uid ? `budget_monthly_${uid}` : null;
+}
+
+function loadCachedBudget(uid) {
+  const key = budgetCacheKey(uid);
+  if (!key) return 0;
+  return loadJSON(key, 0);
+}
+
+function saveCachedBudget(uid, value) {
+  const key = budgetCacheKey(uid);
+  if (!key) return;
+  saveJSON(key, value);
+}
 
 function loadJSON(key, fallback) {
   try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
@@ -109,7 +127,17 @@ export const useAppStore = create((set, get) => ({
   workspaceBudgets: loadJSON(WS_BUDGETS_KEY, {}),
 
   // Monthly budget (per Firebase uid, default workspace — synced with MongoDB)
-  budgetMonthly: 0,
+  // Initialised synchronously from localStorage so the value is visible on the
+  // very first render — no async wait needed.
+  budgetMonthly: (() => {
+    try {
+      const uid = localStorage.getItem("activeSessionUid");
+      if (!uid) return 0;
+      const key = `budget_monthly_${uid}`;
+      const v = localStorage.getItem(key);
+      return v ? JSON.parse(v) : 0;
+    } catch { return 0; }
+  })(),
 
   // Generated insights (UI-only)
   insights: {
@@ -137,28 +165,59 @@ export const useAppStore = create((set, get) => ({
     set((s) => ({ ui: { ...s.ui, sidebarCollapsed: !s.ui.sidebarCollapsed } })),
 
   /**
-   * After login: sync profile + budget from MongoDB, clear stale expenses, refetch.
+   * After login: sync profile + budget from MongoDB, then fetch expenses.
    * Sets localStorage activeSessionUid for per-user notification keys.
+   * Does NOT clear in-memory expenses before fetching — avoids blank flash.
    */
   bootstrapUserSession: async (authUser) => {
     if (!authUser?.uid) return;
+    const uid = authUser.uid;
     if (typeof window !== "undefined") {
-      localStorage.setItem("activeSessionUid", authUser.uid);
+      localStorage.setItem("activeSessionUid", uid);
     }
     useNotificationStore.getState().reloadFromStorage();
+
+    // Pre-seed budget from localStorage (fast-path, already done in initial state
+    // but re-applied here to handle user switching on the same device).
+    const cachedBudget = loadCachedBudget(uid);
+
+    // Reset error and set budget — do NOT clear expenses so there is no blank flash
+    // if expenses were already in memory from a previous session render.
     set((s) => ({
-      expenses: [],
       error: { ...s.error, expenses: null },
       budgetExceededNotified: false,
-      loading: { ...s.loading, expenses: true },
+      budgetMonthly: cachedBudget,
     }));
-    await useUserStore.getState().syncProfileFromServer(authUser);
-    const prof = useUserStore.getState().profile;
-    const budget = Number(prof?.monthlyBudget) || 0;
-    const insights = generateInsights([], budget);
-    set({ budgetMonthly: budget, insights });
-    await get().fetchExpenses();
+
+    // Restore user-specific persisted state (uid-scoped localStorage keys)
+    // BEFORE hitting the server, so initFromServer can merge correctly.
+    useWorkspaceStore.getState().restoreForUser(uid);
+    usePlanStore.getState().restoreForUser(uid);
+    // Apply any expired subscription (e.g. paid plan whose 30-day window elapsed).
+    usePlanStore.getState().checkExpiry();
+
+    // Run profile sync and workspace fetch in parallel — they're independent.
+    // This cuts bootstrap time roughly in half vs running them serially.
+    await Promise.all([
+      useUserStore.getState().syncProfileFromServer(authUser),
+      api.fetchWorkspaces()
+        .then((serverWorkspaces) => {
+          useWorkspaceStore.getState().initFromServer(serverWorkspaces);
+        })
+        .catch(() => { /* Non-fatal: fall back to localStorage. */ }),
+    ]);
+
+    const prof   = useUserStore.getState().profile;
+    const budget = Number(prof?.monthlyBudget) || cachedBudget;
+    // Persist authoritative server value so next session loads instantly.
+    saveCachedBudget(uid, budget);
+    // Single atomic update — avoids an intermediate render with stale insights.
+    set({ budgetMonthly: budget });
+
+    const activeWsId = useWorkspaceStore.getState().activeWorkspaceId;
+    await get().fetchExpenses(activeWsId);
   },
+
 
   setBudgetMonthly: async (nextBudget) => {
     const budget = Number(nextBudget);
@@ -166,6 +225,8 @@ export const useAppStore = create((set, get) => ({
     const uid = get().user?.uid;
     const prevProfile = useUserStore.getState().profile;
     useUserStore.getState().setProfile({ ...prevProfile, monthlyBudget: safeBudget });
+    // Persist locally first so the value survives navigation without a server round-trip.
+    if (uid) saveCachedBudget(uid, safeBudget);
     if (uid) {
       try {
         await api.saveProfile({ monthlyBudget: safeBudget });
@@ -258,9 +319,18 @@ export const useAppStore = create((set, get) => ({
     } finally {
       if (typeof window !== "undefined") {
         localStorage.removeItem("activeSessionUid");
+        // Clear legacy (unscoped) keys — these were used before uid-scoped storage.
+        // restoreForUser() no longer reads them, so removing them prevents stale data.
+        localStorage.removeItem("xpense_workspaces");
+        localStorage.removeItem("xpense_active_workspace");
+        localStorage.removeItem("xpense_current_plan");
       }
       useNotificationStore.getState().clearAll();
       useUserStore.getState().resetForLogout();
+      // Reset workspace in-memory state (uid-scoped LS keys are preserved for next login).
+      useWorkspaceStore.getState().resetForLogout();
+      // Reset plan in-memory state (uid-scoped LS key is preserved for next login).
+      usePlanStore.getState().resetPlan();
       set({
         user: null,
         expenses: [],
@@ -269,17 +339,107 @@ export const useAppStore = create((set, get) => ({
         budgetExceededNotified: false,
         error: { expenses: null },
       });
+      // Note: uid-scoped budget cache key is intentionally preserved so the
+      // user's budget reloads instantly on next login (same device).
     }
   },
 
+  /**
+   * Permanently delete this account and ALL associated data.
+   *
+   * Order of operations (important — do not reorder):
+   *   1. Call backend DELETE /api/profile/me
+   *      → backend deletes expenses, profile, owned workspaces from MongoDB
+   *      → backend calls Firebase Admin deleteUser (invalidates the ID token)
+   *   2. Wipe every uid-scoped localStorage key for this user so a fresh
+   *      signup on the same device starts with a completely clean slate.
+   *   3. Sign out of Firebase Auth locally.
+   *   4. Reset all Zustand store slices to their initial state.
+   *
+   * Returns { ok: true } on success or { ok: false, message } on error.
+   * The caller is responsible for navigating away (e.g. to /signup).
+   */
+  deleteAccount: async () => {
+    const uid = get().user?.uid;
+
+    // ── 1. Server-side deletion ───────────────────────────────────────────────
+    const result = await api.deleteAccount();
+    if (!result.ok) {
+      return { ok: false, message: result.message };
+    }
+
+    // ── 2. Wipe ALL uid-scoped localStorage keys for this user ───────────────
+    if (uid && typeof window !== "undefined") {
+      const keysToRemove = [
+        // App-level keys
+        "activeSessionUid",
+        // Legacy (unscoped) keys
+        "xpense_workspaces",
+        "xpense_active_workspace",
+        "xpense_current_plan",
+        // Expense workspace maps (not uid-scoped — clear them too)
+        "xpense_ws_expense_map",
+        "xpense_ws_budgets",
+        // Split data (Zustand persist)
+        "split-storage",
+        // uid-scoped budget
+        `budget_monthly_${uid}`,
+        // uid-scoped workspaces
+        `xpense_workspaces_${uid}`,
+        `xpense_active_workspace_${uid}`,
+        // uid-scoped plan
+        `xpense_current_plan_${uid}`,
+        // uid-scoped billing history
+        `xpense_billing_history_${uid}`,
+        // uid-scoped subscription metadata
+        `plan_${uid}`,
+        // uid-scoped profile & avatar
+        `profile_${uid}`,
+        `avatar_${uid}`,
+        // Legacy profile keys
+        `profileData_${uid}`,
+        `profileAvatar_${uid}`,
+        // Legacy global billing history key (pre-uid-scope migration)
+        "xpense_billing_history",
+        // Notification keys (pattern: notifications_<uid>_*)
+        // Enumerate them since we don't know the exact suffix
+        ...Object.keys(localStorage).filter(
+          (k) => k.startsWith(`notifications_${uid}`)
+        ),
+      ];
+      keysToRemove.forEach((k) => {
+        try { localStorage.removeItem(k); } catch { /* ignore */ }
+      });
+    }
+
+    // ── 3. Firebase local sign-out ────────────────────────────────────────────
+    try { await signOut(auth); } catch { /* ignore — token already invalidated */ }
+
+    // ── 4. Reset all store slices ─────────────────────────────────────────────
+    useNotificationStore.getState().clearAll();
+    useUserStore.getState().resetForLogout();
+    useWorkspaceStore.getState().resetForLogout();
+    usePlanStore.getState().resetPlan();
+    set({
+      user: null,
+      expenses: [],
+      budgetMonthly: 0,
+      insights: { lines: [], budgetStatus: "unknown" },
+      budgetExceededNotified: false,
+      error: { expenses: null },
+    });
+
+    return { ok: true };
+  },
+
   // --- Expenses (with loading/error + optimistic updates) ---
-  fetchExpenses: async () => {
+  fetchExpenses: async (workspaceId) => {
     set((s) => ({
       loading: { ...s.loading, expenses: true },
       error:   { ...s.error,   expenses: null },
     }));
     try {
-      const raw       = await api.fetchExpenses();
+      const raw       = await api.fetchExpenses(workspaceId);
       const map       = get().workspaceExpenseMap;
       // Re-apply client-side workspaceId to every expense from the backend
       const hydrated  = applyWorkspaceMap(raw, map);

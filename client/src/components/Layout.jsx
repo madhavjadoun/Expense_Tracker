@@ -1,14 +1,31 @@
+import { useEffect, useRef } from "react";
 import { AnimatePresence, motion as Motion } from "framer-motion";
 import { Outlet } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import Navbar from "./Navbar";
 import { useAppStore } from "../store/useAppStore";
+import { useWorkspaceStore } from "../store/useWorkspaceStore";
 
 export default function Layout({ onLogout }) {
   const ui = useAppStore((s) => s.ui);
   const setSidebarOpen = useAppStore((s) => s.setSidebarOpen);
   const toggleSidebarOpen = useAppStore((s) => s.toggleSidebarOpen);
   const toggleSidebarCollapsed = useAppStore((s) => s.toggleSidebarCollapsed);
+  const fetchExpenses = useAppStore((s) => s.fetchExpenses);
+  const user = useAppStore((s) => s.user);
+  const activeWorkspaceId = useWorkspaceStore((s) => s.activeWorkspaceId);
+
+  // Re-fetch expenses from the backend whenever the active workspace changes.
+  // Layout wraps all authenticated pages so this single effect covers
+  // Dashboard, Expenses, Analytics and Split without any per-page logic.
+  const lastFetchKey = useRef(null);
+  useEffect(() => {
+    if (!user?.uid || !activeWorkspaceId) return;
+    const key = `${user.uid}|${activeWorkspaceId}`;
+    if (lastFetchKey.current === key) return; // skip identical calls (e.g. initial render)
+    lastFetchKey.current = key;
+    fetchExpenses(activeWorkspaceId);
+  }, [user?.uid, activeWorkspaceId, fetchExpenses]);
 
   return (
     <div className="min-h-screen">

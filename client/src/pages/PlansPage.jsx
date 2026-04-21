@@ -8,14 +8,19 @@ import {
 import ScrollReveal from "../components/ScrollReveal";
 import Modal from "../components/Modal";
 import { useAppStore } from "../store/useAppStore";
-import { usePlanStore, getExpenseLimit, getUsagePercent, getUsageColor } from "../store/usePlanStore";
+import { usePlanStore, getExpenseLimit, getUsagePercent, getUsageColor, formatSubDate } from "../store/usePlanStore";
 import { api } from "../services/api";
 import toast from "react-hot-toast";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 // LS_PLAN_KEY is now owned by usePlanStore — do not write it directly here.
-const LS_BILLING_KEY = "xpense_billing_history";
+// LS_BILLING_KEY is now uid-scoped — see billingKey(uid) helper below.
+const LS_CURRENCY_KEY   = "xpense_pricing_currency";
+
+// Static conversion rates — frontend only, no API needed.
+const CURRENCY_RATES = { INR: 1, USD: 0.012 };
+const CURRENCY_SYMBOL = { INR: "₹", USD: "$" };
 
 const PLAN_ORDER = ["free", "pro", "team"];
 
@@ -88,11 +93,6 @@ const PLANS = [
   },
 ];
 
-const DEFAULT_BILLING = [
-  { date: "10 Apr 2026", plan: "Pro",  amount: "₹199", status: "Success" },
-  { date: "10 Mar 2026", plan: "Free", amount: "₹0",   status: "Active"  },
-  { date: "10 Feb 2026", plan: "Free", amount: "₹0",   status: "Active"  },
-];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -261,7 +261,7 @@ function StatusPill({ status }) {
 
 // ─── Confirm Modal ────────────────────────────────────────────────────────────
 
-function ConfirmModal({ open, onClose, plan, direction, onConfirm, loading }) {
+function ConfirmModal({ open, onClose, plan, direction, onConfirm, loading, formatPrice, planEndDate }) {
   // Keyboard: Enter → confirm
   useEffect(() => {
     if (!open) return;
@@ -276,12 +276,13 @@ function ConfirmModal({ open, onClose, plan, direction, onConfirm, loading }) {
   const isPro       = plan.id === "pro";
   const isTeam      = plan.id === "team";
   const isDowngrade = direction === "downgrade";
+  const endDateLabel = formatSubDate(planEndDate);
 
   return (
     <Modal
       open={open}
       onClose={onClose}
-      title={isDowngrade ? `Downgrade to ${plan.name}` : `Upgrade to ${plan.name}`}
+      title={isDowngrade ? `Schedule Downgrade to ${plan.name}` : `Upgrade to ${plan.name}`}
     >
       <div className="space-y-4">
         {/* Plan preview */}
@@ -303,7 +304,7 @@ function ConfirmModal({ open, onClose, plan, direction, onConfirm, loading }) {
               </div>
             </div>
             <div className="text-right shrink-0">
-              <div className="text-xl font-bold text-white">{plan.price}</div>
+              <div className="text-xl font-bold text-white">{formatPrice(plan.priceNum)}</div>
               <div className="text-xs text-white/38">{plan.period}</div>
             </div>
           </div>
@@ -326,7 +327,12 @@ function ConfirmModal({ open, onClose, plan, direction, onConfirm, loading }) {
           <div className="flex items-start gap-2.5 rounded-xl border border-amber-400/20 bg-amber-500/8 px-3.5 py-3">
             <AlertTriangle size={14} className="mt-0.5 shrink-0 text-amber-300" />
             <div className="text-xs text-amber-200 leading-relaxed">
-              Downgrading will immediately reduce your limits. Make sure your current usage fits within the new plan limits.
+              Your current plan stays active until{" "}
+              <span className="font-semibold text-amber-300">
+                {endDateLabel || "your billing period ends"}
+              </span>
+              . The downgrade to <span className="font-semibold">{plan.name}</span> will
+              apply automatically after that date — you won't lose access early.
             </div>
           </div>
         )}
@@ -360,7 +366,7 @@ function ConfirmModal({ open, onClose, plan, direction, onConfirm, loading }) {
             {loading && (
               <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
             )}
-            {isDowngrade ? "Confirm Downgrade" : "Confirm Upgrade"}
+            {isDowngrade ? "Schedule Downgrade" : "Confirm Upgrade"}
           </Motion.button>
         </div>
       </div>
@@ -370,18 +376,19 @@ function ConfirmModal({ open, onClose, plan, direction, onConfirm, loading }) {
 
 // ─── Plan Card ────────────────────────────────────────────────────────────────
 
-function PlanCard({ plan, currentPlanId, index, onRequestSwitch }) {
+function PlanCard({ plan, currentPlanId, index, onRequestSwitch, formatPrice, scheduledNextPlan }) {
   const isCurrent   = plan.id === currentPlanId;
+  const isScheduled = plan.id === scheduledNextPlan; // this plan is queued to activate next
   const direction   = getCtaDirection(plan.id, currentPlanId);
   const ctaLabel    = getCtaLabel(plan.id, currentPlanId);
   const isPro       = plan.id === "pro";
   const isTeam      = plan.id === "team";
-  const isFreeCard  = plan.id === "free";
 
-  // Disable downgrade for Free (already lowest), upgrade for Team (already highest) when current
+  // Disable: lowest→downgrade, highest→upgrade, or already scheduled for this
   const isDisabledAction =
     (currentPlanId === "free"  && direction === "downgrade") ||
-    (currentPlanId === "team"  && direction === "upgrade");
+    (currentPlanId === "team"  && direction === "upgrade")   ||
+    isScheduled;
 
   return (
     <ScrollReveal delay={index * 0.07}>
@@ -399,6 +406,16 @@ function PlanCard({ plan, currentPlanId, index, onRequestSwitch }) {
             <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-500/18 px-3 py-0.5 text-[11px] font-semibold text-emerald-300 shadow-[0_4px_16px_rgba(52,211,153,0.18)] backdrop-blur-sm">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
               Active Plan
+            </span>
+          </div>
+        )}
+
+        {/* Scheduled badge — amber, shown on the plan queued for next billing */}
+        {isScheduled && !isCurrent && (
+          <div className="absolute -top-3.5 left-4">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-500/15 px-3 py-0.5 text-[11px] font-semibold text-amber-300 shadow-[0_4px_12px_rgba(245,158,11,0.15)] backdrop-blur-sm">
+              <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+              Scheduled
             </span>
           </div>
         )}
@@ -433,7 +450,9 @@ function PlanCard({ plan, currentPlanId, index, onRequestSwitch }) {
           </div>
 
           <div className="mt-5 flex items-end gap-1">
-            <span className="text-4xl font-bold tracking-tight text-white">{plan.price}</span>
+            <span className="text-4xl font-bold tracking-tight text-white">
+              {formatPrice(plan.priceNum)}
+            </span>
             <span className="mb-1 text-sm text-white/38">{plan.period}</span>
           </div>
         </div>
@@ -471,10 +490,14 @@ function PlanCard({ plan, currentPlanId, index, onRequestSwitch }) {
           <button
             disabled
             id={`plan-cta-${plan.id}`}
-            className="inline-flex w-full cursor-not-allowed items-center justify-center rounded-xl border border-white/8 bg-white/3 px-4 py-2.5 text-sm font-medium text-white/22 opacity-50"
-            title={currentPlanId === "team" ? "You're already on the highest plan" : "Free is the lowest plan"}
+            className={`inline-flex w-full cursor-not-allowed items-center justify-center rounded-xl border px-4 py-2.5 text-sm font-medium opacity-50 ${
+              isScheduled
+                ? "border-amber-400/20 bg-amber-500/8 text-amber-300/70"
+                : "border-white/8 bg-white/3 text-white/22"
+            }`}
+            title={isScheduled ? "Change already scheduled" : currentPlanId === "team" ? "You're already on the highest plan" : "Free is the lowest plan"}
           >
-            {direction === "upgrade" ? "Upgrade" : "Downgrade"}
+            {isScheduled ? "Scheduled" : direction === "upgrade" ? "Upgrade" : "Downgrade"}
           </button>
         ) : (
           <Motion.button
@@ -510,20 +533,57 @@ function PlanCard({ plan, currentPlanId, index, onRequestSwitch }) {
 
 export default function PlansPage() {
   // ── Global plan state (shared with useAppStore limit guard) ──
-  const currentPlanId    = usePlanStore((s) => s.planId);
-  const setPlanInStore   = usePlanStore((s) => s.setPlan);
+  const currentPlanId      = usePlanStore((s) => s.planId);
+  const setPlanInStore     = usePlanStore((s) => s.setPlan);
+  const scheduledNextPlan  = usePlanStore((s) => s.nextPlan);
+  const planEndDate        = usePlanStore((s) => s.planEndDate);
+  const activatePlan       = usePlanStore((s) => s.activatePlan);
+  const scheduleDowngrade  = usePlanStore((s) => s.scheduleDowngrade);
+  const cancelScheduled    = usePlanStore((s) => s.cancelScheduledChange);
+
+  // Uid-scoped billing history — each user gets their own isolated key.
+  const authUid = useAppStore((s) => s.user?.uid);
+  /** Returns the uid-scoped LS key for this user's billing history. */
+  const billingKey = authUid ? `xpense_billing_history_${authUid}` : null;
 
   // Helper that keeps billing LS in sync then also updates the global store
   function setCurrentPlanId(id) {
     setPlanInStore(id);         // → writes localStorage + triggers reactive updates everywhere
   }
 
-  const [billingHistory, setBillingHistoryRaw] = useState(() => loadFromLS(LS_BILLING_KEY, DEFAULT_BILLING));
+  const [billingHistory, setBillingHistoryRaw] = useState([]);
+
+  // Reload billing history whenever the logged-in user changes.
+  // New users have no entry → empty array (no stale history from previous accounts).
+  useEffect(() => {
+    if (!billingKey) {
+      setBillingHistoryRaw([]);
+      return;
+    }
+    setBillingHistoryRaw(loadFromLS(billingKey, []));
+  }, [billingKey]);
+
+  // ── Currency toggle ──
+  const [pricingCurrency, setPricingCurrencyRaw] = useState(
+    () => localStorage.getItem(LS_CURRENCY_KEY) || "INR"
+  );
+  function setPricingCurrency(c) {
+    localStorage.setItem(LS_CURRENCY_KEY, c);
+    setPricingCurrencyRaw(c);
+  }
+  // Converts a numeric plan price to the selected currency string.
+  function formatPrice(priceNum) {
+    const sym = CURRENCY_SYMBOL[pricingCurrency];
+    if (priceNum === 0) return `${sym}0`;
+    const converted = priceNum * CURRENCY_RATES[pricingCurrency];
+    return `${sym}${converted % 1 === 0 ? converted : converted.toFixed(2)}`;
+  }
 
   function setBillingHistory(updater) {
     setBillingHistoryRaw((prev) => {
       const next = typeof updater === "function" ? updater(prev) : updater;
-      saveToLS(LS_BILLING_KEY, next);
+      // Write to the uid-scoped key so history is isolated per user.
+      if (billingKey) saveToLS(billingKey, next);
       return next;
     });
   }
@@ -540,9 +600,11 @@ export default function PlansPage() {
   const memberCount  = 2;
 
   const currentPlan = PLANS.find((p) => p.id === currentPlanId) ?? PLANS[0];
-  const expenseMax  = getExpenseLimit(currentPlanId);  // from usePlanStore helpers
+  const scheduledPlan = scheduledNextPlan ? PLANS.find((p) => p.id === scheduledNextPlan) : null;
+  const expenseMax  = getExpenseLimit(currentPlanId);
   const memberMax   = currentPlan.limits.members;
-  const nextBilling = currentPlanId === "free" ? "N/A" : "10 May 2026";
+  // Real expiry from store (ISO string → human label). Falls back to "N/A" for free.
+  const nextBilling = planEndDate ? formatSubDate(planEndDate) : (currentPlanId === "free" ? "N/A" : "—");
 
   // ── Derived values (NOT stored as state) ──
   const usagePct           = getUsagePercent(currentPlanId, expenseCount);
@@ -566,17 +628,29 @@ export default function PlansPage() {
     setConfirmLoading(true);
     try { await api.upgradePlan(modalPlan.id); } catch { /* optimistic */ }
     finally {
-      setBillingHistory((prev) => [
-        { date: todayLabel(), plan: modalPlan.name, amount: modalPlan.price, status: "Success" },
-        ...prev,
-      ]);
-      setCurrentPlanId(modalPlan.id);
+      if (modalDir === "upgrade") {
+        // Instant activation with 30-day window
+        activatePlan(modalPlan.id);
+        setBillingHistory((prev) => [
+          { date: todayLabel(), plan: modalPlan.name, amount: modalPlan.price, status: "Success" },
+          ...prev,
+        ]);
+        toast.success(`Upgraded to ${modalPlan.name} — active for 30 days ✅`);
+      } else {
+        // Deferred: schedule only, no immediate plan change
+        scheduleDowngrade(modalPlan.id);
+        // Log as Scheduled in billing history
+        setBillingHistory((prev) => [
+          { date: todayLabel(), plan: `${modalPlan.name} (scheduled)`, amount: "₹0", status: "Scheduled" },
+          ...prev,
+        ]);
+        toast.success(`Downgrade to ${modalPlan.name} scheduled — takes effect at end of billing period`);
+      }
       setModalOpen(false);
       setModalPlan(null);
       setConfirmLoading(false);
-      toast.success("Plan updated successfully");
     }
-  }, [modalPlan, confirmLoading]);
+  }, [modalPlan, modalDir, confirmLoading]);
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-2 sm:px-6">
@@ -611,23 +685,53 @@ export default function PlansPage() {
 
       {/* ── Page header ── */}
       <div className="mb-9">
-        <div className="text-xs font-medium uppercase tracking-widest text-white/36">Billing</div>
-        <Motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.26, ease: "easeOut" }}
-          className="mt-1 text-2xl font-semibold text-white/90 sm:text-3xl"
-        >
-          Choose Your Plan
-        </Motion.div>
-        <Motion.p
-          initial={{ opacity: 0, y: 5 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.06, ease: "easeOut" }}
-          className="mt-1.5 text-sm text-white/48"
-        >
-          Upgrade or downgrade any time — no lock-in
-        </Motion.p>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <div className="text-xs font-medium uppercase tracking-widest text-white/36">Billing</div>
+            <Motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.26, ease: "easeOut" }}
+              className="mt-1 text-2xl font-semibold text-white/90 sm:text-3xl"
+            >
+              Choose Your Plan
+            </Motion.div>
+            <Motion.p
+              initial={{ opacity: 0, y: 5 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.06, ease: "easeOut" }}
+              className="mt-1.5 text-sm text-white/48"
+            >
+              Upgrade or downgrade any time — no lock-in
+            </Motion.p>
+          </div>
+
+          {/* ── Currency toggle pill ── */}
+          <Motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.25, delay: 0.12 }}
+            className="mt-1 shrink-0"
+          >
+            <div className="flex items-center gap-0.5 rounded-xl border border-white/10 bg-white/[0.04] p-1 backdrop-blur-sm">
+              {["INR", "USD"].map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  id={`currency-toggle-${c.toLowerCase()}`}
+                  onClick={() => setPricingCurrency(c)}
+                  className={`rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all duration-200 ${
+                    pricingCurrency === c
+                      ? "bg-emerald-500/20 text-emerald-300 shadow-[0_2px_8px_rgba(52,211,153,0.15)]"
+                      : "text-white/40 hover:text-white/65"
+                  }`}
+                >
+                  {c === "INR" ? "₹ INR" : "$ USD"}
+                </button>
+              ))}
+            </div>
+          </Motion.div>
+        </div>
       </div>
 
       {/* ── Current Plan + Usage ── */}
@@ -671,10 +775,40 @@ export default function PlansPage() {
                   <TrendingUp size={10} /> Monthly Cost
                 </div>
                 <div className="mt-1 text-sm font-medium text-white/75">
-                  {currentPlan.price}<span className="text-xs text-white/35">/mo</span>
+                  {formatPrice(currentPlan.priceNum)}<span className="text-xs text-white/35">/mo</span>
                 </div>
               </div>
             </div>
+
+            {/* Scheduled downgrade chip */}
+            <AnimatePresence>
+              {scheduledNextPlan && scheduledPlan && (
+                <Motion.div
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 4 }}
+                  transition={{ duration: 0.2 }}
+                  className="mb-4 flex items-center justify-between gap-2.5 rounded-xl border border-amber-400/18 bg-amber-500/8 px-3 py-2.5"
+                >
+                  <div className="flex items-center gap-2 text-xs text-amber-200/80">
+                    <AlertTriangle size={11} className="shrink-0 text-amber-400" />
+                    <span>
+                      Changing to <span className="font-semibold text-amber-200">{scheduledPlan.name}</span>
+                      {nextBilling && nextBilling !== "N/A" && (
+                        <> on <span className="font-semibold text-amber-200">{nextBilling}</span></>
+                      )}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={cancelScheduled}
+                    className="shrink-0 rounded-lg border border-amber-400/20 bg-amber-500/10 px-2 py-1 text-[10px] font-semibold text-amber-300 transition hover:bg-amber-500/20"
+                  >
+                    Cancel
+                  </button>
+                </Motion.div>
+              )}
+            </AnimatePresence>
 
             <Motion.button
               type="button"
@@ -754,7 +888,9 @@ export default function PlansPage() {
             plan={plan}
             index={i}
             currentPlanId={currentPlanId}
+            scheduledNextPlan={scheduledNextPlan}
             onRequestSwitch={handleRequestSwitch}
+            formatPrice={formatPrice}
           />
         ))}
       </div>
@@ -878,6 +1014,8 @@ export default function PlansPage() {
         direction={modalDir}
         onConfirm={handleConfirm}
         loading={confirmLoading}
+        formatPrice={formatPrice}
+        planEndDate={planEndDate}
       />
     </div>
   );

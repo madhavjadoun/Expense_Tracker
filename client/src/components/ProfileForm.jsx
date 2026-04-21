@@ -1,8 +1,11 @@
 import { useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion as Motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
+import { reauthenticateWithCredential, EmailAuthProvider } from "firebase/auth";
+import { auth } from "../firebase";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
-import { Camera, Eye, Upload, X } from "lucide-react";
+import { Camera, Eye, EyeOff, Upload, X, Trash2, AlertTriangle } from "lucide-react";
 import Input from "./Input";
 import Button from "./Button";
 import { useUserStore } from "../store/useUserStore";
@@ -100,6 +103,8 @@ export default function ProfileForm() {
   const setProfile    = useUserStore((s) => s.setProfile);
   const setAvatar     = useUserStore((s) => s.setAvatar);
   const budgetMonthly = useAppStore((s) => s.budgetMonthly);
+  const deleteAccount = useAppStore((s) => s.deleteAccount);
+  const navigate = useNavigate();
 
   const [editing, setEditing]         = useState(false);
   const [draft, setDraft]             = useState(profile);
@@ -107,6 +112,14 @@ export default function ProfileForm() {
   const [errors, setErrors]           = useState({});
   const [menuOpen, setMenuOpen]       = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
+
+  // Delete-account confirmation modal state
+  const [deleteModalOpen, setDeleteModalOpen]   = useState(false);
+  const [deletePassword, setDeletePassword]     = useState("");
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [showDeletePw, setShowDeletePw]         = useState(false);
+  const [deleting, setDeleting]                 = useState(false);
+  const [deleteError, setDeleteError]           = useState("");
 
   // Hidden file input — triggered programmatically
   const fileInputRef = useRef(null);
@@ -174,6 +187,48 @@ export default function ProfileForm() {
     setDraftAvatar(avatar || null);
     setErrors({});
     setEditing(true);
+  }
+
+  function openDeleteModal() {
+    setDeletePassword("");
+    setDeleteConfirmText("");
+    setShowDeletePw(false);
+    setDeleteError("");
+    setDeleteModalOpen(true);
+  }
+
+  async function handleDeleteAccount() {
+    if (deleteConfirmText !== "DELETE") {
+      setDeleteError('Please type DELETE to confirm.');
+      return;
+    }
+    if (!deletePassword) {
+      setDeleteError("Please enter your password.");
+      return;
+    }
+    setDeleting(true);
+    setDeleteError("");
+
+    // ── Re-authenticate with Firebase before deleting ──────────────────────
+    const currentUser = auth.currentUser;
+    const email = currentUser?.email || profile?.email || "";
+    try {
+      const credential = EmailAuthProvider.credential(email, deletePassword);
+      await reauthenticateWithCredential(currentUser, credential);
+    } catch {
+      setDeleting(false);
+      setDeleteError("Invalid password, unable to delete account.");
+      return;
+    }
+
+    // ── Password verified — proceed with full account deletion ────────────
+    const res = await deleteAccount();
+    setDeleting(false);
+    if (!res.ok) {
+      setDeleteError(res.message || "Failed to delete account. Please try again.");
+      return;
+    }
+    navigate("/signup", { replace: true });
   }
 
   // Triggered when user picks a file
@@ -407,6 +462,194 @@ export default function ProfileForm() {
             />
           </label>
         </Motion.div>
+      </AnimatePresence>
+
+      {/* ── Compact delete row (no label) ── */}
+      {!editing && (
+        <div className="flex items-center justify-end border-t border-white/8 pt-3">
+          <button
+            type="button"
+            id="delete-account-btn"
+            onClick={openDeleteModal}
+            className="flex items-center gap-1.5 text-xs text-red-400/70 transition hover:text-red-300 active:scale-95"
+          >
+            <Trash2 size={11} />
+            Delete account
+          </button>
+        </div>
+      )}
+
+      {/* ── Delete Confirmation Modal (password verify) ── */}
+      <AnimatePresence>
+        {deleteModalOpen && (
+          <Motion.div
+            key="delete-modal-overlay"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            {/* Backdrop */}
+            <button
+              type="button"
+              className="absolute inset-0 bg-black/65 backdrop-blur-sm"
+              onClick={() => !deleting && setDeleteModalOpen(false)}
+              aria-label="Close"
+            />
+
+            {/* Modal card */}
+            <Motion.div
+              key="delete-modal-card"
+              initial={{ opacity: 0, scale: 0.94, y: 14 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.94, y: 14 }}
+              transition={{ type: "spring", stiffness: 340, damping: 28 }}
+              className="relative w-full max-w-md rounded-2xl border border-red-500/20 bg-[#0d1224] p-5 shadow-2xl"
+            >
+              {/* Close */}
+              <button
+                type="button"
+                onClick={() => !deleting && setDeleteModalOpen(false)}
+                disabled={deleting}
+                className="absolute right-3.5 top-3.5 rounded-lg border border-white/10 bg-white/5 p-1 text-white/40 transition hover:bg-white/10 hover:text-white/70 disabled:opacity-40"
+              >
+                <X size={13} />
+              </button>
+
+              {/* Heading */}
+              <div className="mb-4 flex items-center gap-2.5">
+                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-red-500/20 bg-red-500/10">
+                  <AlertTriangle size={16} className="text-red-400" />
+                </div>
+                <div>
+                  <div className="text-sm font-semibold text-white/90">Delete Account</div>
+                  <div className="text-[11px] text-white/40">This action is permanent and cannot be undone</div>
+                </div>
+              </div>
+
+              {/* Consequences warning list */}
+              <div className="mb-4 space-y-1.5 rounded-xl border border-red-500/15 bg-red-500/8 px-3.5 py-3">
+                {[
+                  "All your expenses will be permanently deleted",
+                  "All workspaces you own will be deleted",
+                  "Your profile and budget settings will be erased",
+                  "You will be signed out immediately",
+                ].map((line) => (
+                  <div key={line} className="flex items-center gap-2 text-[11px] text-red-200/75">
+                    <span className="shrink-0 text-red-400/80">✕</span>
+                    {line}
+                  </div>
+                ))}
+              </div>
+
+              {/* Wrap in a form so autoComplete=off is respected by all browsers */}
+              <form
+                autoComplete="off"
+                onSubmit={(e) => { e.preventDefault(); handleDeleteAccount(); }}
+              >
+              {/* Type DELETE */}
+              <div className="mb-3 space-y-1">
+                <label className="text-xs font-medium text-white/50">
+                  Type <span className="font-mono font-bold text-red-300/90">DELETE</span> to confirm
+                </label>
+                <input
+                  id="delete-confirm-input"
+                  type="text"
+                  autoComplete="off"
+                  spellCheck={false}
+                  value={deleteConfirmText}
+                  onChange={(e) => {
+                    setDeleteConfirmText(e.target.value.toUpperCase());
+                    setDeleteError("");
+                  }}
+                  disabled={deleting}
+                  placeholder="DELETE"
+                  className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 font-mono text-sm text-white placeholder-white/20 outline-none transition focus:border-red-400/35 focus:ring-2 focus:ring-red-400/10 disabled:opacity-50"
+                />
+              </div>
+
+              {/* Password field */}
+              <div className="mb-4 space-y-1">
+                <label className="text-xs font-medium text-white/50">
+                  Enter your password
+                </label>
+                <div className="relative">
+                  <input
+                    id="delete-password-input"
+                    type={showDeletePw ? "text" : "password"}
+                    autoComplete="off"
+                    data-lpignore="true"
+                    data-1p-ignore
+                    data-form-type="other"
+                    value={deletePassword}
+                    onChange={(e) => {
+                      setDeletePassword(e.target.value);
+                      setDeleteError("");
+                    }}
+                    onKeyDown={(e) => e.key === "Enter" && handleDeleteAccount()}
+                    disabled={deleting}
+                    placeholder="Your password"
+                    className={`w-full rounded-xl border bg-white/5 px-3 py-2 pr-10 text-sm text-white placeholder-white/20 outline-none transition disabled:opacity-50 ${
+                      deleteError
+                        ? "border-red-400/50 focus:border-red-400/60 focus:ring-2 focus:ring-red-400/15"
+                        : "border-white/10 focus:border-red-400/35 focus:ring-2 focus:ring-red-400/10"
+                    }`}
+                  />
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    onClick={() => setShowDeletePw((v) => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-white/35 transition hover:text-white/60"
+                  >
+                    {showDeletePw ? <EyeOff size={14} /> : <Eye size={14} />}
+                  </button>
+                </div>
+              {/* Error */}
+                {deleteError && (
+                  <p className="mt-1 flex items-center gap-1 text-[11px] text-red-400">
+                    <AlertTriangle size={10} className="shrink-0" />
+                    {deleteError}
+                  </p>
+                )}
+              </div>
+
+              {/* Buttons inside form */}
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setDeleteModalOpen(false)}
+                  disabled={deleting}
+                  className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs text-white/65 transition hover:bg-white/8 disabled:opacity-40"
+                >
+                  Cancel
+                </button>
+                <button
+                  id="confirm-delete-account-btn"
+                  type="submit"
+                  disabled={deleteConfirmText !== "DELETE" || !deletePassword || deleting}
+                  className="flex items-center gap-1.5 rounded-xl bg-red-500/85 px-4 py-2 text-xs font-semibold text-white transition hover:bg-red-500 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  {deleting ? (
+                    <>
+                      <Motion.span
+                        animate={{ rotate: 360 }}
+                        transition={{ repeat: Infinity, duration: 0.8, ease: "linear" }}
+                        className="inline-block h-3 w-3 rounded-full border-2 border-white/30 border-t-white"
+                      />
+                      Deleting…
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 size={11} />
+                      Delete forever
+                    </>
+                  )}
+                </button>
+              </div>
+              </form>
+            </Motion.div>
+          </Motion.div>
+        )}
       </AnimatePresence>
     </div>
   );

@@ -1,0 +1,6 @@
+{
+  "watch": ["server.js", "routes/", "controllers/", "models/", "middleware/", "firebaseAdmin.js", "scripts/"],
+  "ext": "js,json",
+  "ignore": ["client/", "node_modules/"],
+  "delay": 500
+}

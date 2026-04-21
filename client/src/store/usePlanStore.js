@@ -6,7 +6,10 @@
  */
 import { create } from "zustand";
 
-const LS_PLAN_KEY = "xpense_current_plan";
+// Legacy (unscoped) key — only used as migration fallback.
+const LS_PLAN_KEY_LEGACY = "xpense_current_plan";
+/** Returns the uid-scoped plan key. */
+const planKey = (uid) => `xpense_current_plan_${uid}`;
 
 // ─── Plan limit definitions ───────────────────────────────────────────────────
 export const PLAN_LIMITS = {
@@ -68,23 +71,190 @@ export function getUsageColor(usagePercent) {
   return "emerald";
 }
 
-// ─── Store ───────────────────────────────────────────────────────────────────
+// ─── Subscription metadata helpers ───────────────────────────────────────────
 
-function loadPlan() {
+/**
+ * uid-scoped key for the full subscription object:
+ *   { plan, startDate, endDate, nextPlan }
+ * This is separate from the planId string key so the rest of the app
+ * (limit guards, plan badges) still works via `planId` without changes.
+ */
+const subKey = (uid) => `plan_${uid}`;
+
+function loadSub(uid) {
+  if (!uid) return null;
   try {
-    const v = localStorage.getItem(LS_PLAN_KEY);
-    if (v && ["free", "pro", "team"].includes(v)) return v;
-  } catch {}
-  return "free";
+    const raw = localStorage.getItem(subKey(uid));
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
 }
 
-export const usePlanStore = create((set) => ({
-  /** Current plan id: "free" | "pro" | "team" */
-  planId: loadPlan(),
+function saveSub(uid, data) {
+  if (!uid) return;
+  try { localStorage.setItem(subKey(uid), JSON.stringify(data)); } catch {}
+}
 
-  /** Update plan id and persist to localStorage immediately. */
+/** Returns an ISO string 30 days from now. */
+function addDays30() {
+  const d = new Date();
+  d.setDate(d.getDate() + 30);
+  return d.toISOString();
+}
+
+/** Format ISO date → "21 Apr 2026" */
+export function formatSubDate(iso) {
+  if (!iso) return null;
+  return new Date(iso).toLocaleDateString("en-GB", {
+    day: "2-digit", month: "short", year: "numeric",
+  });
+}
+
+// ─── Store ───────────────────────────────────────────────────────────────────
+
+export const usePlanStore = create((set, get) => ({
+  /** Current active plan id: "free" | "pro" | "team" */
+  planId: "free",
+
+  /** Scheduled next plan (applied when endDate passes). null = no change pending. */
+  nextPlan: null,
+
+  /** ISO string — when the current paid plan expires. null for free / no expiry. */
+  planEndDate: null,
+
+  /** uid currently active in this store instance (set by restoreForUser). */
+  _uid: null,
+
+  /**
+   * Called on login / app start with the Firebase uid.
+   * Loads subscription metadata (with expiry check), falling back to the
+   * old planId-only key for existing users who have no subscription object yet.
+   */
+  restoreForUser: (uid) => {
+    if (!uid) return;
+
+    const meta = loadSub(uid);
+    if (meta) {
+      // ── Check expiry ──────────────────────────────────────────────────────
+      if (meta.endDate && new Date(meta.endDate) <= new Date()) {
+        const newPlan = meta.nextPlan || "free";
+        const fresh = {
+          plan: newPlan,
+          startDate: new Date().toISOString(),
+          endDate: null,
+          nextPlan: null,
+        };
+        saveSub(uid, fresh);
+        try { localStorage.setItem(planKey(uid), newPlan); } catch {}
+        set({ planId: newPlan, nextPlan: null, planEndDate: null, _uid: uid });
+        return;
+      }
+      // ── Plan still active ─────────────────────────────────────────────────
+      try { localStorage.setItem(planKey(uid), meta.plan); } catch {}
+      set({
+        planId:      meta.plan,
+        nextPlan:    meta.nextPlan   ?? null,
+        planEndDate: meta.endDate    ?? null,
+        _uid: uid,
+      });
+      return;
+    }
+
+    // ── Fallback: old planId-only storage (existing users / migration) ────
+    try {
+      const v = localStorage.getItem(planKey(uid));
+      if (v && ["free", "pro", "team"].includes(v)) {
+        set({ planId: v, nextPlan: null, planEndDate: null, _uid: uid });
+        return;
+      }
+    } catch {}
+
+    // ── Brand-new user: default to free ──────────────────────────────────
+    try { localStorage.setItem(planKey(uid), "free"); } catch {}
+    set({ planId: "free", nextPlan: null, planEndDate: null, _uid: uid });
+  },
+
+  /**
+   * Check if the current plan has expired and apply nextPlan if so.
+   * Call this on app start and login (after restoreForUser).
+   */
+  checkExpiry: () => {
+    const uid = get()._uid;
+    if (!uid) return;
+    const meta = loadSub(uid);
+    if (!meta || !meta.endDate) return;
+    if (new Date(meta.endDate) <= new Date()) {
+      const newPlan = meta.nextPlan || "free";
+      const fresh = {
+        plan: newPlan,
+        startDate: new Date().toISOString(),
+        endDate: null,
+        nextPlan: null,
+      };
+      saveSub(uid, fresh);
+      try { localStorage.setItem(planKey(uid), newPlan); } catch {}
+      set({ planId: newPlan, nextPlan: null, planEndDate: null });
+    }
+  },
+
+  /**
+   * Activate a paid plan immediately (upgrade path).
+   * Sets a 30-day subscription window and clears any scheduled nextPlan.
+   */
+  activatePlan: (id) => {
+    const uid = get()._uid;
+    const endDate = addDays30();
+    const meta = {
+      plan:      id,
+      startDate: new Date().toISOString(),
+      endDate:   id === "free" ? null : endDate,
+      nextPlan:  null,
+    };
+    saveSub(uid, meta);
+    try { if (uid) localStorage.setItem(planKey(uid), id); } catch {}
+    set({ planId: id, nextPlan: null, planEndDate: id === "free" ? null : endDate });
+  },
+
+  /**
+   * Schedule a downgrade to `id` — does NOT change the active plan.
+   * The new plan will be applied automatically when the endDate passes.
+   */
+  scheduleDowngrade: (id) => {
+    const uid = get()._uid;
+    const current = loadSub(uid) || {
+      plan:      get().planId,
+      startDate: new Date().toISOString(),
+      endDate:   get().planEndDate,
+      nextPlan:  null,
+    };
+    const updated = { ...current, nextPlan: id };
+    saveSub(uid, updated);
+    set({ nextPlan: id });
+  },
+
+  /**
+   * Cancel a scheduled downgrade.
+   */
+  cancelScheduledChange: () => {
+    const uid = get()._uid;
+    const current = loadSub(uid);
+    if (current) saveSub(uid, { ...current, nextPlan: null });
+    set({ nextPlan: null });
+  },
+
+  /**
+   * Legacy alias — kept for backward compatibility with any existing callers.
+   * For upgrades use activatePlan; for downgrades use scheduleDowngrade.
+   */
   setPlan: (id) => {
-    try { localStorage.setItem(LS_PLAN_KEY, id); } catch {}
-    set({ planId: id });
+    get().activatePlan(id);
+  },
+
+  /**
+   * Called on logout — resets in-memory plan to "free" but does NOT
+   * remove the uid-scoped localStorage key. The user's plan survives
+   * logout and is restored by restoreForUser() on next login.
+   */
+  resetPlan: () => {
+    set({ planId: "free", _uid: null });
   },
 }));

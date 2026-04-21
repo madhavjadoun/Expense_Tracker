@@ -5,6 +5,36 @@ const Expense = require("../models/Expense");
 
 const router = express.Router();
 
+// ── GET /api/workspaces ────────────────────────────────────────────────────────
+// Returns ONLY workspaces the authenticated user owns or is a member of.
+// This is the primary data-isolation guard — never returns all workspaces.
+router.get("/", requireAuth, async (req, res) => {
+  try {
+    const workspaces = await Workspace.find({
+      $or: [
+        { owner: req.userId },
+        { "members.userId": req.userId },
+      ],
+    }).lean();
+
+    // Normalize to the shape the frontend expects.
+    const normalized = workspaces.map((ws) => {
+      const memberEntry = ws.members?.find((m) => m.userId === req.userId);
+      return {
+        id:        ws._id,
+        name:      ws.name,
+        createdAt: ws.createdAt,
+        role:      memberEntry?.role ?? "member",
+      };
+    });
+
+    return res.status(200).json({ success: true, data: normalized });
+  } catch (err) {
+    console.error("[WS LIST]", err.message);
+    return res.status(500).json({ success: false, message: "Error fetching workspaces." });
+  }
+});
+
 // ── POST /api/workspaces ───────────────────────────────────────────────────────
 // Creates a new workspace and sets the creator as owner.
 router.post("/", requireAuth, async (req, res) => {
