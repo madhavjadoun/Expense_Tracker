@@ -1,6 +1,6 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import { motion as Motion } from "framer-motion";
-import { LayoutDashboard, Wallet, BarChart3, User, CreditCard, SplitSquareVertical } from "lucide-react";
+import { LayoutDashboard, Wallet, BarChart3, User, CreditCard, SplitSquareVertical, HelpCircle } from "lucide-react";
 import WorkspaceDropdown from "./WorkspaceDropdown";
 
 const navItems = [
@@ -12,7 +12,7 @@ const navItems = [
   { to: "/plans",     label: "Plans",     icon: CreditCard },
 ];
 
-function SidebarContent({ collapsed, onToggleCollapsed, onNavigate }) {
+function SidebarContent({ collapsed, onToggleCollapsed, onNavigate, onHelpOpen }) {
   const navigate = useNavigate();
   return (
     <div className="flex h-full flex-col">
@@ -96,6 +96,23 @@ function SidebarContent({ collapsed, onToggleCollapsed, onNavigate }) {
         ))}
       </nav>
 
+      {/* ── Help button ── */}
+      <div className="px-3 pb-2">
+        <button
+          type="button"
+          id="sidebar-help-btn"
+          onClick={() => { onHelpOpen?.(); onNavigate?.(); }}
+          className={[
+            "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition duration-200",
+            "text-white/55 hover:bg-white/5 hover:text-white/85 group",
+          ].join(" ")}
+          aria-label="Open Help"
+        >
+          <HelpCircle size={18} className="shrink-0 text-white/60 group-hover:text-emerald-300 transition-colors" />
+          {!collapsed && <span>Help</span>}
+        </button>
+      </div>
+
       <div className="px-4 pb-4">
         <button
           type="button"
@@ -121,6 +138,7 @@ export default function Sidebar({
   onToggleCollapsed,
   variant = "desktop", // "desktop" | "mobile"
   onNavigate,
+  onHelpOpen,
 }) {
   if (variant === "mobile") {
     return (
@@ -129,6 +147,7 @@ export default function Sidebar({
           collapsed={false}
           onToggleCollapsed={() => {}}
           onNavigate={onNavigate}
+          onHelpOpen={onHelpOpen}
         />
       </div>
     );
@@ -143,6 +162,7 @@ export default function Sidebar({
       <SidebarContent
         collapsed={collapsed}
         onToggleCollapsed={onToggleCollapsed}
+        onHelpOpen={onHelpOpen}
       />
     </Motion.aside>
   );

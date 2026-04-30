@@ -1,8 +1,9 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion as Motion } from "framer-motion";
 import { Outlet } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import Navbar from "./Navbar";
+import HelpPanel from "./HelpPanel";
 import { useAppStore } from "../store/useAppStore";
 import { useWorkspaceStore } from "../store/useWorkspaceStore";
 
@@ -14,6 +15,8 @@ export default function Layout({ onLogout }) {
   const fetchExpenses = useAppStore((s) => s.fetchExpenses);
   const user = useAppStore((s) => s.user);
   const activeWorkspaceId = useWorkspaceStore((s) => s.activeWorkspaceId);
+
+  const [helpOpen, setHelpOpen] = useState(false);
 
   // Re-fetch expenses from the backend whenever the active workspace changes.
   // Layout wraps all authenticated pages so this single effect covers
@@ -33,6 +36,7 @@ export default function Layout({ onLogout }) {
         <Sidebar
           collapsed={ui?.sidebarCollapsed}
           onToggleCollapsed={toggleSidebarCollapsed}
+          onHelpOpen={() => setHelpOpen(true)}
         />
 
         <div className="flex min-w-0 flex-1 flex-col">
@@ -90,12 +94,16 @@ export default function Layout({ onLogout }) {
                 <Sidebar
                   variant="mobile"
                   onNavigate={() => setSidebarOpen(false)}
+                  onHelpOpen={() => { setSidebarOpen(false); setHelpOpen(true); }}
                 />
               </div>
             </Motion.div>
           </Motion.div>
         ) : null}
       </AnimatePresence>
+
+      {/* ── Global Help Panel ── */}
+      <HelpPanel open={helpOpen} onClose={() => setHelpOpen(false)} />
     </div>
   );
 }
