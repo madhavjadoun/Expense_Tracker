@@ -13,7 +13,7 @@ const BACKEND_URL = () =>
 
 // Frontend URL — where the React app is deployed
 const CLIENT_ORIGIN = () =>
-  process.env.CLIENT_ORIGIN || "https://expense-tracker-rouge-chi-43.vercel.app";
+  process.env.CLIENT_ORIGIN || "https://madhav-expense-tracker.vercel.app";
 
 // ── POST /api/invite/verify ───────────────────────────────────────────────────
 // Protected — verifies JWT and adds user as member.

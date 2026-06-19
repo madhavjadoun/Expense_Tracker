@@ -53,8 +53,26 @@ const limiter = rateLimit({
 });
 app.use("/api", limiter);
 
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://madhav-expense-tracker.vercel.app"
+];
+if (process.env.CLIENT_ORIGIN) {
+  allowedOrigins.push(process.env.CLIENT_ORIGIN);
+}
+
 app.use(cors({
-  origin: process.env.CLIENT_ORIGIN || "http://localhost:5173",
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
+    const isAllowed = allowedOrigins.includes(origin) ||
+      allowedOrigins.some(allowed => origin.startsWith(allowed)) ||
+      (origin.endsWith(".vercel.app") && origin.includes("madhav-expense-tracker"));
+    if (isAllowed) {
+      callback(null, true);
+    } else {
+      callback(new Error(`Origin ${origin} not allowed by CORS`));
+    }
+  },
   credentials: true,
 }));
 app.use(express.json({ limit: "1mb" }));
