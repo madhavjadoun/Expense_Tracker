@@ -13,7 +13,6 @@ const DashboardPage  = lazy(() => import("./pages/DashboardPage"));
 const ExpensesPage   = lazy(() => import("./pages/ExpensesPage"));
 const AnalyticsPage  = lazy(() => import("./pages/AnalyticsPage"));
 const ProfilePage    = lazy(() => import("./pages/ProfilePage"));
-const PlansPage      = lazy(() => import("./pages/PlansPage"));
 const SplitPage      = lazy(() => import("./pages/SplitPage"));
 const JoinPage       = lazy(() => import("./pages/JoinPage"));
 
@@ -177,14 +176,7 @@ export default function App() {
               </Suspense>
             }
           />
-          <Route
-            path="/plans"
-            element={
-              <Suspense fallback={<Loader show label="Loading…" />}>
-                <PlansPage />
-              </Suspense>
-            }
-          />
+
           <Route
             path="/split"
             element={

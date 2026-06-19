@@ -38,10 +38,10 @@ async function getProfile(req, res) {
       data: sanitizeDoc(doc),
     });
   } catch (err) {
+    console.error("[getProfile]", err.message);
     return res.status(500).json({
       success: false,
       message: "Server error while loading profile.",
-      error: err.message,
     });
   }
 }
@@ -52,12 +52,16 @@ async function getProfile(req, res) {
  */
 async function putProfile(req, res) {
   try {
-    // Ensure userId is stored in every profile document securely from the verified token
-    req.body.userId = req.userId;
+    // Whitelist allowed fields — never pass raw req.body to MongoDB
+    const allowed = ["name", "email", "mobile", "gender", "profession", "about", "avatar", "budget", "monthlyBudget"];
+    const updates = { userId: req.userId };
+    for (const key of allowed) {
+      if (req.body[key] !== undefined) updates[key] = req.body[key];
+    }
 
     const doc = await Profile.findOneAndUpdate(
       { userId: req.userId },
-      req.body,
+      updates,
       { upsert: true, new: true }
     ).lean();
 
@@ -67,10 +71,10 @@ async function putProfile(req, res) {
       data: sanitizeDoc(doc),
     });
   } catch (err) {
+    console.error("[putProfile]", err.message);
     return res.status(500).json({
       success: false,
       message: "Server error while saving profile.",
-      error: err.message,
     });
   }
 }

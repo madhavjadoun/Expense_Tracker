@@ -10,12 +10,14 @@ import { auth } from "../firebase";
 import { notify, useNotificationStore } from "./useNotificationStore";
 import { useUserStore } from "./useUserStore";
 import { generateInsights } from "../utils/budgetInsights";
-import { usePlanStore, isExpenseLimitReached } from "./usePlanStore";
 import { useWorkspaceStore } from "./useWorkspaceStore";
+import { useSplitStore } from "./useSplitStore";
 
 // ─── localStorage helpers ────────────────────────────────────────────────────────────────
 const WS_EXPENSE_MAP_KEY = "xpense_ws_expense_map";
 const WS_BUDGETS_KEY     = "xpense_ws_budgets";
+
+let budgetSaveTimeout = null;
 
 /** Per-user budget cache key (default workspace only). Scoped by uid. */
 function budgetCacheKey(uid) {
@@ -192,9 +194,8 @@ export const useAppStore = create((set, get) => ({
     // Restore user-specific persisted state (uid-scoped localStorage keys)
     // BEFORE hitting the server, so initFromServer can merge correctly.
     useWorkspaceStore.getState().restoreForUser(uid);
-    usePlanStore.getState().restoreForUser(uid);
-    // Apply any expired subscription (e.g. paid plan whose 30-day window elapsed).
-    usePlanStore.getState().checkExpiry();
+    // Restore this user's split data (members, expenses, settlements).
+    useSplitStore.getState().restoreForUser(uid);
 
     // Run profile sync and workspace fetch in parallel — they're independent.
     // This cuts bootstrap time roughly in half vs running them serially.
@@ -219,7 +220,7 @@ export const useAppStore = create((set, get) => ({
   },
 
 
-  setBudgetMonthly: async (nextBudget) => {
+  setBudgetMonthly: (nextBudget) => {
     const budget = Number(nextBudget);
     const safeBudget = Number.isFinite(budget) ? budget : 0;
     const uid = get().user?.uid;
@@ -227,16 +228,11 @@ export const useAppStore = create((set, get) => ({
     useUserStore.getState().setProfile({ ...prevProfile, monthlyBudget: safeBudget });
     // Persist locally first so the value survives navigation without a server round-trip.
     if (uid) saveCachedBudget(uid, safeBudget);
-    if (uid) {
-      try {
-        await api.saveProfile({ monthlyBudget: safeBudget });
-      } catch {
-        // offline / server down — local cache still updated
-      }
-    }
+
     const expenses = get().expenses;
     const insights = generateInsights(expenses, safeBudget);
     set({ budgetMonthly: safeBudget, insights });
+
     const wasNotified = get().budgetExceededNotified;
     const isExceeded = insights?.budgetStatus === "exceeded";
     if (isExceeded && !wasNotified) {
@@ -244,6 +240,20 @@ export const useAppStore = create((set, get) => ({
       set({ budgetExceededNotified: true });
     } else if (!isExceeded && wasNotified) {
       set({ budgetExceededNotified: false });
+    }
+
+    // Debounce backend API call to avoid lag and out-of-order save requests on rapid typing
+    if (uid) {
+      if (budgetSaveTimeout) {
+        clearTimeout(budgetSaveTimeout);
+      }
+      budgetSaveTimeout = setTimeout(async () => {
+        try {
+          await api.saveProfile({ monthlyBudget: safeBudget });
+        } catch {
+          // offline / server down — local cache still updated
+        }
+      }, 500);
     }
   },
 
@@ -329,8 +339,8 @@ export const useAppStore = create((set, get) => ({
       useUserStore.getState().resetForLogout();
       // Reset workspace in-memory state (uid-scoped LS keys are preserved for next login).
       useWorkspaceStore.getState().resetForLogout();
-      // Reset plan in-memory state (uid-scoped LS key is preserved for next login).
-      usePlanStore.getState().resetPlan();
+      // Save current split data to uid-scoped key, then clear in-memory state.
+      useSplitStore.getState().resetForLogout();
       set({
         user: null,
         expenses: [],
@@ -380,8 +390,10 @@ export const useAppStore = create((set, get) => ({
         // Expense workspace maps (not uid-scoped — clear them too)
         "xpense_ws_expense_map",
         "xpense_ws_budgets",
-        // Split data (Zustand persist)
+        // Split data (Zustand persist session cache)
         "split-storage",
+        // uid-scoped split data
+        `split-storage-${uid}`,
         // uid-scoped budget
         `budget_monthly_${uid}`,
         // uid-scoped workspaces
@@ -419,7 +431,7 @@ export const useAppStore = create((set, get) => ({
     useNotificationStore.getState().clearAll();
     useUserStore.getState().resetForLogout();
     useWorkspaceStore.getState().resetForLogout();
-    usePlanStore.getState().resetPlan();
+    useSplitStore.getState().resetForLogout();
     set({
       user: null,
       expenses: [],
@@ -466,12 +478,6 @@ export const useAppStore = create((set, get) => ({
   },
 
   addExpenseOptimistic: async (draftExpense) => {
-    // ── Plan limit guard ───────────────────────────────────────────────────
-    const planId = usePlanStore.getState().planId;
-    if (isExpenseLimitReached(planId, get().expenses.length)) {
-      return { ok: false, limitReached: true, message: "Limit reached! Upgrade your plan to add more expenses." };
-    }
-
     // ── Workspace tag ───────────────────────────────────────────────────
     const workspaceId = draftExpense.workspaceId ?? "default";
 

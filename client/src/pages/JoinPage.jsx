@@ -41,22 +41,32 @@ export default function JoinPage() {
 
       const { workspaceId } = result;
 
-      // Add workspace to local store if it doesn't exist, since backend workspaces are implied
+      // Add workspace to local store if it doesn't exist
       const exists = workspaces.some((w) => w.id === workspaceId);
       if (!exists) {
         const newWs = { id: workspaceId, name: result.name || "Shared Workspace", role: result.role || "member", createdAt: new Date().toISOString() };
         useWorkspaceStore.setState((s) => ({
           workspaces: [...s.workspaces, newWs]
         }));
-        // Update local storage
-        localStorage.setItem("xpense_workspaces", JSON.stringify([...workspaces, newWs]));
+        // Persist to uid-scoped localStorage
+        const uid = user?.uid;
+        if (uid) {
+          try {
+            localStorage.setItem(`xpense_workspaces_${uid}`, JSON.stringify([...workspaces, newWs]));
+          } catch { /* ignore */ }
+        }
       } else {
         // Upgrade existing local workspace object with role and actual name
         const updatedWorkspaces = workspaces.map((w) =>
           w.id === workspaceId ? { ...w, role: result.role || "member", name: result.name || w.name } : w
         );
         useWorkspaceStore.setState({ workspaces: updatedWorkspaces });
-        localStorage.setItem("xpense_workspaces", JSON.stringify(updatedWorkspaces));
+        const uid = user?.uid;
+        if (uid) {
+          try {
+            localStorage.setItem(`xpense_workspaces_${uid}`, JSON.stringify(updatedWorkspaces));
+          } catch { /* ignore */ }
+        }
       }
 
       setActiveWorkspace(workspaceId);

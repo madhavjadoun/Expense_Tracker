@@ -1,384 +1,448 @@
-// helpData.js — English UI, Hinglish+English keywords for matching
+// ─────────────────────────────────────────────────────────────
+//  helpData.js
+//  UI language: English
+//  Keywords: Hinglish + English (for broad query matching)
+// ─────────────────────────────────────────────────────────────
 
 export const FAQ_ITEMS = [
 
-  // ─── LOGIN / ACCOUNT ─────────────────────────────────────
-  { keywords: ["login nahi","cant login","login fail","sign in nahi","login problem","login ho nahi raha"],
+  // ─── 🔐 LOGIN / ACCOUNT ───────────────────────────────────
+  {
+    keywords: [
+      "login nahi", "login problem", "sign in nahi", "cant login", "login ho nahi raha",
+      "password bhool", "forgot password", "login fail", "login issue",
+      "password wrong", "email wrong", "credentials",
+    ],
     question: "Unable to login",
-    answer: "Double-check your email and password — a small typo is the most common cause. Use 'Forgot Password' to get a reset link sent to your inbox." },
-
-  { keywords: ["otp nahi","otp nahi aaya","verification code","email nahi aaya","code nahi mila","otp"],
-    question: "Didn't receive OTP or email",
-    answer: "Check your Spam / Junk folder first. Using Gmail? Also check the Promotions tab. Wait 2 minutes then request a new OTP if still missing." },
-
-  { keywords: ["logout","sign out","log out karna","bahar nikalna","how to logout"],
+    answer:
+      "Double-check your email and password — a small typo is the most common culprit! If you've forgotten your password, hit 'Forgot Password' and a reset link will be sent to your inbox. Still stuck? Try clearing your browser cache and logging in again.",
+  },
+  {
+    keywords: [
+      "otp nahi aaya", "otp nahi mila", "verification code", "code nahi mila",
+      "email verification", "otp", "email not received", "confirmation email",
+    ],
+    question: "Didn't receive OTP or verification email",
+    answer:
+      "Check your Spam / Junk folder first — it lands there 90% of the time! Using Gmail? Also peek into the Promotions tab. If it's been more than 2 minutes, wait a bit and request a new OTP. Make sure the email address you entered is correct.",
+  },
+  {
+    keywords: [
+      "logout", "sign out", "bahar nikalna", "account se nikalna", "log out karna", "how to logout",
+    ],
     question: "How to logout",
-    answer: "Click your profile icon in the top-right corner and select 'Logout' from the dropdown menu." },
-
-  { keywords: ["bar bar login","session expire","auto logout","keeps logging out","baar baar login"],
+    answer:
+      "Click your profile icon in the top-right corner of the screen, then select 'Logout' from the dropdown. That's all it takes!",
+  },
+  {
+    keywords: [
+      "bar bar login", "session expire", "baar baar login", "automatically logout",
+      "auto logout", "dobara login", "keeps logging out", "session expired",
+    ],
     question: "App keeps logging me out",
-    answer: "Your session expired — this is normal. Log in again. If it repeats daily, clear your browser cache or try a different browser." },
+    answer:
+      "This happens when your session expires — it's completely normal behaviour. Simply log in again. If it happens repeatedly, try clearing your browser cache or switching to a different browser.",
+  },
 
-  { keywords: ["account delete","delete account","account band karna","remove account","deactivate"],
-    question: "How to delete my account",
-    answer: "Go to Profile → Account Settings → scroll to the bottom and look for 'Delete Account'. Confirm your password to proceed. This action is permanent and cannot be undone." },
-
-  { keywords: ["password change","change password","update password","password update karna"],
-    question: "How to change my password",
-    answer: "Go to Profile → Account Settings → 'Change Password'. Enter your current password then your new one. Save to apply." },
-
-  { keywords: ["email change","update email","change email","email badalna"],
-    question: "Can I change my email address?",
-    answer: "Email changes are handled via Firebase. Go to Profile settings — if not available, log out and use 'Forgot Password' with your new email to re-register." },
-
-  { keywords: ["signup","register","create account","account banao","sign up nahi ho raha"],
-    question: "How to create an account",
-    answer: "Open the app and click 'Sign Up'. Enter your name, email, and password. Verify your email via the link sent to your inbox, then log in." },
-
-  { keywords: ["name change","display name","profile name","naam change karna","update name"],
-    question: "How to update my profile name",
-    answer: "Go to Profile → edit the Name field → click Save. Your display name will update across the app immediately." },
-
-  // ─── ADD / MANAGE EXPENSES ────────────────────────────────
-  { keywords: ["expense add nahi","expense save nahi","cannot add expense","expense nahi bana","add expense problem"],
+  // ─── 💰 ADD / MANAGE EXPENSE ─────────────────────────────
+  {
+    keywords: [
+      "expense add nahi", "expense nahi add ho raha", "add expense problem",
+      "expense save nahi", "required fields", "expense nahi bana",
+      "cannot add expense", "expense not saving", "add expense",
+    ],
     question: "Can't add an expense",
-    answer: "Make sure Amount and Category are filled in — both are required. If it still fails, refresh the page and try again." },
-
-  { keywords: ["expense dikh nahi","expense missing","added but not visible","expense nazar nahi","expense gayab","expense show nahi"],
+    answer:
+      "Make sure all required fields are filled in — Amount and Category are mandatory. Leave any field blank and the form won't save. Fill everything in and hit Save. If it still fails, try refreshing the page and adding again.",
+  },
+  {
+    keywords: [
+      "expense dikh nahi", "expense show nahi", "add kiya but visible nahi",
+      "expense missing", "expense nazar nahi aa raha", "expense gayab",
+      "expense not showing", "expense disappeared", "added expense not visible",
+    ],
     question: "Added expense isn't showing up",
-    answer: "Refresh the page (Ctrl+R / Cmd+R). Then confirm you're in the correct workspace — expenses only appear in the workspace they were added to." },
-
-  { keywords: ["edit expense","galat expense","expense edit karna","wrong expense","modify expense"],
-    question: "How to edit an expense",
-    answer: "Go to Expenses page → click the expense → press Edit. You can change the amount, category, date, or note. Click Save when done." },
-
-  { keywords: ["delete expense","expense delete karna","expense hatana","remove expense"],
+    answer:
+      "First, do a quick page refresh (Ctrl+R / Cmd+R). If it's still missing, check that you're in the correct workspace — expenses are workspace-specific and won't appear in other workspaces.",
+  },
+  {
+    keywords: [
+      "galat expense", "wrong expense", "edit expense", "expense edit karna",
+      "expense change", "modify expense", "update expense",
+    ],
+    question: "Added wrong expense — how to edit it",
+    answer:
+      "Go to your Expenses list, find the entry and click on it. Use the Edit option to update the amount, category, description or date. Save when you're done — the change reflects immediately.",
+  },
+  {
+    keywords: [
+      "expense delete", "delete expense", "remove expense", "expense hatana",
+      "expense mitana", "how to delete expense",
+    ],
     question: "How to delete an expense",
-    answer: "Open the expense from your list and click Delete. Confirm when prompted — deleted expenses cannot be recovered." },
-
-  { keywords: ["past date","previous date","backdated","purani date","old expense","purana expense add"],
+    answer:
+      "Open the expense you want to remove and press the Delete button. You'll be asked to confirm — once deleted, it cannot be recovered, so double-check before confirming.",
+  },
+  {
+    keywords: [
+      "past date", "purani date", "previous date", "pichli date",
+      "backdated expense", "purana expense", "add old expense", "old date",
+    ],
     question: "How to add an expense with a past date",
-    answer: "When adding an expense, click the date field and choose any previous date from the calendar picker. No restrictions apply." },
+    answer:
+      "When adding an expense, click the date field — a calendar picker will appear. You can select any previous date freely. No restrictions on backdating!",
+  },
+  {
+    keywords: [
+      "duplicate", "do baar add", "same expense twice", "double entry",
+      "do baar expense", "duplicate expense",
+    ],
+    question: "Same expense got added twice",
+    answer:
+      "Open your Expenses list, find the duplicate entry and delete it. Going forward, give your list a quick glance before hitting Save to catch duplicates early.",
+  },
 
-  { keywords: ["duplicate expense","do baar add","same expense twice","double entry"],
-    question: "Same expense added twice",
-    answer: "Go to your Expenses list, find the duplicate and delete it. In future, scan your list before saving to avoid duplicates." },
-
-  { keywords: ["recurring expense","recurring kya hai","repeat expense","auto expense","recurring add karna"],
-    question: "What is a recurring expense?",
-    answer: "Enable the '🔁 Recurring expense' toggle when adding an expense. Choose Weekly or Monthly. The system will auto-add this expense on schedule — useful for rent, subscriptions, etc." },
-
-  { keywords: ["recurring stop","cancel recurring","recurring band karna","stop recurring"],
-    question: "How to stop a recurring expense",
-    answer: "Find the recurring expense in your list (it shows a '🔁 Recurring' badge). Delete it to stop future auto-additions." },
-
-  { keywords: ["category change","wrong category","galat category","category select galat","category edit"],
-    question: "Changed wrong category on an expense",
-    answer: "Open the expense → click Edit → pick the correct category from the dropdown → Save. Analytics will update automatically." },
-
-  { keywords: ["expense note","add note","note kya hai","description expense","note add karna"],
-    question: "What is the Note field in expenses?",
-    answer: "The Note field is a short description for your expense — like 'Lunch at Zomato' or 'Netflix subscription'. It helps you search and identify expenses later." },
-
-  { keywords: ["search expense","expense dhundna","find expense","expense search karna","filter expense"],
-    question: "How to search or filter expenses",
-    answer: "On the Expenses page, use the Search bar to find by note or category. Use the Category, Date, and Sort dropdowns to filter your list further." },
-
-  { keywords: ["export csv","download expenses","expense export","csv download","export data"],
-    question: "How to export expenses to CSV",
-    answer: "On the Expenses page, click '↓ Export CSV' in the top-right. This downloads all currently visible (filtered) expenses as a spreadsheet file." },
-
-  { keywords: ["custom date range","date filter","custom range","date se date","filter by date"],
-    question: "How to filter expenses by custom date range",
-    answer: "On the Expenses page → Date filter dropdown → select 'Custom range'. Two date pickers will appear — set your start and end date." },
-
-  { keywords: ["sort expenses","expense sort karna","sort by amount","sort by date","highest expense"],
-    question: "How to sort expenses",
-    answer: "Use the Sort dropdown on the Expenses page. Options: Latest, Oldest, Highest amount, Lowest amount." },
-
-  // ─── BUDGET / DASHBOARD ───────────────────────────────────
-  { keywords: ["budget set kaise","how to set budget","monthly budget set","budget lagana","budget kahan se set"],
+  // ─── 📊 BUDGET / DASHBOARD ───────────────────────────────
+  {
+    keywords: [
+      "budget galat", "remaining budget", "budget wrong", "budget match nahi",
+      "budget sahi nahi", "budget calculate galat", "budget incorrect",
+      "remaining amount wrong", "budget not correct",
+    ],
+    question: "Remaining budget looks incorrect",
+    answer:
+      "Head to Dashboard → Budget section and verify the monthly amount. If some expenses were added to a different workspace, they won't count towards this budget — that's the most common reason for a mismatch. Confirm all expenses are in the right workspace.",
+  },
+  {
+    keywords: [
+      "budget set nahi", "budget kaise set", "monthly budget", "set budget",
+      "budget lagana", "how to set budget", "budget setup",
+    ],
     question: "How to set a monthly budget",
-    answer: "Go to Dashboard → find the 'Monthly budget' section → enter your limit → the value saves automatically as you type." },
-
-  { keywords: ["budget galat","remaining budget wrong","budget match nahi","budget sahi nahi","budget incorrect"],
-    question: "Remaining budget looks wrong",
-    answer: "Check that all expenses are in the correct workspace and month. Expenses from other workspaces or months won't affect the current budget display." },
-
-  { keywords: ["budget update nahi","budget reflect nahi","expense add kiya budget nahi","budget not updating"],
-    question: "Budget didn't update after adding expense",
-    answer: "The expense must be in the same workspace and current month. Verify the expense date and workspace match where you're viewing the budget." },
-
-  { keywords: ["budget exceeded","budget khatam","overspent","budget exceed ho gaya","budget cross"],
-    question: "What happens when budget is exceeded?",
-    answer: "The budget bar turns red and you'll see an 'Exceeded' alert on the Dashboard. Review your categories to see where you can cut back." },
-
-  { keywords: ["daily limit","daily budget","daily spending","din ka budget","per day limit"],
-    question: "What is the daily limit shown on Dashboard?",
-    answer: "The daily limit = your monthly budget ÷ days in the month. If today's spending crosses 70% of that limit, the status shows 'Risk'. Crossing it shows 'Exceeded'." },
-
-  { keywords: ["spending score","score kya hai","score samajh nahi","what is score","score explain"],
+    answer:
+      "Go to the Dashboard → find the Budget section → enter your monthly limit and save. You can set a different budget for each month and each workspace independently.",
+  },
+  {
+    keywords: [
+      "spending score", "score kya hai", "score samajh nahi", "score explain",
+      "score matlab", "what is spending score", "score calculation",
+    ],
     question: "What is the Spending Score?",
-    answer: "A 0–100 rating of your financial health. It factors in budget usage, no-spend days, and month-over-month trend. 80+ = Excellent, 65+ = Good, 50+ = Average, below = At Risk." },
-
-  { keywords: ["score grade","grade A B C","score grade kya","spending grade"],
-    question: "What do the Spending Score grades mean?",
-    answer: "A = 80–100 (Excellent), B = 65–79 (Good), C = 50–64 (Average), D = 35–49 (At Risk), F = below 35 (Critical). Aim for A or B!" },
-
-  { keywords: ["safe status","status safe","budget safe","safe matlab kya","status meaning"],
-    question: "What does 'Safe' status mean?",
-    answer: "'Safe' means your spending is within the monthly budget. 'Near limit' = approaching 80%. 'Exceeded' = over budget. Keep it on Safe!" },
-
-  { keywords: ["no spend streak","streak kya hai","streak break","streak khatam","flame streak"],
-    question: "What is the No-Spend Streak?",
-    answer: "It counts consecutive days with zero expenses. Even one small expense resets the streak to 0. The 🔥 animation shows your current streak count." },
-
-  { keywords: ["streak break ho gaya","streak reset","streak tod","streak chala gaya"],
+    answer:
+      "The Spending Score is a 0–100 rating of your financial health. It factors in: budget usage (are you staying within limits?), no-spend days, and spending consistency over the month. A score above 80 means you're doing great — keep it up!",
+  },
+  {
+    keywords: [
+      "safe status", "status safe", "budget safe", "safe dikha", "safe mode",
+      "what does safe mean", "status meaning",
+    ],
+    question: "What does the 'Safe' status mean?",
+    answer:
+      "Good news — 'Safe' means you're well within your monthly budget! Keep spending at this pace and you'll finish the month in the green. If it turns to 'Warning', it's a nudge to cut back a little.",
+  },
+  {
+    keywords: [
+      "budget update nahi", "budget reflect nahi", "expense add kiya budget nahi",
+      "budget change nahi", "budget update nahi hua", "budget not updating",
+    ],
+    question: "Added expense but budget didn't update",
+    answer:
+      "The most likely cause: the expense was added to a different workspace or a different month. Budget tracking is workspace-and-month specific. Verify that the expense's workspace and date match where you're checking the budget.",
+  },
+  {
+    keywords: [
+      "no spend", "streak break", "streak tod", "streak khatam",
+      "no spend streak", "streak broken", "streak lost",
+    ],
     question: "My no-spend streak got broken",
-    answer: "Any expense — even ₹1 — resets the streak. Don't worry, start fresh today! The streak rebuilds automatically for every day you don't spend." },
+    answer:
+      "Any expense — even a tiny one — resets the streak. That's just how it works! Don't worry though, streaks reset to Day 1 and you can start building again right away. Consistency is the goal.",
+  },
 
-  { keywords: ["month comparison","vs last month","previous month","last month comparison nahi","monthly trend"],
-    question: "What is the 'vs Last Month' card?",
-    answer: "It compares this month's total spending to last month's. Green/down % = spending less (good), Red/up % = spending more. Needs previous month data to show." },
-
-  { keywords: ["smart insights","insights kya hai","insights explain","dashboard insights","financial insights"],
-    question: "What are Smart Insights on the Dashboard?",
-    answer: "Auto-generated observations about your spending — budget risk alerts, category spikes, recurring pattern detection, and suggestions to reduce spending. They update as your data changes." },
-
-  { keywords: ["quick add expense","dashboard se add","add from dashboard","quick add kya hai"],
-    question: "How to quickly add an expense from Dashboard",
-    answer: "Click the '+ Add Expense' button in the top-right of the Dashboard. Fill in Amount, Category, and Note, then click Add." },
-
-  { keywords: ["projected spend","projection","burn rate","spending projection","kitna kharchega"],
-    question: "What is the projected spend shown on Dashboard?",
-    answer: "It's your estimated end-of-month spending based on your current daily average. If it's above your budget, the Smart Insights panel shows a warning." },
-
-  // ─── WORKSPACE ────────────────────────────────────────────
-  { keywords: ["workspace kya hai","what is workspace","workspace explain","workspace meaning"],
-    question: "What is a Workspace?",
-    answer: "A workspace is a separate budget environment. You can have a personal workspace and shared workspaces with friends or family. Data is fully isolated between workspaces." },
-
-  { keywords: ["workspace create","new workspace","workspace banana","create workspace kaise"],
-    question: "How to create a new workspace",
-    answer: "Click the workspace dropdown in the top-left → 'New Workspace' or the + icon → enter a name and save." },
-
-  { keywords: ["workspace switch","change workspace","workspace badalna","workspace select karna"],
+  // ─── 💼 WORKSPACE ────────────────────────────────────────
+  {
+    keywords: [
+      "workspace nahi dikh", "workspace missing", "workspace create kiya dikh nahi",
+      "workspace show nahi", "naya workspace", "workspace not showing",
+      "workspace not visible", "created workspace",
+    ],
+    question: "Created a workspace but it's not showing",
+    answer:
+      "Refresh the page first. Then check the top-left workspace dropdown — your new workspace should appear in the list. It can take a second or two to reflect after creation.",
+  },
+  {
+    keywords: [
+      "wrong workspace", "galat workspace", "dusre workspace mein expense",
+      "workspace mistake", "expense in wrong workspace",
+    ],
+    question: "Expense added to the wrong workspace",
+    answer:
+      "Switch to the correct workspace using the top-left dropdown, then add the expense again. Don't forget to delete the entry from the wrong workspace to keep things clean.",
+  },
+  {
+    keywords: [
+      "workspace switch", "workspace change", "workspace badalna",
+      "workspace select karna", "how to switch workspace", "change workspace",
+    ],
     question: "How to switch workspaces",
-    answer: "Click the workspace name in the top-left dropdown and select the one you want. All data — expenses, budget, split — updates instantly." },
-
-  { keywords: ["workspace nahi dikh","workspace missing","workspace show nahi","workspace not visible"],
-    question: "Created workspace but it's not showing",
-    answer: "Refresh the page and check the top-left dropdown. New workspaces can take a moment to appear after creation." },
-
-  { keywords: ["wrong workspace expense","galat workspace","expense wrong workspace","dusre workspace mein add"],
-    question: "Expense added to wrong workspace",
-    answer: "Switch to the correct workspace, add the expense again, then delete the wrong entry from the other workspace." },
-
-  { keywords: ["workspace delete","delete workspace","workspace hatana","workspace remove karna"],
-    question: "How to delete a workspace",
-    answer: "Go to workspace settings in the dropdown. Select the workspace → Delete. Warning: all data in that workspace is permanently lost." },
-
-  { keywords: ["workspace data missing","workspace empty","data nahi dikh","sab chala gaya workspace"],
-    question: "Workspace data looks missing",
-    answer: "Confirm the correct workspace is selected in the top-left dropdown. Each workspace holds its own independent data." },
-
-  { keywords: ["shared workspace","dusre user expenses dikh rahe","shared expenses","others data visible"],
+    answer:
+      "Click the workspace name in the top-left dropdown. Select the workspace you want — all data updates instantly. It's the central hub for navigating between different tracking spaces.",
+  },
+  {
+    keywords: [
+      "dusre user expenses", "shared workspace", "others expenses",
+      "dono dikh rahe", "sab dikh raha", "seeing other people expenses",
+      "other members expenses",
+    ],
     question: "I can see other users' expenses",
-    answer: "You're in a shared workspace — all members' expenses are visible to everyone by design. Create a private workspace for personal tracking." },
+    answer:
+      "You're in a shared workspace — that's by design. In shared workspaces, all members' expenses are visible to everyone. If you want to track personal expenses privately, create a separate workspace just for yourself.",
+  },
+  {
+    keywords: [
+      "workspace data missing", "data nahi dikh raha workspace",
+      "workspace empty", "sab data gaya", "workspace data gone",
+    ],
+    question: "Workspace data appears to be missing",
+    answer:
+      "Don't panic — data rarely gets deleted on its own. First, confirm you're in the correct workspace (top-left dropdown). Switching to the wrong workspace makes it look like data is missing, but it's actually right there in the correct one.",
+  },
 
-  { keywords: ["data mix ho raha","data mixed","data confusion","workspace confusion","multiple workspace"],
-    question: "Data is getting mixed up between workspaces",
-    answer: "Each workspace is fully isolated. Always check the workspace indicator (top-left) before adding expenses. Set a habit of verifying before you log anything." },
-
-  // ─── INVITE / COLLABORATION ──────────────────────────────
-  { keywords: ["invite link","link kaam nahi","invite fail","link expired","invite link not working"],
+  // ─── 🔗 INVITE / COLLABORATION ──────────────────────────
+  {
+    keywords: [
+      "invite link", "link kaam nahi", "invite fail", "link expired",
+      "link nahi chala", "invite link not working", "invite broken",
+    ],
     question: "Invite link isn't working",
-    answer: "Invite links can expire. Go to Workspace Settings → generate a fresh invite link → share that. Old links won't work." },
-
-  { keywords: ["user join nahi","member join nahi","friend cant join","join nahi ho raha"],
+    answer:
+      "Invite links can expire. Go to Workspace Settings, generate a fresh invite link, and share that. Discard the old one — it won't work anymore.",
+  },
+  {
+    keywords: [
+      "user join nahi", "join nahi ho raha", "member join",
+      "dost join nahi kar pa raha", "friend cant join", "user not joining",
+    ],
     question: "Someone can't join my workspace",
-    answer: "Ensure they are logged into the app first, then open the full invite link in a browser. Incomplete links (cut off during copy-paste) are the most common reason." },
+    answer:
+      "Two things to check: (1) They must be logged into the app before following the link. (2) Make sure the full link was shared — copy-paste sometimes cuts it short. Sending the link via the app's share button is the safest option.",
+  },
+  {
+    keywords: [
+      "invite accept kiya data nahi", "join kiya workspace nahi dikh",
+      "accepted invite but nothing", "joined but no data",
+    ],
+    question: "Accepted invite but workspace data isn't visible",
+    answer:
+      "After joining, you need to manually select the new workspace from the top-left dropdown. It won't switch automatically — just open the dropdown, find the workspace you joined, and click it.",
+  },
+  {
+    keywords: [
+      "total mismatch", "multiple users mismatch", "sab ka total",
+      "shared total galat", "group total wrong",
+    ],
+    question: "Total amounts don't match across members",
+    answer:
+      "This usually happens when someone adds expenses to a different workspace than the rest of the group. Ask everyone to confirm they're all using the same workspace — the name should match exactly.",
+  },
 
-  { keywords: ["invite accept kiya data nahi","joined workspace nothing visible","workspace nahi dikh after join"],
-    question: "Accepted invite but workspace isn't visible",
-    answer: "After joining, manually select the new workspace from the top-left dropdown — it doesn't switch automatically." },
-
-  { keywords: ["total mismatch members","shared total wrong","group total galat","multiple users mismatch"],
-    question: "Group total amounts don't match",
-    answer: "Everyone must be using the exact same workspace. Confirm all members have selected the correct workspace name — expenses added elsewhere won't appear in shared totals." },
-
-  // ─── SPLIT FEATURE ────────────────────────────────────────
-  { keywords: ["split kya hai","what is split","split feature explain","split page kya hai"],
-    question: "What is the Split feature?",
-    answer: "Split lets you track shared expenses between group members, calculate who owes whom, and record settlements — like Splitwise. Go to the Split page from the sidebar." },
-
-  { keywords: ["split member add","add member split","member kaise add kare","member add in split"],
-    question: "How to add members for splitting",
-    answer: "Go to Split page → Members panel on the left → type a name in the input field → press Enter or click the + button. Add at least 2 members to start." },
-
-  { keywords: ["split expense add","add split expense","expense split karna","split mein expense add"],
-    question: "How to add a split expense",
-    answer: "You need at least 2 members first. Click 'Add Split Expense' → fill in description, total amount, category → select participants → enter who paid how much → click 'Distribute equally' for equal splits → Save." },
-
-  { keywords: ["distribute equally","equal split karna","split equally","barabar split","equal distribution"],
-    question: "How to split equally between members",
-    answer: "In the Add Split Expense form, select all participants → click 'Distribute equally'. It auto-fills each person's payment share." },
-
-  { keywords: ["unequal split","custom split","alag alag amount","manual split","different share"],
+  // ─── 💸 SPLIT FEATURE ────────────────────────────────────
+  {
+    keywords: [
+      "split galat", "split wrong", "split amount", "split sahi nahi",
+      "split calculation", "split incorrect", "wrong split",
+    ],
+    question: "Split amount looks wrong",
+    answer:
+      "Open the expense and check the Split section. It shows exactly how the amount was divided. Verify whether it's an equal split or a manual one — if the total expense amount changed, that would affect the split too.",
+  },
+  {
+    keywords: [
+      "unequal split", "manual split", "alag alag split", "custom split",
+      "different amounts split", "uneven split",
+    ],
     question: "How to do an unequal / custom split",
-    answer: "In the Add Split Expense form, select participants then manually enter each person's paid amount instead of using 'Distribute equally'." },
+    answer:
+      "Edit the expense and navigate to the Split section. From there you can manually enter each member's share rather than splitting equally. Set the amounts and save.",
+  },
+  {
+    keywords: [
+      "split details", "split nahi dikh", "split section", "breakdown nahi",
+      "split not visible", "where is split",
+    ],
+    question: "Split details are not visible",
+    answer:
+      "Click on the expense to open it. Inside, scroll down to find the Split / Breakdown section. It lists each member's contribution clearly.",
+  },
+  {
+    keywords: [
+      "kisne pay kiya", "who paid", "payment confusion", "kaun diya",
+      "payment breakdown", "who paid how much",
+    ],
+    question: "Confused about who paid what",
+    answer:
+      "Open the expense → go to the Split section. You'll see a clear breakdown: who paid the full amount upfront and how much each person owes. No guesswork needed.",
+  },
 
-  { keywords: ["settle up","settlement karna","paisa wapas","settle button","owe khatam karna"],
-    question: "How to settle a balance",
-    answer: "Go to Split → Balances tab → find the debt row → click 'Settle'. Confirm who paid whom and the amount. Optionally add a note (e.g. 'Paid via UPI')." },
-
-  { keywords: ["split balance","who owes whom","kaun kitna deta hai","balance tab","net balance"],
-    question: "How to see who owes whom",
-    answer: "Go to Split page → Balances tab. You'll see a Settlement Plan: each row shows Person A owes → Person B with the exact amount." },
-
-  { keywords: ["settlement history","past settlements","history tab","purane settlements","settled records"],
-    question: "Where to see past settlements",
-    answer: "Go to Split → History tab. All recorded settlements with date, names, amount, and note are listed there." },
-
-  { keywords: ["split expense delete","delete split","split hatana","remove split expense"],
-    question: "How to delete a split expense",
-    answer: "Go to Split → Expenses tab → find the entry → click the trash 🗑️ icon. This removes the expense and adjusts all balances automatically." },
-
-  { keywords: ["split balances wrong","split galat","split amount incorrect","balance mismatch split"],
-    question: "Split balances look incorrect",
-    answer: "Open the expense in the Expenses tab to verify how the amount was divided. Confirm all participants and paid amounts were entered correctly when the expense was added." },
-
-  { keywords: ["split member remove","remove member split","member delete","member hatana split"],
-    question: "How to remove a member from split",
-    answer: "In the Members panel, hover over a member's name — a small ✕ button appears. Click it to remove. Note: removing a member may affect existing split balances." },
-
-  // ─── ANALYTICS ────────────────────────────────────────────
-  { keywords: ["analytics empty","graph nahi dikh","analytics khaali","charts empty","no data analytics"],
+  // ─── 📈 ANALYTICS ────────────────────────────────────────
+  {
+    keywords: [
+      "analytics empty", "analytics khaali", "no data analytics",
+      "graph nahi dikh", "analytics nahi", "charts empty", "graphs not showing",
+    ],
     question: "Analytics page is empty",
-    answer: "Add at least 3–5 expenses and charts will populate automatically. The more data you have, the richer the insights." },
+    answer:
+      "Analytics needs data to display charts. Add at least 3–5 expenses and the graphs will populate automatically. The more data you have, the more meaningful the insights become.",
+  },
+  {
+    keywords: [
+      "last month", "comparison nahi", "month comparison", "previous month data",
+      "purana month", "month over month", "no comparison data",
+    ],
+    question: "Month-over-month comparison isn't showing",
+    answer:
+      "The comparison feature requires data from the previous month. Once you've tracked at least one full month, the comparison view will unlock and display trends automatically.",
+  },
+  {
+    keywords: [
+      "graph samajh nahi", "chart samajh nahi", "graphs kya dikhate",
+      "chart explain", "pie chart", "what do graphs mean", "understand charts",
+    ],
+    question: "Can't understand what the graphs mean",
+    answer:
+      "Here's a quick guide: Bar chart = total spending per month, Pie / Donut chart = spending broken down by category (Food, Travel, etc.), Line chart = spending trend over time. Hover over any bar or slice to see exact figures.",
+  },
 
-  { keywords: ["weekly monthly toggle","analytics period","weekly vs monthly","chart period change"],
-    question: "How to switch between Weekly and Monthly analytics",
-    answer: "Use the Weekly / Monthly toggle in the top-right of the Analytics page. Weekly shows this week's data; Monthly shows this calendar month." },
-
-  { keywords: ["chart type","pie chart","bar chart","line chart","chart switch karna"],
-    question: "How to switch chart types",
-    answer: "Click the chart type switcher icons (top-right on Analytics). Line = spending trend, Bar = category totals, Pie = category breakdown by percentage." },
-
-  { keywords: ["pie chart explain","donut chart","category breakdown","category wise spending"],
-    question: "What does the Pie/Donut chart show?",
-    answer: "The Pie chart shows your spending split by category (Food, Travel, Shopping, Other) as percentages. Hover over a slice to see the exact amount." },
-
-  { keywords: ["line chart explain","trend chart","daily spending chart","spending over time"],
-    question: "What does the Line chart show?",
-    answer: "The Line chart shows your daily spending trend. Peaks show high-spending days. Hover any point for the exact amount spent that day." },
-
-  { keywords: ["bar chart explain","category bar","category totals chart"],
-    question: "What does the Bar chart show?",
-    answer: "The Bar chart shows total spending per category side-by-side for easy comparison. Taller bar = more spent in that category." },
-
-  { keywords: ["top category","most spent category","highest spending category","top category kya hai"],
-    question: "What is the Top Category?",
-    answer: "It's the category where you spent the most in the current period. Shown in the summary cards at the top of Analytics. Use this to identify where to cut back." },
-
-  { keywords: ["trend change","spending trend","vs previous","comparison analytics","up down percentage"],
-    question: "What does the trend % mean in Analytics?",
-    answer: "It compares current period spending vs the previous period. ↑ % = spending more (reduce it!), ↓ % = spending less (great job!). Needs previous period data to display." },
-
-  { keywords: ["smart insights analytics","analytics insights","spending insight","insight card analytics"],
-    question: "What are the Smart Insights on Analytics?",
-    answer: "They show auto-generated observations like 'You spent most on Food this week' or 'Spending increased 20% vs last week'. These update as your expense data changes." },
-
-  // ─── PROFILE ──────────────────────────────────────────────
-  { keywords: ["profile kahan hai","profile page","account settings","profile kaise open"],
-    question: "Where is the Profile / Account Settings page?",
-    answer: "Click 'Profile' in the left sidebar. This opens Account Settings where you can update your name, phone, avatar, currency, and more." },
-
-  { keywords: ["currency change","change currency","currency setting","INR USD","currency kaise change"],
-    question: "How to change the currency",
-    answer: "Go to Profile → find the Currency setting → select your preferred currency from the dropdown → Save. All amounts across the app will display in the new currency." },
-
-  { keywords: ["profile photo","avatar change","photo upload","profile picture","avatar kaise lagayein"],
-    question: "How to set a profile photo",
-    answer: "Go to Profile → click on the avatar/initials area → upload a photo from your device. Save when done." },
-
-  { keywords: ["phone number","add phone","mobile number","phone verify","phone add karna"],
-    question: "How to add a phone number to profile",
-    answer: "Go to Profile → Phone Number field → enter your number with country code. Verify if prompted. Save changes." },
-
-  { keywords: ["dark mode","light mode","theme change","theme toggle","dark light switch"],
-    question: "How to switch between dark and light mode",
-    answer: "Look for the theme toggle button (sun/moon icon) in the top navbar. Clicking it switches between light and dark mode instantly." },
-
-  // ─── PLANS PAGE ───────────────────────────────────────────
-  { keywords: ["plans page","subscription","upgrade plan","pro plan","plans kya hai"],
-    question: "What is the Plans page?",
-    answer: "The Plans page shows available subscription tiers — Free and Pro. Pro unlocks additional features. Access it via 'Plans' in the sidebar or the 'Pro plan' button at the bottom of the sidebar." },
-
-  { keywords: ["pro plan kya milta","pro features","what does pro include","pro upgrade benefits"],
-    question: "What extra features does the Pro plan include?",
-    answer: "Pro features are listed on the Plans page. Typically includes unlimited workspaces, advanced analytics, priority support, and more. Check the Plans page for the current feature list." },
-
-  // ─── ERRORS / TECHNICAL ───────────────────────────────────
-  { keywords: ["app slow","slow chal raha","lag","hang","freeze","performance issue"],
+  // ─── ⚠️ ERRORS / TECHNICAL ISSUES ───────────────────────
+  {
+    keywords: [
+      "data update nahi", "changes nahi dikh", "page update nahi",
+      "sync nahi", "data not updating", "changes not reflecting",
+    ],
+    question: "Changes / data not updating",
+    answer:
+      "Try a hard refresh — Ctrl+Shift+R on Windows or Cmd+Shift+R on Mac. If the issue persists, log out and log back in. That clears stale session data and usually fixes sync problems.",
+  },
+  {
+    keywords: [
+      "app slow", "slow chal raha", "lag", "hang", "freeze",
+      "app slow loading", "app hanging", "performance issue",
+    ],
     question: "App is running slowly",
-    answer: "Check your internet connection. Close unused browser tabs, then hard-refresh (Ctrl+Shift+R / Cmd+Shift+R). Clearing browser cache also helps." },
-
-  { keywords: ["data update nahi","changes reflect nahi","sync nahi","not updating","data refresh"],
-    question: "Data / changes not updating",
-    answer: "Do a hard refresh (Ctrl+Shift+R / Cmd+Shift+R). If that doesn't work, log out and log back in to force a fresh data sync." },
-
-  { keywords: ["save nahi ho raha","changes save nahi","form save fail","not saving"],
-    question: "Changes not saving",
-    answer: "Make sure you clicked the Save button and waited for the green success notification. If an error appears, check your internet and try again." },
-
-  { keywords: ["data missing","data chala gaya","my data is gone","data lost","sab data"],
+    answer:
+      "Check your internet connection first — a weak connection is the most common cause. Close unused browser tabs, refresh the page, or clear your browser cache. If you're on mobile, try switching between Wi-Fi and mobile data.",
+  },
+  {
+    keywords: [
+      "save nahi ho raha", "changes save nahi", "save button",
+      "data nahi save", "form save nahi", "not saving", "save failed",
+    ],
+    question: "Changes are not saving",
+    answer:
+      "Did you click the Save / Submit button? Sometimes forms close silently without saving. Try again and wait for the green success notification to confirm the save. If you see an error message, check your internet connection.",
+  },
+  {
+    keywords: [
+      "data missing", "data chala gaya", "account data gone",
+      "sab data gaya", "data lost", "my data is gone",
+    ],
     question: "My data seems to be missing",
-    answer: "Before worrying — verify (1) you're in the correct account and (2) the correct workspace is selected. Data is account + workspace specific." },
+    answer:
+      "Before worrying, verify two things: (1) You're logged into the correct account, and (2) The correct workspace is selected in the top-left dropdown. Data is account and workspace specific — the wrong combination will make it look like data is missing.",
+  },
 
-  { keywords: ["error page","something went wrong","app crash","blank screen","white screen"],
-    question: "App showing error or blank screen",
-    answer: "Hard refresh the page first. If it persists, clear browser cache and cookies, then reload. Still broken? Try an incognito / private window." },
-
-  { keywords: ["internet nahi","offline","no connection","network error","connection error"],
-    question: "App not working — no internet connection",
-    answer: "The app requires an active internet connection. Check your Wi-Fi or mobile data. Once connected, refresh the page — data will sync automatically." },
+  // ─── 🎯 REAL CONFUSION CASES ─────────────────────────────
+  {
+    keywords: [
+      "total match nahi", "expense add kiya total nahi", "amount wrong mismatch",
+      "totals don't match", "sum wrong",
+    ],
+    question: "Expense added but totals still don't match",
+    answer:
+      "The likely cause: some expenses were added to a different workspace. Filter your expenses by workspace and verify each one is in the right place. Expenses from other workspaces won't appear in your current total.",
+  },
+  {
+    keywords: [
+      "budget set kiya effect nahi", "budget kaam nahi", "budget apply nahi",
+      "budget set but nothing changed", "budget not working",
+    ],
+    question: "Set a budget but nothing changed",
+    answer:
+      "Check three things: (1) Is the correct month selected? (2) Is the correct workspace selected? (3) Did you save the budget? Budget settings are per-workspace and per-month — setting it in one place won't affect others.",
+  },
+  {
+    keywords: [
+      "workspace delete", "workspace chala gaya", "accidental delete",
+      "galti se delete workspace", "deleted workspace by mistake",
+    ],
+    question: "Accidentally deleted a workspace",
+    answer:
+      "Unfortunately, deleted workspaces and their data cannot be recovered. You'll need to create a new workspace and start fresh. Going forward, always double-confirm before deleting a workspace.",
+  },
+  {
+    keywords: [
+      "data mix", "data mix ho raha", "mix up", "confusion workspace data",
+      "sab mix", "data getting mixed", "data confusion",
+    ],
+    question: "Data seems to be getting mixed up",
+    answer:
+      "This is a common issue when using multiple workspaces. Each workspace holds completely separate data — they don't overlap. The fix: always verify the correct workspace is selected (top-left dropdown) before adding or reviewing expenses.",
+  },
+  {
+    keywords: [
+      "category galat", "wrong category", "category change karna",
+      "galat category select", "wrong category selected", "change category",
+    ],
+    question: "Selected the wrong category for an expense",
+    answer:
+      "Easy fix — go to your Expenses list, open the entry, hit Edit, pick the correct category, and save. Your Analytics will automatically update to reflect the corrected category.",
+  },
 ];
 
-// ─── Quick FAQ chips ──────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+//  Quick FAQ chips shown in the panel
+// ─────────────────────────────────────────────────────────────
 export const QUICK_FAQS = [
   "Can't add an expense",
   "Expense not showing up",
   "Invite link not working",
   "Budget not updating",
-  "How to use Split feature",
-  "Analytics page is empty",
+  "Wrong workspace selected",
+  "Data mismatch issue",
 ];
 
-// ─── Greeting / Closing triggers ─────────────────────────────
+// ─────────────────────────────────────────────────────────────
+//  Greeting / Closing triggers (Hinglish + English — for detection)
+// ─────────────────────────────────────────────────────────────
 export const GREETING_TRIGGERS = [
-  "hi","hello","hey","hii","helo","helloo","hiii",
-  "namaste","namaskar","hola","kya haal","sup","good morning","good afternoon","good evening",
+  "hi", "hello", "hey", "hii", "helo", "helloo", "hiii",
+  "namaste", "namaskar", "hola", "kya haal", "kaise ho", "sup", "good morning",
+  "good afternoon", "good evening",
 ];
 
 export const CLOSING_TRIGGERS = [
-  "thanks","thank you","thankyou","shukriya","dhanyawad",
-  "bye","goodbye","alvida","ok bye","ok thanks","that's all","done","ho gaya",
+  "thanks", "thank you", "thankyou", "shukriya", "dhanyawad",
+  "bye", "goodbye", "alvida", "ok bye", "ok thanks",
+  "bas itna", "ho gaya", "kaam ban gaya", "that's all", "done",
 ];
 
-// ─── Bot responses ────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+//  Bot response messages — English
+// ─────────────────────────────────────────────────────────────
 export const GREETING_RESPONSE =
   "Hey there! 👋 Welcome to the Expense Tracker Help Centre. What can I help you with today? Pick a question below or type your own!";
 
 export const CLOSING_RESPONSE =
-  "Happy to help! 😊 Come back anytime you need assistance. Happy tracking! 💸";
+  "Happy to help! 😊 Feel free to come back anytime you need assistance. Happy tracking! 💸";
 
 export const FALLBACK_RESPONSE =
   "Sorry, I couldn't find an answer for that. Try rephrasing your question, or browse the FAQ list above — your answer might be there!";
 
-// ─── UI copy ─────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+//  UI copy — English
+// ─────────────────────────────────────────────────────────────
 export const UI_COPY = {
-  panelTitle: "❓ Help Centre",
+  panelTitle: "Help Centre🛠️",
   panelSubtitle: "Frequently Asked Questions",
   searchPlaceholder: "Search help articles...",
   commonIssuesLabel: "Common Issues",
@@ -390,4 +454,5 @@ export const UI_COPY = {
   chatHeaderSubtitle: "English & Hinglish supported",
   chatInputPlaceholder: "Type your question here...",
   typingText: "Thinking...",
+  activeStatus: "Online",
 };

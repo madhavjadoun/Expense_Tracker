@@ -44,12 +44,15 @@ router.post("/", requireAuth, async (req, res) => {
       return res.status(400).json({ success: false, message: "Name and id required." });
     }
 
+    const workspaceId = String(id);
+    const workspaceName = String(name);
+
     // Upsert — if already created (e.g. from invite flow), return existing
-    let workspace = await Workspace.findById(id);
+    let workspace = await Workspace.findById(workspaceId);
     if (!workspace) {
       workspace = await Workspace.create({
-        _id: id,
-        name,
+        _id: workspaceId,
+        name: workspaceName,
         owner: req.userId,
         members: [{ userId: req.userId, role: "owner" }],
       });
@@ -62,7 +65,7 @@ router.post("/", requireAuth, async (req, res) => {
     if (err.code === 11000) {
       return res.status(200).json({ success: true, message: "Workspace already exists." });
     }
-    return res.status(500).json({ success: false, message: "Error creating workspace.", error: err.message });
+    return res.status(500).json({ success: false, message: "Error creating workspace." });
   }
 });
 
@@ -70,12 +73,12 @@ router.post("/", requireAuth, async (req, res) => {
 // Deletes workspace. Only the owner can do this.
 router.delete("/:workspaceId", requireAuth, async (req, res) => {
   try {
-    const { workspaceId } = req.params;
+    const cleanWsId = String(req.params.workspaceId);
 
     // Look up workspace — if not in DB it's a local-only workspace, allow delete locally
     let workspace = null;
     try {
-      workspace = await Workspace.findById(workspaceId);
+      workspace = await Workspace.findById(cleanWsId);
     } catch (_) {
       workspace = null;
     }
@@ -85,15 +88,15 @@ router.delete("/:workspaceId", requireAuth, async (req, res) => {
       if (workspace.owner !== req.userId) {
         return res.status(403).json({ success: false, message: "Only the owner can delete this workspace." });
       }
-      await Workspace.findByIdAndDelete(workspaceId);
-      await Expense.deleteMany({ workspaceId });
+      await Workspace.findByIdAndDelete(cleanWsId);
+      await Expense.deleteMany({ workspaceId: cleanWsId });
     }
     // If workspace not in DB — it was local-only, nothing to delete server-side
 
     return res.status(200).json({ success: true, message: "Workspace deleted." });
   } catch (err) {
     console.error("[WS DELETE]", err.message);
-    return res.status(500).json({ success: false, message: "Error deleting workspace.", error: err.message });
+    return res.status(500).json({ success: false, message: "Error deleting workspace." });
   }
 });
 

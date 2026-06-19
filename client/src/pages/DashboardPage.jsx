@@ -74,13 +74,16 @@ export default function DashboardPage() {
   const [expenseForm, setExpenseForm] = useState({ amount: "", category: "food", note: "" });
 
   const [budgetInput, setBudgetInput] = useState(String(effectiveBudget || ""));
+  const [isFocused, setIsFocused] = useState(false);
 
   // Sync the budgetInput field whenever the effective budget or active workspace changes.
   // This covers: workspace switch, login (pre-seeded from localStorage), and server-fetch completion.
   useEffect(() => {
-    setBudgetInput(String(effectiveBudget || ""));
+    if (!isFocused) {
+      setBudgetInput(String(effectiveBudget || ""));
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeWorkspaceId, effectiveBudget]);
+  }, [activeWorkspaceId, effectiveBudget, isFocused]);
   const now = useMemo(() => new Date(), []);
 
   const greeting = useMemo(() => {
@@ -451,11 +454,17 @@ export default function DashboardPage() {
 
   return (
     <div className="mx-auto w-full max-w-6xl px-6 py-2 sm:px-8">
-      <div className="mb-8 flex items-start justify-between gap-4">
+      <Motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
+        className="mb-8 flex items-start justify-between gap-4"
+      >
         <div>
-          <div className="text-xs text-white/50">Dashboard
+          <div className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-emerald-400/80">
+            Dashboard
             {activeWs && activeWs.id !== "default" && (
-              <span className="ml-1.5 rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-medium text-white/50">
+              <span className="ml-2 rounded-full border border-emerald-500/20 bg-emerald-500/5 px-2.5 py-0.5 text-[10px] font-semibold text-emerald-400">
                 {activeWs.name}
               </span>
             )}
@@ -464,11 +473,11 @@ export default function DashboardPage() {
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.25, ease: "easeOut" }}
-            className="text-2xl font-semibold text-white/90 sm:text-3xl min-h-[36px]"
+            className="text-2xl font-bold tracking-tight text-white/95 sm:text-3xl min-h-[36px] mt-1.5"
           >
             <Typewriter text={greeting} />
           </Motion.div>
-          <div className="mt-2 text-sm text-white/60">
+          <div className="mt-1 text-xs font-medium text-white/40">
             Track your spending & stay on budget
           </div>
         </div>
@@ -476,11 +485,11 @@ export default function DashboardPage() {
           <Plus size={16} />
           <span className="hidden sm:inline">Add Expense</span>
         </Button>
-      </div>
+      </Motion.div>
 
       <div className="space-y-8">
         {/* Monthly budget card */}
-        <ScrollReveal>
+        <ScrollReveal delay={0.05}>
           <GlassCard className="p-5">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div>
@@ -493,25 +502,22 @@ export default function DashboardPage() {
               </div>
 
               <div className="w-full sm:w-[280px]">
-                <label className="block space-y-1">
-                  <span className="text-xs font-medium text-white/70">
-                    Budget (monthly)
-                  </span>
-                  <input
-                    type="number"
-                    min={0}
-                    inputMode="numeric"
-                    value={budgetInput}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setBudgetInput(val);
-                      const num = Number(val);
-                      if (!Number.isNaN(num)) saveEffectiveBudget(num);
-                    }}
-                    placeholder="e.g. 1000"
-                    className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none transition focus:border-emerald-400/35 focus:ring-2 focus:ring-emerald-400/15"
-                  />
-                </label>
+                <Input
+                  label="Budget (monthly)"
+                  type="number"
+                  min={0}
+                  inputMode="numeric"
+                  value={budgetInput}
+                  onFocus={() => setIsFocused(true)}
+                  onBlur={() => setIsFocused(false)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setBudgetInput(val);
+                    const num = Number(val);
+                    if (!Number.isNaN(num)) saveEffectiveBudget(num);
+                  }}
+                  placeholder="e.g. 1000"
+                />
               </div>
             </div>
 
@@ -595,7 +601,7 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
 
           {/* 1. Spending Score */}
-          <ScrollReveal delay={0.04}>
+          <ScrollReveal delay={0.1}>
             <GlassCard className="relative overflow-hidden p-5">
               {/* Faint glow behind score ring */}
               {spendingScore.score !== null && (
@@ -666,7 +672,7 @@ export default function DashboardPage() {
           </ScrollReveal>
 
           {/* 2. No-Spend Streak */}
-          <ScrollReveal delay={0.08}>
+          <ScrollReveal delay={0.15}>
             <GlassCard className="relative overflow-hidden p-5">
               <div className="mb-3 flex items-center justify-between">
                 <div className="text-xs font-semibold uppercase tracking-widest text-white/40">No-Spend Streak</div>
@@ -729,7 +735,7 @@ export default function DashboardPage() {
           </ScrollReveal>
 
           {/* 3. Monthly Comparison */}
-          <ScrollReveal delay={0.12}>
+          <ScrollReveal delay={0.2}>
             <GlassCard className="relative overflow-hidden p-5">
               <div className="mb-3 flex items-center justify-between">
                 <div className="text-xs font-semibold uppercase tracking-widest text-white/40">vs Last Month</div>
@@ -806,9 +812,9 @@ export default function DashboardPage() {
 
         {/* Summary cards */}
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <ScrollReveal>
+          <ScrollReveal delay={0.25}>
             <GlassCard className="p-5">
-              <div className="text-xs font-medium text-white/55">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-white/40">
                 Total expense
               </div>
               {loading || error ? (
@@ -827,9 +833,9 @@ export default function DashboardPage() {
           </ScrollReveal>
 
           {categories.slice(0, 3).map((c, idx) => (
-            <ScrollReveal key={c.key} delay={0.05 * (idx + 1)}>
+            <ScrollReveal key={c.key} delay={0.25 + 0.05 * (idx + 1)}>
               <GlassCard className="p-5">
-                <div className="text-xs font-medium text-white/55">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-white/40">
                   {c.label}
                 </div>
                 {loading || error ? (
@@ -863,7 +869,7 @@ export default function DashboardPage() {
 
         {/* Insights + Chart placeholder */}
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <ScrollReveal>
+          <ScrollReveal delay={0.45}>
             <GlassCard className="p-5">
               {/* Header */}
               <div className="mb-4 flex items-center justify-between">
@@ -1044,7 +1050,7 @@ export default function DashboardPage() {
             </GlassCard>
           </ScrollReveal>
 
-          <ScrollReveal delay={0.08}>
+          <ScrollReveal delay={0.5}>
             <GlassCard className="p-5">
               {/* Header */}
               <div className="mb-4 flex items-center justify-between">
@@ -1151,7 +1157,7 @@ export default function DashboardPage() {
           <label className="block space-y-1">
             <span className="text-xs font-medium text-white/70">Category</span>
             <select
-              className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-emerald-400/35 focus:ring-2 focus:ring-emerald-400/15"
+              className="w-full rounded-xl border border-white/12 bg-white/6 px-3 py-2.5 text-sm text-white outline-none transition focus:border-emerald-400/35 focus:ring-2 focus:ring-emerald-400/12"
               value={expenseForm.category}
               onChange={(e) => setExpenseForm((f) => ({ ...f, category: e.target.value }))}
             >

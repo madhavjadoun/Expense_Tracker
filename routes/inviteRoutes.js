@@ -5,14 +5,14 @@ const Workspace = require("../models/Workspace");
 
 const router = express.Router();
 
-const SECRET = process.env.JWT_SECRET;
+const SECRET = () => process.env.JWT_SECRET;
 
 // Backend URL (this server) — used for the shareable /join/:token OG page
-const BACKEND_URL =
+const BACKEND_URL = () =>
   process.env.BACKEND_URL || "https://expense-tracker-rouge-chi-43.vercel.app";
 
 // Frontend URL — where the React app is deployed
-const CLIENT_ORIGIN =
+const CLIENT_ORIGIN = () =>
   process.env.CLIENT_ORIGIN || "https://expense-tracker-rouge-chi-43.vercel.app";
 
 // ── POST /api/invite/verify ───────────────────────────────────────────────────
@@ -26,13 +26,13 @@ router.post("/verify", requireAuth, async (req, res) => {
       return res.status(400).json({ success: false, message: "Token is required." });
     }
 
-    if (!SECRET) {
+    if (!SECRET()) {
       return res.status(500).json({ success: false, message: "Server misconfiguration: JWT_SECRET missing." });
     }
 
     let decoded;
     try {
-      decoded = jwt.verify(token, SECRET);
+      decoded = jwt.verify(token, SECRET());
     } catch (err) {
       const expired = err.name === "TokenExpiredError";
       return res.status(400).json({
@@ -87,7 +87,7 @@ router.post("/:workspaceId", requireAuth, async (req, res) => {
       return res.status(400).json({ success: false, message: "workspaceId is required." });
     }
 
-    if (!SECRET) {
+    if (!SECRET()) {
       console.error("[INVITE] JWT_SECRET is not set.");
       return res.status(500).json({ success: false, message: "Server misconfiguration: JWT_SECRET missing." });
     }
@@ -128,11 +128,11 @@ router.post("/:workspaceId", requireAuth, async (req, res) => {
 
     const token = jwt.sign(
       { workspaceId, createdBy: req.userId },
-      SECRET,
+      SECRET(),
       { expiresIn: "2d" }
     );
 
-    const inviteLink = `${BACKEND_URL}/join/${token}`;
+    const inviteLink = `${BACKEND_URL()}/join/${token}`;
     return res.status(200).json({ success: true, inviteLink });
 
   } catch (err) {

@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import { usePlanStore, isWorkspaceLimitReached, getWorkspaceLimit } from "./usePlanStore";
 import { api } from "../services/api";
 
 // ── Shared (non-user-scoped) key — only used for cold-start before uid is known.
@@ -137,17 +136,6 @@ export const useWorkspaceStore = create((set, get) => ({
   createWorkspace: (name) => {
     const trimmed = name.trim();
     if (!trimmed) return { ok: false, message: "Name cannot be empty." };
-
-    const planId  = usePlanStore.getState().planId;
-    const current = get().workspaces;
-    if (isWorkspaceLimitReached(planId, current.length)) {
-      const limit = getWorkspaceLimit(planId);
-      return {
-        ok: false,
-        limitReached: true,
-        message: `Workspace limit reached (${limit}/${limit}). Upgrade your plan to create more.`,
-      };
-    }
 
     const newWs = {
       id:        crypto.randomUUID(),

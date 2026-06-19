@@ -7,21 +7,21 @@ export function Button({
   ...props
 }) {
   const base =
-    "inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/70 disabled:opacity-50 disabled:pointer-events-none";
+    "inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/50 disabled:opacity-50 disabled:pointer-events-none cursor-pointer";
 
   const variants = {
     primary:
-      "bg-emerald-500/90 text-emerald-950 shadow-[0_16px_50px_rgba(34,197,94,.18)] hover:bg-emerald-500 hover:shadow-[0_22px_70px_rgba(34,197,94,.22)]",
+      "bg-gradient-to-br from-emerald-400 to-emerald-600 text-emerald-950 shadow-[0_4px_16px_rgba(16,185,129,0.25)] hover:shadow-[0_6px_22px_rgba(16,185,129,0.45)] border border-emerald-300/20 shine-effect",
     subtle:
-      "bg-white/6 text-white/85 border border-white/10 hover:bg-white/8",
-    ghost: "text-white/80 hover:bg-white/8",
+      "bg-white/5 text-white/85 border border-white/8 hover:bg-white/10 hover:border-white/15 hover:text-white shadow-sm",
+    ghost: "text-white/75 hover:bg-white/5 hover:text-white/95",
   };
 
   return (
     <Motion.button
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
-      transition={{ type: "spring", stiffness: 420, damping: 22 }}
+      whileHover={{ scale: 1.02, y: -0.5 }}
+      whileTap={{ scale: 0.96 }}
+      transition={{ type: "spring", stiffness: 450, damping: 20 }}
       className={`${base} ${variants[variant]} ${className}`}
       {...props}
     >

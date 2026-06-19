@@ -3,14 +3,14 @@ const jwt = require("jsonwebtoken");
 
 const router = express.Router();
 
-const SECRET = process.env.JWT_SECRET;
+const SECRET = () => process.env.JWT_SECRET;
 
 // Backend URL (this server) — used for the shareable /join/:token OG page
-const BACKEND_URL =
+const BACKEND_URL = () =>
   process.env.BACKEND_URL || "https://expense-tracker-rouge-chi-43.vercel.app";
 
 // Frontend URL — where the React app is deployed
-const CLIENT_ORIGIN =
+const CLIENT_ORIGIN = () =>
   process.env.CLIENT_ORIGIN || "https://expense-tracker-rouge-chi-43.vercel.app";
 
 // ── GET /join/:token ──────────────────────────────────────────────────────────
@@ -21,7 +21,7 @@ router.get("/:token", (req, res) => {
 
   let expired = false;
   try {
-    if (SECRET) jwt.verify(token, SECRET);
+    if (SECRET()) jwt.verify(token, SECRET());
   } catch (err) {
     expired = err.name === "TokenExpiredError";
   }
@@ -32,9 +32,9 @@ router.get("/:token", (req, res) => {
   const description = expired
     ? "This invite link has expired. Ask for a new one."
     : "You've been invited to collaborate and manage expenses together.";
-  const redirectUrl = `${CLIENT_ORIGIN}/app/join/${token}`;
-  const imageUrl = `${BACKEND_URL}/preview.png`;
-  const canonicalUrl = `${BACKEND_URL}/join/${token}`;
+  const redirectUrl = `${CLIENT_ORIGIN()}/app/join/${token}`;
+  const imageUrl = `${BACKEND_URL()}/preview.png`;
+  const canonicalUrl = `${BACKEND_URL()}/join/${token}`;
 
   const html = `<!DOCTYPE html>
 <html lang="en">

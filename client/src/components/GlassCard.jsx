@@ -8,8 +8,8 @@ export default function GlassCard({
 }) {
   const content = (
     <Motion.div
-      whileHover={{ y: -2 }}
-      transition={{ type: "spring", stiffness: 280, damping: 22 }}
+      whileHover={{ y: -4, scale: 1.01 }}
+      transition={{ type: "spring", stiffness: 300, damping: 24 }}
       className={`glass glow rounded-2xl ${className}`}
     >
       {children}

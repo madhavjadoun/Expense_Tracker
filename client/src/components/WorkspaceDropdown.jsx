@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from "react";
 import { motion as Motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, Plus, Check, Trash2, X, Lock, Link2 } from "lucide-react";
 import { useWorkspaceStore } from "../store/useWorkspaceStore";
-import { usePlanStore, getWorkspaceLimit, isWorkspaceLimitReached } from "../store/usePlanStore";
 import toast from "react-hot-toast";
 import { api } from "../services/api";
 
@@ -38,7 +37,7 @@ function WorkspaceAvatar({ name, size = "sm" }) {
 
 // ─── Create Workspace inline form ─────────────────────────────────────────────
 
-function CreateWorkspaceForm({ onDone, limitReached }) {
+function CreateWorkspaceForm({ onDone }) {
   const createWorkspace = useWorkspaceStore((s) => s.createWorkspace);
   const [value, setValue]       = useState("");
   const [error, setError]       = useState("");
@@ -60,19 +59,6 @@ function CreateWorkspaceForm({ onDone, limitReached }) {
   function handleKey(e) {
     if (e.key === "Enter")  handleCreate();
     if (e.key === "Escape") onDone?.();
-  }
-
-  if (limitReached) {
-    return (
-      <div className="border-t border-white/8 px-3 py-3">
-        <div className="flex items-start gap-2">
-          <Lock size={12} className="mt-0.5 shrink-0 text-amber-400" />
-          <div className="text-[11px] leading-relaxed text-amber-200/80">
-            Upgrade to create more workspaces.
-          </div>
-        </div>
-      </div>
-    );
   }
 
   return (
@@ -125,12 +111,6 @@ export default function WorkspaceDropdown({ collapsed }) {
   const activeWorkspaceId  = useWorkspaceStore((s) => s.activeWorkspaceId);
   const setActiveWorkspace = useWorkspaceStore((s) => s.setActiveWorkspace);
   const deleteWorkspace    = useWorkspaceStore((s) => s.deleteWorkspace);
-
-  // Plan-based workspace limits
-  const planId         = usePlanStore((s) => s.planId);
-  const wsLimit        = getWorkspaceLimit(planId);
-  const wsLimitReached = isWorkspaceLimitReached(planId, workspaces.length);
-  const wsLimitLabel   = wsLimit === Infinity ? "∞" : String(wsLimit);
 
   const activeWs = workspaces.find((w) => w.id === activeWorkspaceId) ?? workspaces[0];
 
@@ -197,7 +177,7 @@ export default function WorkspaceDropdown({ collapsed }) {
         <div className="min-w-0 flex-1">
           <div className="truncate text-xs font-semibold text-white/82">{activeWs?.name}</div>
           <div className="text-[10px] text-white/38">
-            {workspaces.length} / {wsLimitLabel} workspace{wsLimit !== 1 ? "s" : ""}
+            {workspaces.length} workspace{workspaces.length !== 1 ? "s" : ""}
           </div>
         </div>
         <Motion.span
@@ -224,10 +204,8 @@ export default function WorkspaceDropdown({ collapsed }) {
               <div className="text-[10px] font-semibold uppercase tracking-widest text-white/35">
                 Workspaces
               </div>
-              <div className={`text-[10px] font-medium tabular-nums ${
-                wsLimitReached ? "text-amber-300" : "text-white/35"
-              }`}>
-                {workspaces.length} / {wsLimitLabel}
+              <div className="text-[10px] font-medium text-white/35 tabular-nums">
+                {workspaces.length} total
               </div>
             </div>
 
@@ -295,47 +273,22 @@ export default function WorkspaceDropdown({ collapsed }) {
               })}
             </div>
 
-            {wsLimit !== Infinity && (
-              <div className="px-3 pb-1">
-                <div className="h-1 w-full overflow-hidden rounded-full bg-white/8">
-                  <div
-                    className={`h-full rounded-full transition-all duration-500 ${
-                      wsLimitReached
-                        ? "bg-gradient-to-r from-amber-500/85 to-yellow-400/65"
-                        : "bg-gradient-to-r from-emerald-500/85 to-teal-400/65"
-                    }`}
-                    style={{ width: `${Math.min(100, (workspaces.length / wsLimit) * 100)}%` }}
-                  />
-                </div>
-              </div>
-            )}
-
             {/* Create form or button */}
             {creating ? (
               <CreateWorkspaceForm
                 onDone={() => { setCreating(false); setOpen(false); }}
-                limitReached={wsLimitReached}
               />
             ) : (
               <div className="border-t border-white/7 p-2">
-                {wsLimitReached ? (
-                  <div className="flex items-center gap-2 rounded-xl px-3 py-2">
-                    <Lock size={12} className="shrink-0 text-amber-400/70" />
-                    <span className="text-xs text-amber-300/70">
-                      Upgrade to create more workspaces
-                    </span>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    id="create-workspace-btn"
-                    onClick={() => setCreating(true)}
-                    className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs text-white/52 transition hover:bg-white/6 hover:text-white/80"
-                  >
-                    <Plus size={13} strokeWidth={2.2} />
-                    Create workspace
-                  </button>
-                )}
+                <button
+                  type="button"
+                  id="create-workspace-btn"
+                  onClick={() => setCreating(true)}
+                  className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs text-white/52 transition hover:bg-white/6 hover:text-white/80"
+                >
+                  <Plus size={13} strokeWidth={2.2} />
+                  Create workspace
+                </button>
               </div>
             )}
           </Motion.div>

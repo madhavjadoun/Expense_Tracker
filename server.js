@@ -13,6 +13,8 @@ const cors = require("cors");
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const path = require("path");
+const helmet = require("helmet");
+const rateLimit = require("express-rate-limit");
 const { initFirebaseAdmin } = require("./firebaseAdmin");
 const { startRecurringCron } = require("./scripts/recurringCron");
 
@@ -24,10 +26,38 @@ initFirebaseAdmin();
 const app = express();
 
 // Middleware
-app.use(cors({
-  origin: "*"
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://*.firebaseapp.com", "https://*.googleapis.com"],
+      connectSrc: ["'self'", "https://*.googleapis.com", "https://*.firebaseapp.com", "https://*.firebase.google.com", "wss://*.firebaseio.com"],
+      imgSrc: ["'self'", "data:", "https://*.firebaseapp.com", "https://*.googleusercontent.com"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      objectSrc: ["'none'"],
+      upgradeInsecureRequests: [],
+    },
+  },
 }));
-app.use(express.json());
+
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 200, // limit each IP to 200 requests per windowMs
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: "Too many requests from this IP, please try again after 15 minutes."
+  }
+});
+app.use("/api", limiter);
+
+app.use(cors({
+  origin: process.env.CLIENT_ORIGIN || "http://localhost:5173",
+  credentials: true,
+}));
+app.use(express.json({ limit: "1mb" }));
 
 // Serve static files from client/public (preview.png, favicon, etc.)
 const publicDir = path.join(__dirname, "client", "public");

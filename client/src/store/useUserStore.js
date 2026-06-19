@@ -90,8 +90,8 @@ export const useUserStore = create((set, get) => ({
       const merged = {
         ...DEFAULT_PROFILE,
         ...remote,
-        name: authUser.name || remote?.name || DEFAULT_PROFILE.name,
-        email: authUser.email || remote?.email || DEFAULT_PROFILE.email,
+        name: remote?.name || authUser.name || DEFAULT_PROFILE.name,
+        email: remote?.email || authUser.email || DEFAULT_PROFILE.email,
         monthlyBudget: Number(remote?.monthlyBudget) || 0,
       };
       const avatarVal = merged.avatar || readLocalAvatar(uid) || null;

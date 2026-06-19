@@ -13,7 +13,7 @@ export function Input({ label, className = "", type = "text", ...props }) {
       <div className="relative">
         <input
           type={inputType}
-          className={`w-full rounded-xl border border-white/12 bg-white/6 px-3 py-2 text-sm text-white placeholder:text-white/35 outline-none transition focus:border-violet-400/40 focus:ring-2 focus:ring-violet-400/15 ${isPassword ? "pr-10" : ""} ${className}`}
+          className={`w-full rounded-xl border border-white/12 bg-white/6 px-3 py-2.5 text-sm text-white placeholder:text-white/35 outline-none transition focus:border-emerald-400/35 focus:ring-2 focus:ring-emerald-400/12 ${isPassword ? "pr-10" : ""} ${className}`}
           {...props}
         />
         {isPassword && (

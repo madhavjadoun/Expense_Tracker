@@ -1,6 +1,6 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import { motion as Motion } from "framer-motion";
-import { LayoutDashboard, Wallet, BarChart3, User, CreditCard, SplitSquareVertical, HelpCircle } from "lucide-react";
+import { LayoutDashboard, Wallet, BarChart3, User, SplitSquareVertical, HelpCircle } from "lucide-react";
 import WorkspaceDropdown from "./WorkspaceDropdown";
 
 const navItems = [
@@ -9,7 +9,6 @@ const navItems = [
   { to: "/analytics", label: "Analytics", icon: BarChart3 },
   { to: "/split",     label: "Split",     icon: SplitSquareVertical },
   { to: "/profile",   label: "Profile",   icon: User },
-  { to: "/plans",     label: "Plans",     icon: CreditCard },
 ];
 
 function SidebarContent({ collapsed, onToggleCollapsed, onNavigate, onHelpOpen }) {
@@ -113,23 +112,7 @@ function SidebarContent({ collapsed, onToggleCollapsed, onNavigate, onHelpOpen }
         </button>
       </div>
 
-      <div className="px-4 pb-4">
-        <button
-          type="button"
-          onClick={() => { navigate("/plans"); onNavigate?.(); }}
-          className="w-full rounded-2xl border border-white/10 bg-white/4 p-3 text-left transition hover:bg-white/7 hover:border-emerald-400/20"
-        >
-          <div className="text-xs font-medium text-white/70">
-            {collapsed ? "Pro" : "Pro plan"}
-          </div>
-          {!collapsed ? (
-            <div className="mt-1 text-xs text-white/45">
-              Upgrade for more features →
-            </div>
-          ) : null}
-        </button>
       </div>
-    </div>
   );
 }
 

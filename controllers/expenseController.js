@@ -62,10 +62,10 @@ async function addExpense(req, res) {
       data: expense,
     });
   } catch (err) {
+    console.error("[addExpense]", err.message);
     return res.status(500).json({
       success: false,
       message: "Server error while adding expense.",
-      error: err.message,
     });
   }
 }
@@ -82,7 +82,7 @@ async function getAllExpenses(req, res) {
   try {
     const { workspaceId } = req.query;
     const filter = { userId: req.userId };
-    if (workspaceId) filter.workspaceId = workspaceId;
+    if (workspaceId) filter.workspaceId = String(workspaceId);
 
     const LIMIT = 500;
     const expenses = await Expense.find(filter)
@@ -97,10 +97,10 @@ async function getAllExpenses(req, res) {
       data: expenses,
     });
   } catch (err) {
+    console.error("[getAllExpenses]", err.message);
     return res.status(500).json({
       success: false,
       message: "Server error while fetching expenses.",
-      error: err.message,
     });
   }
 }
@@ -114,7 +114,7 @@ async function getSummary(req, res) {
   try {
     const { workspaceId } = req.query;
     const matchStage = { userId: req.userId };
-    if (workspaceId) matchStage.workspaceId = workspaceId;
+    if (workspaceId) matchStage.workspaceId = String(workspaceId);
 
     const grouped = await Expense.aggregate([
       { $match: matchStage },
@@ -134,10 +134,10 @@ async function getSummary(req, res) {
       data: { totalExpense, categoryTotals },
     });
   } catch (err) {
+    console.error("[getSummary]", err.message);
     return res.status(500).json({
       success: false,
       message: "Server error while generating summary.",
-      error: err.message,
     });
   }
 }
@@ -148,12 +148,13 @@ async function deleteExpense(req, res) {
     const { id } = req.params;
     if (!id) return res.status(400).json({ success: false, message: "Expense id is required." });
 
-    const deleted = await Expense.findOneAndDelete({ _id: id, userId: req.userId });
+    const deleted = await Expense.findOneAndDelete({ _id: String(id), userId: req.userId });
     if (!deleted) return res.status(404).json({ success: false, message: "Expense not found." });
 
     return res.status(200).json({ success: true, message: "Expense deleted.", data: deleted });
   } catch (err) {
-    return res.status(500).json({ success: false, message: "Server error.", error: err.message });
+    console.error("[deleteExpense]", err.message);
+    return res.status(500).json({ success: false, message: "Server error." });
   }
 }
 
@@ -188,7 +189,7 @@ async function updateExpense(req, res) {
     }
 
     const updated = await Expense.findOneAndUpdate(
-      { _id: id, userId: req.userId },
+      { _id: String(id), userId: req.userId },
       updates,
       { new: true }
     );
@@ -196,7 +197,8 @@ async function updateExpense(req, res) {
 
     return res.status(200).json({ success: true, message: "Expense updated.", data: updated });
   } catch (err) {
-    return res.status(500).json({ success: false, message: "Server error.", error: err.message });
+    console.error("[updateExpense]", err.message);
+    return res.status(500).json({ success: false, message: "Server error." });
   }
 }
 

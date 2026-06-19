@@ -26,9 +26,10 @@
  *  Each match is one { from, to, amount } transaction.
  *
  * ─── Persistence ────────────────────────────────────────────────────────────
- *  Zustand persist → localStorage key "split-storage".
- *  Only members, splitExpenses, settlements are persisted.
- *  Deletes are reflected immediately and survive refresh.
+ *  uid-scoped: localStorage key "split-storage-<uid>" (authoritative).
+ *  Zustand persist → "split-storage" is kept as session-level cache.
+ *  restoreForUser(uid) loads user data on login.
+ *  resetForLogout() saves + clears on logout.
  */
 
 import { create } from "zustand";
@@ -135,6 +136,31 @@ export function simplifyDebts(netBalances) {
   return txns.filter((t) => t.amount > EPSILON);
 }
 
+// ─── uid-scoped persistence helpers ──────────────────────────────────────────
+
+function splitKeyForUser(uid) {
+  return `split-storage-${uid}`;
+}
+
+function loadSplitForUser(uid) {
+  if (!uid) return null;
+  try {
+    const raw = localStorage.getItem(splitKeyForUser(uid));
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+
+function saveSplitForUser(uid, state) {
+  if (!uid) return;
+  try {
+    localStorage.setItem(splitKeyForUser(uid), JSON.stringify({
+      members:       state.members,
+      splitExpenses: state.splitExpenses,
+      settlements:   state.settlements,
+    }));
+  } catch { /* ignore quota / private mode */ }
+}
+
 // ─── Store ────────────────────────────────────────────────────────────────────
 
 export const useSplitStore = create(
@@ -142,6 +168,9 @@ export const useSplitStore = create(
     (set, get) => ({
 
       // ── State ────────────────────────────────────────────────────────────
+
+      /** Internal: current user's uid — used to scope persistence. */
+      _uid: null,
 
       /** { [workspaceId]: [{ id, name }] } */
       members: {},
@@ -163,6 +192,62 @@ export const useSplitStore = create(
        */
       settlements: [],
 
+      // ── User lifecycle ────────────────────────────────────────────────────
+
+      /**
+       * Called on login — loads this user's split data from uid-scoped key.
+       * If no uid-scoped data exists, starts fresh (empty state).
+       */
+      restoreForUser: (uid) => {
+        if (!uid) return;
+        const saved = loadSplitForUser(uid);
+        if (saved) {
+          set({
+            _uid: uid,
+            members:       saved.members       || {},
+            splitExpenses: saved.splitExpenses  || [],
+            settlements:   saved.settlements   || [],
+          });
+        } else {
+          // First time for this user — start fresh.
+          set({
+            _uid: uid,
+            members: {},
+            splitExpenses: [],
+            settlements: [],
+          });
+          saveSplitForUser(uid, { members: {}, splitExpenses: [], settlements: [] });
+        }
+      },
+
+      /**
+       * Called on logout — saves current state to uid-scoped key, then clears
+       * in-memory state. The data survives logout and is restored on next login.
+       */
+      resetForLogout: () => {
+        const uid = get()._uid;
+        if (uid) {
+          saveSplitForUser(uid, {
+            members:       get().members,
+            splitExpenses: get().splitExpenses,
+            settlements:   get().settlements,
+          });
+        }
+        set({
+          _uid: null,
+          members: {},
+          splitExpenses: [],
+          settlements: [],
+        });
+      },
+
+      // ── Internal: persist after every mutation ────────────────────────────
+
+      _persistToUser: () => {
+        const uid = get()._uid;
+        if (uid) saveSplitForUser(uid, get());
+      },
+
       // ── Member management ─────────────────────────────────────────────────
 
       addMember: (workspaceId, name) => {
@@ -176,6 +261,7 @@ export const useSplitStore = create(
             [workspaceId]: [...existing, { id: crypto.randomUUID(), name: trimmed }],
           },
         }));
+        get()._persistToUser();
         return true;
       },
 
@@ -186,6 +272,7 @@ export const useSplitStore = create(
             [workspaceId]: (s.members[workspaceId] ?? []).filter((m) => m.id !== memberId),
           },
         }));
+        get()._persistToUser();
       },
 
       // ── Split expense management ──────────────────────────────────────────
@@ -208,7 +295,6 @@ export const useSplitStore = create(
 
         const share = r2(safeTotal / participantIds.length);
 
-        // Build a paid-lookup from paidBy array
         const paidMap = {};
         for (const p of paidBy ?? []) {
           paidMap[p.memberId] = r2(Number(p.amount) || 0);
@@ -231,6 +317,7 @@ export const useSplitStore = create(
         };
 
         set((s) => ({ splitExpenses: [expense, ...s.splitExpenses] }));
+        get()._persistToUser();
         return expense;
       },
 
@@ -243,11 +330,8 @@ export const useSplitStore = create(
           const exp = s.splitExpenses.find((e) => e.id === expenseId);
           if (!exp) return {};
 
-          // Collect member IDs involved in this expense
           const memberIds = new Set((exp.splits ?? []).map((sp) => sp.memberId));
 
-          // Remove settlements that were entirely within this expense's participants
-          // (conservative: only remove if BOTH from & to were in this expense)
           const cleanedSettlements = s.settlements.filter(
             (st) =>
               st.workspaceId !== exp.workspaceId ||
@@ -259,6 +343,7 @@ export const useSplitStore = create(
             settlements: cleanedSettlements,
           };
         });
+        get()._persistToUser();
       },
 
       // ── Settlement management ─────────────────────────────────────────────
@@ -283,6 +368,7 @@ export const useSplitStore = create(
         };
 
         set((s) => ({ settlements: [entry, ...s.settlements] }));
+        get()._persistToUser();
         return entry;
       },
 
@@ -299,14 +385,16 @@ export const useSplitStore = create(
             st.id === settlementId ? { ...st, deleted: true } : st
           ),
         }));
+        get()._persistToUser();
       },
     }),
 
     // ── Persist config ─────────────────────────────────────────────────────
+    // Zustand persist keeps "split-storage" as a session cache.
+    // The uid-scoped key (split-storage-<uid>) is the authoritative per-user store.
     {
       name: "split-storage",
       storage: createJSONStorage(() => localStorage),
-      // Only persist the data slices — not derived/computed state
       partialize: (s) => ({
         members:       s.members,
         splitExpenses: s.splitExpenses,

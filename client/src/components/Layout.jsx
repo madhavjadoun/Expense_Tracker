@@ -32,6 +32,12 @@ export default function Layout({ onLogout }) {
 
   return (
     <div className="min-h-screen">
+      {/* Premium ambient background orbs */}
+      <div className="pointer-events-none fixed inset-0 -z-20 overflow-hidden bg-[#0b1220] transition-colors duration-300">
+        <div className="absolute top-[-100px] right-[-100px] h-[600px] w-[600px] rounded-full bg-[radial-gradient(circle,rgba(16,185,129,0.07),transparent_70%)] blur-3xl" />
+        <div className="absolute top-[20%] left-[-150px] h-[550px] w-[550px] rounded-full bg-[radial-gradient(circle,rgba(59,130,246,0.05),transparent_70%)] blur-3xl" />
+        <div className="absolute bottom-[-150px] left-[30%] h-[700px] w-[700px] rounded-full bg-[radial-gradient(circle,rgba(168,85,247,0.04),transparent_70%)] blur-3xl" />
+      </div>
       <div className="mx-auto flex min-h-screen w-full max-w-[1400px]">
         <Sidebar
           collapsed={ui?.sidebarCollapsed}
