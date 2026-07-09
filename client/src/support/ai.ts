@@ -38,7 +38,7 @@ export async function sendChatMessage(userMessage: string): Promise<string> {
   }
 
   // Fallback to Express backend `/api/support` if no exact local match exists
-  const baseUrl = import.meta.env.VITE_API_URL || "";
+  const baseUrl = import.meta.env.VITE_API_URL || "https://expense-tracker-rouge-chi-43.vercel.app";
   const response = await fetch(`${baseUrl}/api/support`, {
     method: "POST",
     headers: {
