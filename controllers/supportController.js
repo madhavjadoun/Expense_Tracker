@@ -114,7 +114,7 @@ ${userQuestion}
       console.error(`n8n webhook returned status ${response.status}: ${errorText}`);
       return res.status(502).json({
         success: false,
-        message: "Failed to fetch response from AI assistant."
+        message: `Failed to fetch response from AI assistant. Webhook returned status ${response.status}: ${errorText}`
       });
     }
 
