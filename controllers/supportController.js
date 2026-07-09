@@ -118,7 +118,23 @@ ${userQuestion}
       });
     }
 
-    const n8nData = await response.json();
+    const rawText = await response.text();
+    let n8nData;
+    try {
+      n8nData = JSON.parse(rawText);
+    } catch (parseErr) {
+      console.error("Failed to parse n8n webhook response as JSON:", rawText);
+      return res.status(502).json({
+        success: false,
+        message: "Invalid JSON response format from AI assistant."
+      });
+    }
+
+    // Support both n8n array envelope [ { text: "..." } ] and direct object formats
+    if (Array.isArray(n8nData)) {
+      n8nData = n8nData[0];
+    }
+
     if (!n8nData || typeof n8nData.text !== "string") {
       console.error("Invalid response body format from n8n webhook:", n8nData);
       return res.status(502).json({
