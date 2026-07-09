@@ -9,6 +9,7 @@
                 "includeFiles": [
                     "client/dist/**",
                     "client/public/**",
+                    "client/src/support/**",
                     "routes/**",
                     "controllers/**",
                     "models/**",

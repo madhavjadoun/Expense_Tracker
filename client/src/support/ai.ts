@@ -38,7 +38,8 @@ export async function sendChatMessage(userMessage: string): Promise<string> {
   }
 
   // Fallback to Express backend `/api/support` if no exact local match exists
-  const response = await fetch("/api/support", {
+  const baseUrl = import.meta.env.VITE_API_URL || "";
+  const response = await fetch(`${baseUrl}/api/support`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
