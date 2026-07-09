@@ -49,7 +49,7 @@ export default function Navbar({ onLogout, onHamburger }) {
 
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-[#020617]/60 backdrop-blur-xl">
-      <div className="mx-auto flex w-full max-w-[1400px] items-center justify-between gap-4 px-4 py-3 sm:px-6">
+      <div className="flex w-full items-center justify-between gap-4 px-4 py-3 sm:px-6">
         <div className="flex items-center gap-3">
           <button
             type="button"

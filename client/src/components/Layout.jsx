@@ -38,7 +38,7 @@ export default function Layout({ onLogout }) {
         <div className="absolute top-[20%] left-[-150px] h-[550px] w-[550px] rounded-full bg-[radial-gradient(circle,rgba(59,130,246,0.05),transparent_70%)] blur-3xl" />
         <div className="absolute bottom-[-150px] left-[30%] h-[700px] w-[700px] rounded-full bg-[radial-gradient(circle,rgba(168,85,247,0.04),transparent_70%)] blur-3xl" />
       </div>
-      <div className="mx-auto flex min-h-screen w-full max-w-[1400px]">
+      <div className="mx-auto flex min-h-screen w-full">
         <Sidebar
           collapsed={ui?.sidebarCollapsed}
           onToggleCollapsed={toggleSidebarCollapsed}

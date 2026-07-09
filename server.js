@@ -95,6 +95,7 @@ const analyticsRoutes = require("./routes/analyticsRoutes");
 const inviteRoutes   = require("./routes/inviteRoutes");
 const joinRoutes     = require("./routes/joinRoutes");
 const workspaceRoutes = require("./routes/workspaceRoutes");
+const supportRoutes = require("./routes/supportRoutes");
 
 // Public OG preview route — hit by WhatsApp / social crawlers
 // GET /join/:token → serves OG meta HTML then redirects to React frontend
@@ -106,6 +107,7 @@ app.use("/api/profile", profileRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api/invite", inviteRoutes);
 app.use("/api/workspaces", workspaceRoutes);
+app.use("/api/support", supportRoutes);
 
 // Catch-all: serve React SPA for any unmatched route (handles /app/join/:token etc.)
 app.get("*", (req, res) => {

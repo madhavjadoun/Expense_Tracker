@@ -7,4 +7,9 @@ export default defineConfig({
   appType: "spa",
   base: "/", 
   plugins: [react(), tailwindcss()],
+  server: {
+    proxy: {
+      "/api": "http://localhost:5001",
+    },
+  },
 });
