@@ -30,14 +30,12 @@ export default function Layout({ onLogout }) {
     fetchExpenses(activeWorkspaceId);
   }, [user?.uid, activeWorkspaceId, fetchExpenses]);
 
+  const theme = useAppStore((s) => s.theme);
+
   return (
     <div className="min-h-screen">
-      {/* Premium ambient background orbs */}
-      <div className="pointer-events-none fixed inset-0 -z-20 overflow-hidden bg-[#0b1220] transition-colors duration-300">
-        <div className="absolute top-[-100px] right-[-100px] h-[600px] w-[600px] rounded-full bg-[radial-gradient(circle,rgba(16,185,129,0.07),transparent_70%)] blur-3xl" />
-        <div className="absolute top-[20%] left-[-150px] h-[550px] w-[550px] rounded-full bg-[radial-gradient(circle,rgba(59,130,246,0.05),transparent_70%)] blur-3xl" />
-        <div className="absolute bottom-[-150px] left-[30%] h-[700px] w-[700px] rounded-full bg-[radial-gradient(circle,rgba(168,85,247,0.04),transparent_70%)] blur-3xl" />
-      </div>
+      {/* Premium layout background */}
+      <div className="pointer-events-none fixed inset-0 -z-20 overflow-hidden bg-gradient-to-b from-[#101E16] via-[#263D2B] to-[#859E7A]" />
       <div className="mx-auto flex min-h-screen w-full">
         <Sidebar
           collapsed={ui?.sidebarCollapsed}
@@ -45,14 +43,18 @@ export default function Layout({ onLogout }) {
           onHelpOpen={() => setHelpOpen(true)}
         />
 
-        <div className="flex min-w-0 flex-1 flex-col">
+        <div className={`flex min-w-0 flex-1 flex-col m-3 lg:m-4 rounded-[28px] border transition-all duration-300 backdrop-blur-xl ${
+          theme === "light"
+            ? "bg-[#0e130e]/82 border-white/[0.08]"
+            : "bg-[#0B0C0F]/82 border-white/[0.05]"
+        }`}>
           <Navbar
             onLogout={onLogout}
             onToggleSidebar={toggleSidebarCollapsed}
             onHamburger={toggleSidebarOpen}
           />
 
-          <div className="min-w-0 flex-1 px-4 py-6 sm:px-6">
+          <div className="min-w-0 flex-1 px-4 py-5 sm:px-6 overflow-y-auto">
             <div className="min-w-0">
               <Outlet />
             </div>

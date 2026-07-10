@@ -1,26 +1,10 @@
 import { useEffect } from "react";
 import { AnimatePresence, motion as Motion } from "framer-motion";
 import { X } from "lucide-react";
+import { useAppStore } from "../store/useAppStore";
 
 /**
  * Modal — accessible, scroll-locked, max-height constrained dialog.
- *
- * Layout:
- *   ┌──────────────────────────────┐  ← rounded panel, max-h-[90vh]
- *   │  sticky header (title + ✕)  │
- *   ├──────────────────────────────┤
- *   │  scrollable content area     │  ← overflow-y-auto, flex-1
- *   ├──────────────────────────────┤  (optional)
- *   │  sticky footer               │  ← rendered via `footer` prop
- *   └──────────────────────────────┘
- *
- * Props:
- *   open       — boolean
- *   onClose    — () => void   (backdrop click or ✕ button)
- *   title      — string
- *   children   — scrollable body content
- *   footer     — optional sticky footer node (buttons etc.)
- *   maxWidth   — Tailwind max-w-* class, default "max-w-md"
  */
 export default function Modal({
   open,
@@ -30,6 +14,9 @@ export default function Modal({
   footer,
   maxWidth = "max-w-md",
 }) {
+  const theme = useAppStore((s) => s.theme);
+  const isLightTheme = theme === "light";
+
   // ── Body scroll lock ─────────────────────────────────────────────────────
   useEffect(() => {
     if (!open) return;
@@ -46,17 +33,18 @@ export default function Modal({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.18 }}
+          transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
         >
           {/* ── Backdrop ── */}
           <Motion.button
             type="button"
             aria-label="Close modal"
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/[0.04]"
             onClick={onClose}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            initial={{ backdropFilter: "blur(0px)", WebkitBackdropFilter: "blur(0px)", opacity: 0 }}
+            animate={{ backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", opacity: 1 }}
+            exit={{ backdropFilter: "blur(0px)", WebkitBackdropFilter: "blur(0px)", opacity: 0 }}
+            transition={{ duration: 0.38, ease: [0.16, 1, 0.3, 1] }}
           />
 
           {/* ── Panel ── */}
@@ -68,41 +56,45 @@ export default function Modal({
               relative flex w-full flex-col
               ${maxWidth}
               max-h-[90vh]
-              rounded-2xl border border-white/12
-              bg-[#0b0b18]/92
-              shadow-[0_30px_120px_rgba(0,0,0,.65)]
-              backdrop-blur-xl
+              rounded-[28px]
+              shadow-[0_20px_60px_rgba(0,0,0,0.25)]
+              text-white
+              ${isLightTheme ? "bg-[#1A1F14]/95 border border-[#1A1E1C]" : "bg-[#0e1116]/95 border border-white/[0.08]"}
             `}
+            style={{
+              backdropFilter: "blur(24px)",
+              WebkitBackdropFilter: "blur(24px)",
+            }}
             initial={{ y: 20, opacity: 0, scale: 0.97 }}
             animate={{ y: 0,  opacity: 1, scale: 1    }}
             exit={{    y: 20, opacity: 0, scale: 0.97 }}
             transition={{ type: "spring", stiffness: 280, damping: 24 }}
           >
             {/* ── Sticky header ── */}
-            <div className="flex shrink-0 items-center justify-between gap-3 border-b border-white/8 px-5 py-4">
-              <div className="text-sm font-semibold text-white/90">{title}</div>
+            <div className="flex shrink-0 items-center justify-between gap-3 px-6 pt-6 pb-2">
+              <div className="text-sm font-bold text-white/90">{title}</div>
 
               <Motion.button
                 type="button"
                 aria-label="Close modal"
                 onClick={onClose}
-                whileHover={{ scale: 1.08, backgroundColor: "rgba(255,255,255,0.10)" }}
-                whileTap={{ scale: 0.94 }}
+                whileHover={{ scale: 1.05, backgroundColor: "rgba(255,255,255,0.06)" }}
+                whileTap={{ scale: 0.95 }}
                 transition={{ type: "spring", stiffness: 400, damping: 20 }}
-                className="grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-white/10 bg-white/5 text-white/50 transition-colors hover:text-white/85"
+                className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-white/40 hover:text-white/85 transition-colors"
               >
-                <X size={14} strokeWidth={2.2} />
+                <X size={15} strokeWidth={2.5} />
               </Motion.button>
             </div>
 
             {/* ── Scrollable body ── */}
-            <div className="flex-1 overflow-y-auto overscroll-contain px-5 py-5">
+            <div className="flex-1 overflow-y-auto overscroll-contain px-6 pb-4 pt-2 text-sm text-white/70 leading-relaxed">
               {children}
             </div>
 
             {/* ── Optional sticky footer ── */}
             {footer && (
-              <div className="shrink-0 border-t border-white/8 px-5 py-4">
+              <div className="shrink-0 px-6 pb-6 pt-2">
                 {footer}
               </div>
             )}

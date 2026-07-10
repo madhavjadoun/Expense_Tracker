@@ -15,6 +15,7 @@ const AnalyticsPage  = lazy(() => import("./pages/AnalyticsPage"));
 const ProfilePage    = lazy(() => import("./pages/ProfilePage"));
 const SplitPage      = lazy(() => import("./pages/SplitPage"));
 const JoinPage       = lazy(() => import("./pages/JoinPage"));
+const LandingPage    = lazy(() => import("./pages/LandingPage"));
 
 export default function App() {
   const location = useLocation();
@@ -67,7 +68,11 @@ export default function App() {
       <Routes>
         <Route
           path="/"
-          element={<Navigate to={isAuthed ? "/dashboard" : "/login"} replace />}
+          element={
+            <Suspense fallback={<Loader show label="Loading page…" />}>
+              <LandingPage />
+            </Suspense>
+          }
         />
 
         <Route

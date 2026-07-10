@@ -29,6 +29,13 @@ export default function ProfilePage() {
     };
   }, [authUser, syncProfileFromServer, setLoading]);
 
+  const theme = useAppStore((s) => s.theme);
+  const isLightTheme = theme === "light";
+
+  const cardClass = isLightTheme
+    ? "rounded-2xl bg-[#090B0A] border border-[#1A1E1C] shadow-sm p-5 sm:p-6"
+    : "rounded-2xl border border-white/[0.05] bg-gradient-to-b from-[#090E0A] via-[#182C1C] to-[#324E38] shadow-[0_8px_30px_rgba(0,0,0,0.3)] p-5 sm:p-6";
+
   const shouldRenderSkeleton = loading && !profile?.name && !authUser?.name;
 
   return (
@@ -45,9 +52,9 @@ export default function ProfilePage() {
 
       <ScrollReveal>
         <Motion.div
-          whileHover={{ scale: 1.01 }}
+          whileHover={{ scale: 1.004 }}
           transition={{ duration: 0.25, ease: "easeOut" }}
-          className="rounded-2xl border border-white/10 bg-white/4 p-5 sm:p-6 shadow-xl backdrop-blur-md"
+          className={cardClass}
         >
           {shouldRenderSkeleton ? (
             <div className="space-y-4">

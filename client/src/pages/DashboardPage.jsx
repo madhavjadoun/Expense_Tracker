@@ -1,7 +1,26 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion as Motion, AnimatePresence } from "framer-motion";
-import { Plus, TrendingUp, TrendingDown, Zap, Lightbulb, Activity, ShieldCheck, Clock, Flame, RefreshCw, AlertTriangle } from "lucide-react";
-import GlassCard from "../components/GlassCard";
+import {
+  Plus,
+  TrendingUp,
+  TrendingDown,
+  Zap,
+  Lightbulb,
+  Activity,
+  ShieldCheck,
+  Clock,
+  Flame,
+  RefreshCw,
+  AlertTriangle,
+  Wallet,
+  Search,
+  ChevronDown,
+  Trophy,
+  Utensils,
+  Car,
+  ShoppingBag,
+  Package
+} from "lucide-react";
 import ScrollReveal from "../components/ScrollReveal";
 import { Skeleton } from "../components/Skeleton";
 import Typewriter from "../components/Typewriter";
@@ -13,7 +32,16 @@ import { useWorkspaceStore } from "../store/useWorkspaceStore";
 import { notify } from "../store/useNotificationStore";
 import { calculateBudget } from "../utils/budgetInsights";
 import { generateSmartInsights } from "../utils/smartInsightsEngine";
-
+import {
+  ComposedChart,
+  Area,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer
+} from "recharts";
 
 const categories = [
   { key: "food", label: "Food" },
@@ -22,7 +50,18 @@ const categories = [
   { key: "other", label: "Other" },
 ];
 
-
+function CustomTooltip({ active, payload, formatMoney }) {
+  if (active && payload && payload.length) {
+    return (
+      <div className="rounded-xl border border-white/[0.08] bg-[#0d0f14]/95 p-3 shadow-2xl backdrop-blur-md text-white">
+        <p className="text-[10px] uppercase tracking-wider text-white/40">Day {payload[0].payload.name}</p>
+        <p className="text-xs font-bold text-[#84cc16] mt-1">Spent: {formatMoney(payload[0].value)}</p>
+        {payload[1] && <p className="text-xs font-semibold text-[#eab308] mt-0.5">Avg: {formatMoney(payload[1].value)}</p>}
+      </div>
+    );
+  }
+  return null;
+}
 
 export default function DashboardPage() {
   const currency = useAppStore((s) => s.currency);
@@ -54,9 +93,26 @@ export default function DashboardPage() {
     [allExpenses, activeWorkspaceId]
   );
 
-  // Effective budget for the active workspace:
-  // default workspace → budgetMonthly (synced with MongoDB)
-  // other workspaces  → workspaceBudgets[id] (localStorage only)
+  const theme = useAppStore((s) => s.theme);
+  const isLightTheme = theme === "light";
+
+  // ── Light-theme 3-tint card palette ──────────────────────────────
+  // card1Class  → #FFFFFF  pure white  (primary KPI – highest visual weight)
+  // cardBgClass → #F3F8F2  sage tint   (secondary KPI + metric cards)
+  // cardGrayClass → #F6F7F9 cool gray  (functional / insight panels)
+  const card1Class = isLightTheme
+    ? "bg-gradient-to-b from-[#000000] via-[#233529] to-[#75907A] border border-white/[0.08] no-invert hover:border-white/70 hover:ring-1 hover:ring-white/20"
+    : "border border-white/[0.09] shadow-[0_12px_40px_rgba(0,0,0,0.35)] hover:border-white/20 transition-all duration-300";
+
+  const cardBgClass = isLightTheme
+    ? "bg-[#090B0A] border border-[#1A1E1C] hover:border-white/50 hover:ring-1 hover:ring-white/20"
+    : "bg-gradient-to-b from-[#090E0A] via-[#182C1C] to-[#324E38] border border-white/[0.05] shadow-[0_8px_30px_rgba(0,0,0,0.3)] hover:border-white/12 transition-all duration-300";
+
+  const cardGrayClass = isLightTheme
+    ? "bg-[#090B0A] border border-[#1A1E1C] hover:border-white/50 hover:ring-1 hover:ring-white/20"
+    : "bg-gradient-to-b from-[#090E0A] via-[#182C1C] to-[#324E38] border border-white/[0.05] shadow-[0_8px_30px_rgba(0,0,0,0.3)] hover:border-white/12 transition-all duration-300";
+
+  // Effective budget for the active workspace
   const isDefaultWs     = activeWorkspaceId === "default";
   const effectiveBudget = isDefaultWs
     ? budgetMonthly
@@ -76,14 +132,12 @@ export default function DashboardPage() {
   const [budgetInput, setBudgetInput] = useState(String(effectiveBudget || ""));
   const [isFocused, setIsFocused] = useState(false);
 
-  // Sync the budgetInput field whenever the effective budget or active workspace changes.
-  // This covers: workspace switch, login (pre-seeded from localStorage), and server-fetch completion.
   useEffect(() => {
     if (!isFocused) {
       setBudgetInput(String(effectiveBudget || ""));
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeWorkspaceId, effectiveBudget, isFocused]);
+
   const now = useMemo(() => new Date(), []);
 
   const greeting = useMemo(() => {
@@ -99,7 +153,6 @@ export default function DashboardPage() {
   );
 
   const monthTotals = useMemo(() => {
-    // Return zeros while fetching to avoid computing on stale/previous-workspace data.
     if (loading) return { total: 0, totals: { food: 0, travel: 0, shopping: 0, other: 0 } };
 
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -137,15 +190,12 @@ export default function DashboardPage() {
     }, 0);
   }, [expenses, now, loading]);
 
-  // ── Spending Control Panel data ─────────────────────────────────────────────
-  // SAFE DEFAULTS — avoids stale flash on login / workspace switch.
   const CONTROL_DEFAULTS = {
     todayTotal: 0, yesterdayTotal: 0, todayVsYestPct: null,
     last3: [], dailyLimit: 0, dailyStatus: "unset", streak: 0, overspendAlert: false,
   };
 
   const controlPanel = useMemo(() => {
-    // While expenses are loading, return zeros — prevents 31-day streak ghost.
     if (loading) return CONTROL_DEFAULTS;
 
     const today    = new Date();
@@ -179,13 +229,11 @@ export default function DashboardPage() {
         ? Math.round(((todayTotal - yesterdayTotal) / yesterdayTotal) * 100)
         : null;
 
-    // Last 3 expenses (sorted newest-first)
     const last3 = [...(expenses || [])]
       .filter(e => !Number.isNaN(new Date(e?.date).getTime()))
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
       .slice(0, 3);
 
-    // Daily limit
     const totalDaysInMonth = new Date(todayY, todayM + 1, 0).getDate();
     const dailyLimit = effectiveBudget > 0 ? effectiveBudget / totalDaysInMonth : 0;
     const dailyStatus =
@@ -194,8 +242,6 @@ export default function DashboardPage() {
       : todayTotal >= dailyLimit * 0.7   ? "risk"
       : "safe";
 
-    // No-spend streak — only count if there is actual loaded data.
-    // FIX: an empty dayTotalsMap means NO data, not "all days are no-spend".
     const dayTotalsMap = {};
     for (const e of expenses || []) {
       const d = new Date(e?.date);
@@ -204,18 +250,11 @@ export default function DashboardPage() {
       dayTotalsMap[key] = (dayTotalsMap[key] || 0) + (Number(e?.amount) || 0);
     }
 
-    // Only compute streak when there is at least one loaded expense.
     let streak = 0;
     if (expenses && expenses.length > 0) {
       for (let i = 1; i <= 30; i++) {
         const d = new Date(todayY, todayM, todayD - i);
         const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
-        // A day only extends the streak if it existed in the map as zero, OR
-        // if it is simply absent AND there are expenses on surrounding days
-        // (i.e., the user actually used the app around that period).
-        // Simpler, more correct rule: we ONLY count days that are explicitly
-        // recorded as zero (i.e., the key is in the map with value 0) OR
-        // if today itself has no spend AND the expense array is non-empty.
         if (dayTotalsMap[key] === undefined || dayTotalsMap[key] === 0) streak++;
         else break;
       }
@@ -235,14 +274,12 @@ export default function DashboardPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [expenses, effectiveBudget, loading]);
 
-  // ── Smart Panel computations (right column) ───────────────────────────────
   const smartPanel = useMemo(() => {
     const today = new Date();
     const dayOfMonth = today.getDate();
     const totalDaysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
     const daysRemaining = totalDaysInMonth - dayOfMonth;
 
-    // Daily burn rate & projected spend
     const dailyAvg = dayOfMonth > 0 ? monthTotals.total / dayOfMonth : 0;
     const projected = dailyAvg * totalDaysInMonth;
     const projectedOverBudget =
@@ -254,7 +291,6 @@ export default function DashboardPage() {
         ? Math.max(0, Math.floor((effectiveBudget - monthTotals.total) / dailyAvg))
         : null;
 
-    // Category comparison month-over-month
     const prevStart = new Date(today.getFullYear(), today.getMonth() - 1, 1).getTime();
     const prevEnd   = new Date(today.getFullYear(), today.getMonth(), 1).getTime();
     const prevCatTotals = { food: 0, travel: 0, shopping: 0, entertainment: 0, utilities: 0, other: 0 };
@@ -278,7 +314,6 @@ export default function DashboardPage() {
       }
     }
 
-    // Recurring pattern: same amount + same category at least twice
     const patternMap = {};
     for (const e of expenses || []) {
       const key = `${e.category}-${Math.round(Number(e.amount))}`;
@@ -291,7 +326,6 @@ export default function DashboardPage() {
         return { cat: cat.charAt(0).toUpperCase() + cat.slice(1), amount: Number(amount) };
       });
 
-    // Smart suggestion: biggest spending category, suggest reduction
     const topCat = Object.entries(monthTotals.totals).sort((a, b) => b[1] - a[1])[0];
     const suggestionAmount =
       topCat && effectiveBudget > 0 && monthTotals.total > effectiveBudget
@@ -303,8 +337,6 @@ export default function DashboardPage() {
       ? topCat[0].charAt(0).toUpperCase() + topCat[0].slice(1)
       : null;
 
-    // ── additions for Smart Insights panel ────────────────────────────────
-    // Highest spending day this month
     const dayTotals = {};
     const monthStart2 = new Date(today.getFullYear(), today.getMonth(), 1).getTime();
     const monthEnd2   = new Date(today.getFullYear(), today.getMonth() + 1, 1).getTime();
@@ -318,7 +350,6 @@ export default function DashboardPage() {
     }
     const highestSpendDay = Object.entries(dayTotals).sort((a, b) => b[1] - a[1])[0] || null;
 
-    // Most active category (by transaction count)
     const catCounts = {};
     for (const e of expenses || []) {
       const cat = e?.category || "other";
@@ -326,7 +357,6 @@ export default function DashboardPage() {
     }
     const activeCategory = Object.entries(catCounts).sort((a, b) => b[1] - a[1])[0] || null;
 
-    // Spike detection: today > 2× daily average
     const dailyAvgCheck = dayOfMonth > 1 ? monthTotals.total / (dayOfMonth - 1) : 0;
     const todayForSpike = (() => {
       let t = 0;
@@ -361,7 +391,6 @@ export default function DashboardPage() {
     };
   }, [expenses, monthTotals, effectiveBudget]);
 
-  // Day-of-week spending heatmap (0=Sun … 6=Sat)
   const dayOfWeekSpend = useMemo(() => {
     const buckets = [0, 0, 0, 0, 0, 0, 0];
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
@@ -377,7 +406,6 @@ export default function DashboardPage() {
     return buckets.map((v) => ({ value: v, pct: Math.round((v / max) * 100) }));
   }, [expenses, now]);
 
-  // ── Dynamic Smart Insights — engine-generated, priority-ranked ───────────────
   const dynamicInsights = useMemo(() => {
     if (!expenses || expenses.length === 0) return [];
     return generateSmartInsights({
@@ -392,14 +420,12 @@ export default function DashboardPage() {
     });
   }, [expenses, effectiveBudget, monthTotals, previousMonthTotal, budgetCalc, controlPanel, dayOfWeekSpend, formatMoney]);
 
-  // ── Spending Score (0–100) ────────────────────────────────────────────────
   const spendingScore = useMemo(() => {
     if (loading || !expenses || expenses.length === 0)
       return { score: null, label: "No data", grade: "—", color: "blue" };
 
     let score = 100;
 
-    // 1. Budget usage penalty (most weight)
     if (effectiveBudget > 0) {
       const ratio = monthTotals.total / effectiveBudget;
       if (ratio >= 1)        score -= 40;
@@ -407,14 +433,12 @@ export default function DashboardPage() {
       else if (ratio >= 0.8) score -= 18;
       else if (ratio >= 0.6) score -= 8;
     } else {
-      score -= 10; // no budget set — mild penalty
+      score -= 10;
     }
 
-    // 2. No-spend streak bonus (up to +15)
     const streak = controlPanel.streak || 0;
     score += Math.min(15, streak * 2);
 
-    // 3. Monthly trend vs previous month
     if (previousMonthTotal > 0) {
       const trendRatio = monthTotals.total / previousMonthTotal;
       if (trendRatio < 0.85)  score += 10;
@@ -422,7 +446,6 @@ export default function DashboardPage() {
       else if (trendRatio > 1.2) score -= 10;
     }
 
-    // 4. High-frequency spending penalty (>20 expenses this month)
     const monthExpCnt = expenses.filter((e) => {
       const d = new Date(e?.date);
       return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
@@ -436,7 +459,6 @@ export default function DashboardPage() {
     return { score: final, grade, label, color };
   }, [expenses, effectiveBudget, monthTotals, previousMonthTotal, controlPanel, now]);
 
-  // ── Monthly Comparison ────────────────────────────────────────────────────
   const monthComparison = useMemo(() => {
     if (loading) return { pct: null, direction: null };
     if (previousMonthTotal === 0 && monthTotals.total === 0) return { pct: null, direction: null };
@@ -445,68 +467,239 @@ export default function DashboardPage() {
     return { pct: Math.abs(pct), direction: pct >= 0 ? "up" : "down", label: pct === 0 ? "Same as last month" : null };
   }, [monthTotals.total, previousMonthTotal, loading]);
 
-  /** Map iconName string → Lucide component (keeps JSX render simple). */
   const ICON_MAP = {
     AlertTriangle, TrendingUp, TrendingDown, Zap,
     Lightbulb, Activity, ShieldCheck, Clock, Flame, RefreshCw,
   };
 
+  // Recharts Sales Volume data calculation (daily breakdown for the current month)
+  const chartData = useMemo(() => {
+    const today = new Date();
+    const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+    const dailyData = Array.from({ length: daysInMonth }, (_, idx) => {
+      const day = idx + 1;
+      return {
+        name: `${day}`,
+        Spent: 0,
+        Average: 0,
+      };
+    });
+
+    const ty = today.getFullYear();
+    const tm = today.getMonth();
+    const dailyAvg = monthTotals.total / (today.getDate() || 1);
+
+    for (const e of expenses || []) {
+      const d = new Date(e?.date);
+      if (d.getFullYear() === ty && d.getMonth() === tm) {
+        const dayIdx = d.getDate() - 1;
+        if (dayIdx >= 0 && dayIdx < daysInMonth) {
+          dailyData[dayIdx].Spent += Number(e?.amount) || 0;
+        }
+      }
+    }
+
+    return dailyData.map((d) => ({
+      ...d,
+      Average: Math.round(dailyAvg),
+      Spent: Math.round(d.Spent),
+    }));
+  }, [expenses, monthTotals.total]);
+
+  // Top 3 category breakdown bubble data
+  const topCategoriesBubble = useMemo(() => {
+    const list = Object.entries(monthTotals.totals)
+      .map(([key, value]) => ({
+        category: key,
+        value,
+        percentage: monthTotals.total > 0 ? Math.round((value / monthTotals.total) * 100) : 0,
+      }))
+      .sort((a, b) => b.value - a.value);
+    return list.slice(0, 3);
+  }, [monthTotals]);
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-6 py-2 sm:px-8">
+    <div className="w-full space-y-6">
+      {/* Greeting Header */}
       <Motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: "easeOut" }}
-        className="mb-8 flex items-start justify-between gap-4"
+        className="flex items-center justify-between gap-4 border-b border-white/[0.04] pb-4"
       >
         <div>
-          <div className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-emerald-400/80">
-            Dashboard
-            {activeWs && activeWs.id !== "default" && (
-              <span className="ml-2 rounded-full border border-emerald-500/20 bg-emerald-500/5 px-2.5 py-0.5 text-[10px] font-semibold text-emerald-400">
-                {activeWs.name}
-              </span>
-            )}
+          <div className={`text-[11px] font-bold uppercase tracking-widest select-none ${
+            isLightTheme ? "text-[#84cc16]" : "text-[#EFF2F0]"
+          }`}>
+            {activeWs?.name || "Personal Finance"} Workspace
           </div>
-          <Motion.div
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.25, ease: "easeOut" }}
-            className="text-2xl font-bold tracking-tight text-white/95 sm:text-3xl min-h-[36px] mt-1.5"
-          >
+          <h2 className="mt-1 text-3xl font-extrabold tracking-tight text-white/95 sm:text-4xl">
             <Typewriter text={greeting} />
-          </Motion.div>
-          <div className="mt-1 text-xs font-medium text-white/40">
-            Track your spending & stay on budget
-          </div>
+          </h2>
+          <p className="mt-1.5 text-sm text-white/40 font-medium">
+            Overview of your financial performance
+          </p>
         </div>
-        <Button onClick={() => setQuickAddOpen(true)} className="flex items-center gap-2">
-          <Plus size={16} />
-          <span className="hidden sm:inline">Add Expense</span>
-        </Button>
+        <button
+          onClick={() => setQuickAddOpen(true)}
+          className="flex items-center gap-1.5 rounded-full bg-[#111827] border border-transparent hover:border-white/50 text-white px-4 py-2.5 text-xs font-semibold transition active:scale-95 cursor-pointer"
+        >
+          <Plus size={14} />
+          <span>Add Expense</span>
+        </button>
       </Motion.div>
 
-      <div className="space-y-8">
-        {/* Monthly budget card */}
+      {/* Top row: 3 Key KPI cards matching mockup */}
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+        {/* Card 1: Spent This Month (Total Revenue mockup equivalent - dynamic styling) */}
         <ScrollReveal delay={0.05}>
-          <GlassCard className="p-5">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <div className="text-sm font-semibold text-white/90">
-                  Monthly budget
+          <div className={`relative overflow-hidden rounded-[24px] p-6 shadow-sm transition-all duration-300 ease-out hover:-translate-y-[2px] hover:shadow-md cursor-pointer ${card1Class}`}>
+            {!isLightTheme && (
+              <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-[24px]">
+                {/* Background mockup gradient: top pitch black to bottom green */}
+                <div className="absolute inset-0 bg-gradient-to-b from-[#000000] via-[#031E0D] to-[#094423]" />
+                
+                {/* Moving fog shape 1: wide cloud drifting left/right */}
+                <Motion.div
+                  animate={{
+                    x: [-90, 90, -90],
+                    y: [12, -8, 12],
+                    opacity: [0.15, 0.28, 0.15],
+                  }}
+                  transition={{
+                    duration: 12,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                  className="absolute -bottom-24 -left-20 h-52 w-96 rounded-full bg-white/[0.11] blur-3xl"
+                />
+
+                {/* Moving fog shape 2: second cloud drifting opposite */}
+                <Motion.div
+                  animate={{
+                    x: [90, -90, 90],
+                    y: [-8, 12, -8],
+                    opacity: [0.22, 0.12, 0.22],
+                  }}
+                  transition={{
+                    duration: 16,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                  className="absolute -bottom-20 -right-20 h-44 w-80 rounded-full bg-[#E2E8F0]/[0.10] blur-3xl"
+                />
+
+                {/* Moving fog shape 3: central rising cloud scaling */}
+                <Motion.div
+                  animate={{
+                    x: [-30, 30, -30],
+                    scale: [1, 1.28, 1],
+                    opacity: [0.18, 0.26, 0.18],
+                  }}
+                  transition={{
+                    duration: 9,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                  className="absolute bottom-[-40px] left-1/4 h-36 w-72 rounded-full bg-white/[0.09] blur-2xl"
+                />
+              </div>
+            )}
+            <div className="relative z-10 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className={`grid h-9 w-9 place-items-center rounded-xl transition-colors duration-300 ${
+                  isLightTheme
+                    ? "bg-white/[0.04] text-white/60"
+                    : "bg-white/10 text-white/90"
+                }`}>
+                  <Wallet size={16} />
                 </div>
-                <div className="mt-1 text-xs text-white/55">
-                  Set your limit and track spending automatically.
+                <div className={`flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider rounded-md px-2.5 py-1 border transition-colors duration-300 ${
+                  isLightTheme
+                    ? "text-white/40 bg-white/[0.03] border-white/[0.06]"
+                    : "text-white/85 bg-white/5 border-white/[0.06]"
+                }`}>
+                  <span>Month Total</span>
                 </div>
               </div>
+              <div>
+                <span className="text-[11px] uppercase tracking-wider font-semibold text-white/40">Spent this month</span>
+                <h3 className="mt-1 text-2xl font-bold text-white tracking-tight">
+                  {loading ? <Skeleton className="h-8 w-32" /> : formatMoney(monthTotals.total)}
+                </h3>
+              </div>
+              <div className="flex items-center justify-between text-[11px] text-white/60 pt-1">
+                <div className="flex items-center gap-1">
+                  {monthComparison.direction === "down" ? (
+                    <span className="text-[#52b147] font-bold px-2 py-0.5 rounded-full bg-[#162e22] border border-[#52b147]/20">-{monthComparison.pct}% MoM</span>
+                  ) : monthComparison.pct !== null ? (
+                    <span className="text-red-400 font-bold px-2 py-0.5 rounded-full bg-red-500/10 border border-red-500/20">+{monthComparison.pct}% MoM</span>
+                  ) : (
+                    <span className="text-white/40">First record</span>
+                  )}
+                </div>
+                <span className="text-white/35 truncate max-w-[120px] text-right">
+                  {smartPanel.suggestionCat ? `Top: ${smartPanel.suggestionCat}` : "No spendings"}
+                </span>
+              </div>
+            </div>
+          </div>
+        </ScrollReveal>
 
-              <div className="w-full sm:w-[280px]">
-                <Input
-                  label="Budget (monthly)"
+        {/* Card 2: Spent Yesterday (Active Users mockup equivalent) */}
+        <ScrollReveal delay={0.1}>
+          <div className={`rounded-[24px] p-6 shadow-sm transition-all duration-300 ease-out hover:-translate-y-[2px] hover:shadow-md cursor-pointer ${cardBgClass}`}>
+            <div className="flex items-center justify-between">
+              <div className="grid h-9 w-9 place-items-center rounded-xl bg-white/[0.04] text-white/60">
+                <Activity size={16} />
+              </div>
+              <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-white/40">
+                <span>Daily Log</span>
+              </div>
+            </div>
+            <div className="mt-4">
+              <span className="text-[11px] uppercase tracking-wider font-semibold text-white/40">Spent yesterday</span>
+              <h3 className="mt-1 text-2xl font-bold text-white tracking-tight">
+                {loading ? <Skeleton className="h-8 w-24" /> : formatMoney(controlPanel.yesterdayTotal)}
+              </h3>
+            </div>
+            <div className="mt-4 flex items-center justify-between text-[11px] text-white/60">
+              <div className="flex items-center gap-1">
+                {controlPanel.todayVsYestPct !== null ? (
+                  <span className={`font-semibold px-2 py-0.5 rounded-full ${
+                    controlPanel.todayVsYestPct > 0 
+                      ? (isLightTheme ? "text-red-400 bg-red-500/10 border border-red-500/20" : "text-[#E09882] bg-[#E09882]/10 border border-[#E09882]/20")
+                      : (isLightTheme ? "text-[#52b147] bg-[#162e22] border border-[#52b147]/20" : "text-white/80 bg-white/10 border border-white/10")
+                  }`}>
+                    {controlPanel.todayVsYestPct > 0 ? "▲" : "▼"} {Math.abs(controlPanel.todayVsYestPct)}% today
+                  </span>
+                ) : (
+                  <span className="text-white/40">Yesterday no spend</span>
+                )}
+              </div>
+              {controlPanel.streak > 0 ? (
+                <span className={`font-semibold flex items-center gap-1 ${isLightTheme ? "text-amber-400" : "text-[#D9C39E]"}`}>
+                  <Flame size={12} fill="currentColor" />
+                  {controlPanel.streak}d streak
+                </span>
+              ) : (
+                <span className="text-white/35 font-normal">No streak</span>
+              )}
+            </div>
+          </div>
+        </ScrollReveal>
+
+        {/* Card 3: Remaining Budget (Conversion Rate mockup equivalent with integrated inline controls) */}
+        <ScrollReveal delay={0.15}>
+          <div className={`rounded-[24px] p-6 shadow-sm transition-all duration-300 ease-out hover:-translate-y-[2px] hover:shadow-md cursor-pointer ${cardBgClass}`}>
+            <div className="flex items-center justify-between">
+              <div className="grid h-9 w-9 place-items-center rounded-xl bg-white/[0.04] text-white/60">
+                <ShieldCheck size={16} />
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] text-white/40 uppercase font-semibold">Limit:</span>
+                <input
                   type="number"
-                  min={0}
-                  inputMode="numeric"
                   value={budgetInput}
                   onFocus={() => setIsFocused(true)}
                   onBlur={() => setIsFocused(false)}
@@ -516,52 +709,18 @@ export default function DashboardPage() {
                     const num = Number(val);
                     if (!Number.isNaN(num)) saveEffectiveBudget(num);
                   }}
-                  placeholder="e.g. 1000"
+                  className="w-16 rounded-lg border border-white/[0.08] bg-white/[0.04] px-1.5 py-0.5 text-[10px] text-white outline-none focus:border-[#7CC6FF]/50 transition text-center"
                 />
               </div>
             </div>
-
-            <div className="mt-4 grid gap-3 sm:grid-cols-3">
-              <div>
-                <div className="text-xs text-white/50">Spent this month</div>
-                <div className="mt-1 text-lg font-semibold text-white/90">
-                  {loading || error ? (
-                    <Skeleton className="h-6 w-28" />
-                  ) : (
-                    formatMoney(budgetCalc.spent)
-                  )}
-                </div>
-              </div>
-              <div>
-                <div className="text-xs text-white/50">Remaining</div>
-                <div
-                  className={`mt-1 text-lg font-semibold ${
-                    budgetCalc.status === "exceeded" ? "text-red-400" : "text-white/90"
-                  }`}
-                >
-                  {loading || error ? (
-                    <Skeleton className="h-6 w-20" />
-                  ) : (
-                    formatMoney(budgetCalc.remaining)
-                  )}
-                </div>
-              </div>
-              <div>
-                <div className="text-xs text-white/50">Status</div>
-                <div className="mt-1 text-xs font-semibold text-white/70">
-                  {budgetCalc.status === "unknown"
-                    ? "Set a budget"
-                    : budgetCalc.status === "exceeded"
-                      ? "Exceeded"
-                      : budgetCalc.status === "near"
-                        ? "Near limit"
-                        : "Safe"}
-                </div>
-              </div>
-            </div>
-
             <div className="mt-4">
-              <div className="h-3 w-full overflow-hidden rounded-full bg-white/8">
+              <span className="text-[11px] uppercase tracking-wider font-semibold text-white/40">Remaining Budget</span>
+              <h3 className={`mt-1 text-2xl font-bold tracking-tight ${budgetCalc.status === "exceeded" ? (isLightTheme ? "text-red-400 animate-pulse" : "text-[#E09882]") : "text-white"}`}>
+                {loading ? <Skeleton className="h-8 w-24" /> : formatMoney(budgetCalc.remaining)}
+              </h3>
+            </div>
+            <div className="mt-4">
+              <div className="h-1 w-full overflow-hidden rounded-full bg-white/5">
                 <Motion.div
                   initial={{ width: 0 }}
                   animate={{ width: `${Math.min(100, budgetCalc.ratio * 100)}%` }}
@@ -570,638 +729,384 @@ export default function DashboardPage() {
                   style={{
                     background:
                       budgetCalc.status === "exceeded"
-                        ? "linear-gradient(90deg, rgba(239,68,68,.85), rgba(244,63,94,.65))"
+                        ? (isLightTheme ? "rgba(239, 68, 68, 0.85)" : "#E09882")
                         : budgetCalc.status === "near"
-                          ? "linear-gradient(90deg, rgba(245,158,11,.85), rgba(251,191,36,.55))"
-                          : "linear-gradient(90deg, rgba(34,197,94,.85), rgba(16,185,129,.55))",
+                          ? (isLightTheme ? "rgba(245, 158, 11, 0.85)" : "#D9C39E")
+                          : (isLightTheme ? "rgba(132, 204, 22, 0.85)" : "#EFF2F0")
                   }}
                 />
               </div>
-
-              {budgetCalc.status === "exceeded" ? (
-                <Motion.div
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.22 }}
-                  className="mt-3 rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-3"
-                >
-                  <div className="text-xs font-semibold text-red-200">
-                    You have exceeded your monthly budget!
-                  </div>
-                  <div className="mt-1 text-[11px] text-red-200/70">
-                    Consider reviewing category spending to get back on track.
-                  </div>
-                </Motion.div>
-              ) : null}
+              <div className="mt-1.5 flex items-center justify-between text-[9px] text-white/40">
+                <span>{Math.round(budgetCalc.ratio * 100)}% Used</span>
+                <span className="font-semibold capitalize text-white/60">
+                  {budgetCalc.status === "exceeded" ? "Overlimit" : budgetCalc.status === "near" ? "Risk limit" : "Safe"}
+                </span>
+              </div>
             </div>
-          </GlassCard>
+          </div>
+        </ScrollReveal>
+      </div>
+
+      {/* Mid Row: Spending Score, No-Spend Streak, Vs Last Month */}
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+
+        {/* Spending Score Card */}
+        <ScrollReveal delay={0.05}>
+          <div className={`rounded-[24px] p-6 shadow-sm transition-all duration-300 ease-out hover:-translate-y-[2px] hover:shadow-md cursor-pointer ${cardBgClass}`}>
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-white/40">Spending Score</span>
+              <Activity size={14} className="text-white/30" />
+            </div>
+            <div className="flex items-center gap-4">
+              {/* Circular score ring */}
+              <div className="relative flex items-center justify-center flex-shrink-0">
+                <svg width="64" height="64" className="-rotate-90">
+                  <circle cx="32" cy="32" r="26" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="5" />
+                  <circle
+                    cx="32" cy="32" r="26" fill="none"
+                    stroke={spendingScore.color === "emerald" ? (isLightTheme ? "#84cc16" : "#EFF2F0") : spendingScore.color === "blue" ? "#7CC6FF" : spendingScore.color === "amber" ? (isLightTheme ? "#eab308" : "#D9C39E") : (isLightTheme ? "#f87171" : "#E09882")}
+                    strokeWidth="5"
+                    strokeLinecap="round"
+                    strokeDasharray={`${2 * Math.PI * 26}`}
+                    strokeDashoffset={`${2 * Math.PI * 26 * (1 - (spendingScore.score ?? 0) / 100)}`}
+                    className="transition-all duration-700 ease-out"
+                  />
+                </svg>
+                <div className="absolute text-center">
+                  <span className="text-sm font-extrabold text-white/95 leading-none">{spendingScore.score ?? "—"}</span>
+                  <span className="block text-[8px] text-white/40 leading-none mt-0.5">/100</span>
+                </div>
+              </div>
+              <div>
+                <p className={`text-base font-bold ${spendingScore.color === "emerald" ? (isLightTheme ? "text-[#84cc16]" : "text-[#EFF2F0]") : spendingScore.color === "blue" ? "text-[#7CC6FF]" : spendingScore.color === "amber" ? (isLightTheme ? "text-amber-400" : "text-[#D9C39E]") : (isLightTheme ? "text-red-400" : "text-[#E09882]")}`}>
+                  {spendingScore.label}
+                </p>
+                <p className="text-[10px] text-white/40 mt-0.5">Grade: <span className="text-white/70 font-semibold">{spendingScore.grade}</span></p>
+                <p className="text-[9px] text-white/30 mt-1 leading-tight">Budget usage · streak · spending trend</p>
+              </div>
+            </div>
+          </div>
         </ScrollReveal>
 
-        {/* ── Intelligence Strip: Score | Streak | Monthly Comparison ── */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-
-          {/* 1. Spending Score */}
-          <ScrollReveal delay={0.1}>
-            <GlassCard className="relative overflow-hidden p-5">
-              {/* Faint glow behind score ring */}
-              {spendingScore.score !== null && (
-                <div className={`pointer-events-none absolute inset-0 opacity-10 ${
-                  spendingScore.color === "emerald" ? "bg-emerald-500" :
-                  spendingScore.color === "blue"    ? "bg-blue-500" :
-                  spendingScore.color === "amber"   ? "bg-amber-500" : "bg-red-500"
-                }`} />
-              )}
-              <div className="mb-3 flex items-center justify-between">
-                <div className="text-xs font-semibold uppercase tracking-widest text-white/40">Spending Score</div>
-                <Activity size={14} className="text-white/30" />
+        {/* No-Spend Streak Card */}
+        <ScrollReveal delay={0.1}>
+          <div className={`rounded-[24px] p-6 shadow-sm transition-all duration-300 ease-out hover:-translate-y-[2px] hover:shadow-md cursor-pointer ${cardBgClass}`}>
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-white/40">No-Spend Streak</span>
+              <Flame size={14} className="text-white/30" />
+            </div>
+            <div className="flex items-center gap-3">
+              <div className={`grid h-10 w-10 place-items-center rounded-xl ${
+                isLightTheme ? "bg-amber-500/10 text-amber-400 animate-pulse" : "bg-[#D9C39E]/10 text-[#D9C39E]"
+              }`}>
+                <Flame size={20} fill="currentColor" />
               </div>
-
-              {spendingScore.score === null ? (
-                <div className="flex h-20 items-center justify-center text-sm text-white/35">Add expenses to calculate</div>
-              ) : (
-                <div className="flex items-center gap-4">
-                  {/* SVG Arc gauge */}
-                  <div className="relative shrink-0">
-                    <svg width="72" height="72" viewBox="0 0 72 72">
-                      {/* Track */}
-                      <circle cx="36" cy="36" r="28" fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="6" />
-                      {/* Progress arc */}
-                      <Motion.circle
-                        cx="36" cy="36" r="28"
-                        fill="none"
-                        strokeWidth="6"
-                        strokeLinecap="round"
-                        stroke={
-                          spendingScore.color === "emerald" ? "#34d399" :
-                          spendingScore.color === "blue"    ? "#60a5fa" :
-                          spendingScore.color === "amber"   ? "#fbbf24" : "#f87171"
-                        }
-                        strokeDasharray={`${2 * Math.PI * 28}`}
-                        strokeDashoffset={`${2 * Math.PI * 28 * (1 - spendingScore.score / 100)}`}
-                        transform="rotate(-90 36 36)"
-                        initial={{ strokeDashoffset: `${2 * Math.PI * 28}` }}
-                        animate={{ strokeDashoffset: `${2 * Math.PI * 28 * (1 - spendingScore.score / 100)}` }}
-                        transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
-                      />
-                    </svg>
-                    {/* Score number centred in ring */}
-                    <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <span className={`text-lg font-bold leading-none ${
-                        spendingScore.color === "emerald" ? "text-emerald-300" :
-                        spendingScore.color === "blue"    ? "text-blue-300" :
-                        spendingScore.color === "amber"   ? "text-amber-300" : "text-red-300"
-                      }`}>{spendingScore.score}</span>
-                      <span className="text-[9px] text-white/35 mt-0.5">/100</span>
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className={`text-base font-semibold ${
-                      spendingScore.color === "emerald" ? "text-emerald-300" :
-                      spendingScore.color === "blue"    ? "text-blue-300" :
-                      spendingScore.color === "amber"   ? "text-amber-300" : "text-red-300"
-                    }`}>{spendingScore.label}</div>
-                    <div className="mt-0.5 text-xs text-white/40">Grade: <span className="font-bold text-white/60">{spendingScore.grade}</span></div>
-                    <div className="mt-1.5 text-[10px] leading-tight text-white/30">
-                      Budget usage · streak · spending trend
-                    </div>
-                  </div>
-                </div>
-              )}
-            </GlassCard>
-          </ScrollReveal>
-
-          {/* 2. No-Spend Streak */}
-          <ScrollReveal delay={0.15}>
-            <GlassCard className="relative overflow-hidden p-5">
-              <div className="mb-3 flex items-center justify-between">
-                <div className="text-xs font-semibold uppercase tracking-widest text-white/40">No-Spend Streak</div>
-                <Flame size={14} className="text-white/30" />
+              <div>
+                <p className="text-white/95 font-extrabold text-2xl leading-none">
+                  {controlPanel.streak > 0 ? (
+                    <><span>{controlPanel.streak}</span> <span className="text-base font-semibold text-white/50">days</span></>
+                  ) : (
+                    <span className="text-base font-semibold text-white/40">No streak yet</span>
+                  )}
+                </p>
+                <p className="text-[10px] text-white/40 mt-1">
+                  {controlPanel.streak > 0 ? (
+                    <span className={`flex items-center gap-1 font-medium ${
+                      isLightTheme ? "text-amber-400" : "text-[#D9C39E]"
+                    }`}>
+                      Incredible streak!
+                      <Trophy size={11} />
+                    </span>
+                  ) : (
+                    "Spend-free days build here"
+                  )}
+                </p>
               </div>
-
-              {controlPanel.streak > 0 ? (
-                <div className="flex items-center gap-3">
-                  {/* Flame animation */}
-                  <Motion.div
-                    animate={{ scale: [1, 1.1, 1], y: [0, -2, 0] }}
-                    transition={{ repeat: Infinity, duration: 1.6, ease: "easeInOut" }}
-                    className="text-4xl leading-none select-none"
-                  >
-                    🔥
-                  </Motion.div>
-                  <div>
-                    <div className="flex items-end gap-1">
-                      <span className="text-3xl font-bold text-white/90 tabular-nums">{controlPanel.streak}</span>
-                      <span className="mb-0.5 text-sm text-white/40">days</span>
-                    </div>
-                    <div className="text-xs text-white/40">
-                      {controlPanel.streak === 1
-                        ? "Started today · keep it up!"
-                        : controlPanel.streak < 5
-                          ? "Building momentum 💪"
-                          : controlPanel.streak < 14
-                            ? "Great discipline!"
-                            : "Incredible streak! 🏆"}
-                    </div>
-                    {/* Mini streak bar */}
-                    <div className="mt-2 flex gap-0.5">
-                      {Array.from({ length: Math.min(controlPanel.streak, 7) }).map((_, i) => (
-                        <Motion.div
-                          key={i}
-                          initial={{ scaleY: 0 }}
-                          animate={{ scaleY: 1 }}
-                          transition={{ delay: i * 0.06, duration: 0.3 }}
-                          className="h-2 w-4 rounded-full bg-gradient-to-t from-orange-500/70 to-amber-400/80"
-                        />
-                      ))}
-                      {controlPanel.streak > 7 && (
-                        <span className="ml-1 text-[10px] text-amber-400/60">+{controlPanel.streak - 7}</span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex items-center gap-3">
-                  <span className="text-3xl select-none grayscale opacity-40">🔥</span>
-                  <div>
-                    <div className="text-sm font-medium text-white/50">No active streak</div>
-                    <div className="mt-0.5 text-xs text-white/30">
-                      Avoid spending today to start one!
-                    </div>
-                  </div>
-                </div>
-              )}
-            </GlassCard>
-          </ScrollReveal>
-
-          {/* 3. Monthly Comparison */}
-          <ScrollReveal delay={0.2}>
-            <GlassCard className="relative overflow-hidden p-5">
-              <div className="mb-3 flex items-center justify-between">
-                <div className="text-xs font-semibold uppercase tracking-widest text-white/40">vs Last Month</div>
-                {monthComparison.direction === "down"
-                  ? <TrendingDown size={14} className="text-emerald-400" />
-                  : <TrendingUp   size={14} className="text-red-400" />}
-              </div>
-
-              {monthComparison.pct === null && monthComparison.direction !== "up" ? (
-                <div className="flex h-20 items-center justify-center text-sm text-white/35">Not enough data</div>
-              ) : monthComparison.label ? (
-                <div className="flex h-20 items-center">
-                  <span className="text-sm font-medium text-white/50">{monthComparison.label}</span>
-                </div>
-              ) : (
-                <>
-                  {/* Big %  */}
-                  <div className="flex items-end gap-2">
-                    <Motion.span
-                      className={`text-3xl font-bold tabular-nums ${
-                        monthComparison.direction === "down" ? "text-emerald-300" : "text-red-300"
-                      }`}
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.5, ease: "easeOut" }}
-                    >
-                      {monthComparison.direction === "down" ? "-" : "+"}{monthComparison.pct}%
-                    </Motion.span>
-                    <span className="mb-1 text-sm text-white/35">vs prev</span>
-                  </div>
-
-                  {/* Bar comparison */}
-                  <div className="mt-3 space-y-1.5">
-                    <div className="flex items-center gap-2">
-                      <span className="w-14 text-[10px] text-white/35">This mo.</span>
-                      <div className="flex-1 overflow-hidden rounded-full bg-white/8">
-                        <Motion.div
-                          className={`h-1.5 rounded-full ${
-                            monthComparison.direction === "down"
-                              ? "bg-gradient-to-r from-emerald-500/80 to-teal-400/70"
-                              : "bg-gradient-to-r from-red-500/80 to-rose-400/70"
-                          }`}
-                          initial={{ width: 0 }}
-                          animate={{ width: `${Math.min(100, previousMonthTotal > 0
-                            ? (monthTotals.total / Math.max(monthTotals.total, previousMonthTotal)) * 100
-                            : 100)}%`
-                          }}
-                          transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-                        />
-                      </div>
-                      <span className="w-16 text-right text-[10px] tabular-nums text-white/40">{formatMoney(monthTotals.total)}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="w-14 text-[10px] text-white/35">Last mo.</span>
-                      <div className="flex-1 overflow-hidden rounded-full bg-white/8">
-                        <Motion.div
-                          className="h-1.5 rounded-full bg-gradient-to-r from-white/30 to-white/20"
-                          initial={{ width: 0 }}
-                          animate={{ width: `${Math.min(100, monthTotals.total > 0
-                            ? (previousMonthTotal / Math.max(monthTotals.total, previousMonthTotal)) * 100
-                            : 100)}%`
-                          }}
-                          transition={{ duration: 0.9, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
-                        />
-                      </div>
-                      <span className="w-16 text-right text-[10px] tabular-nums text-white/40">{formatMoney(previousMonthTotal)}</span>
-                    </div>
-                  </div>
-                </>
-              )}
-            </GlassCard>
-          </ScrollReveal>
-        </div>
-
-        {/* Summary cards */}
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <ScrollReveal delay={0.25}>
-            <GlassCard className="p-5">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-white/40">
-                Total expense
-              </div>
-              {loading || error ? (
-                <div className="mt-3">
-                  <Skeleton className="h-7 w-36" />
-                </div>
-              ) : (
-                <div className="mt-2 text-2xl font-semibold text-white">
-                  {formatMoney(monthTotals.total)}
-                </div>
-              )}
-              <div className="mt-2 text-xs text-white/50">
-                This month
-              </div>
-            </GlassCard>
-          </ScrollReveal>
-
-          {categories.slice(0, 3).map((c, idx) => (
-            <ScrollReveal key={c.key} delay={0.25 + 0.05 * (idx + 1)}>
-              <GlassCard className="p-5">
-                <div className="text-[10px] font-bold uppercase tracking-wider text-white/40">
-                  {c.label}
-                </div>
-                {loading || error ? (
-                  <div className="mt-3">
-                    <Skeleton className="h-6 w-28" />
-                  </div>
-                ) : (
-                  <div className="mt-2 text-xl font-semibold text-white/90">
-                    {formatMoney(monthTotals.totals[c.key])}
-                  </div>
+            </div>
+            {controlPanel.streak > 0 && (
+              <div className="flex items-center gap-1 mt-4">
+                {Array.from({ length: Math.min(controlPanel.streak, 7) }).map((_, i) => (
+                  <Flame key={i} size={14} className={isLightTheme ? "text-amber-400" : "text-[#D9C39E]"} fill="currentColor" />
+                ))}
+                {controlPanel.streak > 7 && (
+                  <span className="text-[10px] text-white/50 font-semibold ml-1">+{controlPanel.streak - 7}</span>
                 )}
-                <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-white/8">
+              </div>
+            )}
+          </div>
+        </ScrollReveal>
+
+        {/* Vs Last Month Card */}
+        <ScrollReveal delay={0.15}>
+          <div className={`rounded-[24px] p-6 shadow-sm transition-all duration-300 ease-out hover:-translate-y-[2px] hover:shadow-md cursor-pointer ${cardBgClass}`}>
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-white/40">Vs Last Month</span>
+              {monthComparison.direction === "down"
+                ? <TrendingDown size={14} className="text-[#84cc16]" />
+                : <TrendingUp size={14} className={isLightTheme ? "text-red-400" : "text-[#E09882]"} />
+              }
+            </div>
+            <p className={`text-2xl font-extrabold leading-none ${monthComparison.direction === "down" ? "text-[#84cc16]" : monthComparison.pct !== null ? (isLightTheme ? "text-red-400" : "text-[#E09882]") : "text-white/60"}`}>
+              {monthComparison.pct !== null
+                ? `${monthComparison.direction === "down" ? "-" : "+"}${monthComparison.pct}%`
+                : "—"
+              }
+              <span className="ml-2 text-sm font-medium text-white/40">vs prev</span>
+            </p>
+            <div className="mt-4 space-y-2">
+              <div className="flex items-center justify-between text-[10px]">
+                <span className="text-white/40">This mo.</span>
+                <div className="flex items-center gap-2">
+                  <div className="w-20 h-1 rounded-full bg-white/5 overflow-hidden">
+                    <div className="h-full bg-white/30 rounded-full" style={{ width: previousMonthTotal > 0 ? `${Math.min(100, (monthTotals.total / Math.max(monthTotals.total, previousMonthTotal)) * 100)}%` : "0%" }} />
+                  </div>
+                  <span className="text-white/60 font-semibold w-10 text-right">{formatMoney(monthTotals.total)}</span>
+                </div>
+              </div>
+              <div className="flex items-center justify-between text-[10px]">
+                <span className="text-white/40">Last mo.</span>
+                <div className="flex items-center gap-2">
+                  <div className="w-20 h-1 rounded-full bg-white/5 overflow-hidden">
+                    <div className="h-full bg-white/20 rounded-full" style={{ width: previousMonthTotal > 0 ? `${Math.min(100, (previousMonthTotal / Math.max(monthTotals.total, previousMonthTotal)) * 100)}%` : "0%" }} />
+                  </div>
+                  <span className="text-white/40 font-semibold w-10 text-right">{formatMoney(previousMonthTotal)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </ScrollReveal>
+
+      </div>
+
+      {/* Bottom Row: Spending Control and AI Smart Insights */}
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        {/* Left Side: Real-time spending control */}
+        <div className={`rounded-[24px] p-6 shadow-sm space-y-4 transition-all duration-300 ease-out ${cardGrayClass}`}>
+          <div className="flex items-center justify-between border-b border-white/[0.04] pb-3">
+            <div className="flex items-center gap-2">
+              <div className={`grid h-8 w-8 place-items-center rounded-lg ${
+                isLightTheme ? "bg-[#84cc16]/10 text-[#84cc16]" : "bg-white/10 text-white/90"
+              }`}>
+                <ShieldCheck size={14} />
+              </div>
+              <div>
+                <h3 className="text-xs font-semibold text-white/95">Spending Control</h3>
+                <p className="text-[9px] text-white/40">Daily status & recent actions</p>
+              </div>
+            </div>
+            <div className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${
+              controlPanel.dailyStatus === "exceeded" ? (isLightTheme ? "border-red-500/20 bg-red-500/10 text-red-300" : "border-[#E09882]/20 bg-[#E09882]/10 text-[#E09882]")
+              : controlPanel.dailyStatus === "risk"     ? (isLightTheme ? "border-amber-500/20 bg-amber-500/10 text-amber-300" : "border-[#D9C39E]/20 bg-[#D9C39E]/10 text-[#D9C39E]")
+              : controlPanel.dailyStatus === "safe"     ? (isLightTheme ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-300" : "border-white/12 bg-white/5 text-white/80")
+              : "border-white/10 bg-white/5 text-white/40"
+            }`}>
+              {controlPanel.dailyStatus === "exceeded" ? "Limit Hit"
+              : controlPanel.dailyStatus === "risk"    ? "Risk Zone"
+              : controlPanel.dailyStatus === "safe"    ? "Safe Today"
+              : "No Budget"}
+            </div>
+          </div>
+
+          <div className="space-y-3.5">
+            {/* Daily limit tracker bar */}
+            {controlPanel.dailyLimit > 0 ? (
+              <div className="rounded-xl bg-white/[0.02] border border-white/[0.04] p-3">
+                <div className="flex items-center justify-between text-[10px]">
+                  <span className="text-white/40">Today vs Limit</span>
+                  <span className="font-semibold text-white/80">
+                    {formatMoney(Math.round(controlPanel.todayTotal))}
+                    <span className="text-white/30 font-normal"> / {formatMoney(Math.round(controlPanel.dailyLimit))}</span>
+                  </span>
+                </div>
+                <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-white/5">
                   <Motion.div
-                    className="h-full rounded-full bg-gradient-to-r from-emerald-500/70 to-blue-500/55"
                     initial={{ width: 0 }}
-                    animate={{
-                      width:
-                        loading || monthTotals.total === 0
-                          ? "0%"
-                          : `${Math.round(
-                              (monthTotals.totals[c.key] / monthTotals.total) * 100
-                            )}%`,
-                    }}
-                    transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+                    animate={{ width: `${Math.min(100, (controlPanel.todayTotal / controlPanel.dailyLimit) * 100)}%` }}
+                    transition={{ duration: 0.5, ease: "easeOut" }}
+                    className={`h-full rounded-full ${
+                      controlPanel.dailyStatus === "exceeded" ? (isLightTheme ? "bg-red-400/80" : "bg-[#E09882]")
+                      : controlPanel.dailyStatus === "risk"   ? (isLightTheme ? "bg-amber-400/80" : "bg-[#D9C39E]")
+                      : (isLightTheme ? "bg-[#84cc16]/80" : "bg-white/80")
+                    }`}
                   />
                 </div>
-              </GlassCard>
-            </ScrollReveal>
-          ))}
+              </div>
+            ) : (
+              <div className="rounded-xl border border-dashed border-white/10 p-3 text-center text-[10px] text-white/35">
+                Set a monthly limit to track daily budgets
+              </div>
+            )}
+
+            {/* Overspend Warning Alerts */}
+            <AnimatePresence>
+              {(controlPanel.dailyStatus === "risk" || controlPanel.dailyStatus === "exceeded") && (
+                <Motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="overflow-hidden"
+                >
+                  <div className={`flex items-start gap-2 rounded-xl border px-3 py-2 text-[10px] ${
+                    isLightTheme 
+                      ? "border-red-500/20 bg-red-500/5 text-red-200/85" 
+                      : "border-[#E09882]/20 bg-[#E09882]/5 text-[#E09882]/90"
+                  }`}>
+                    <Flame size={12} className={`shrink-0 mt-0.5 ${isLightTheme ? "text-red-300" : "text-[#E09882]"}`} />
+                    <span>
+                      {controlPanel.dailyStatus === "exceeded"
+                        ? "Daily budget limit reached! We recommend halting spending for the day."
+                        : "Caution: You have utilized over 70% of today's budget limit."}
+                    </span>
+                  </div>
+                </Motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Recent list transactions */}
+            <div>
+              <span className="text-[9px] font-bold uppercase tracking-wider text-white/30 block mb-2">Recent Transactions</span>
+              {controlPanel.last3.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-white/[0.06] py-5 text-center text-[10px] text-white/35">
+                  No spend records logged
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  {controlPanel.last3.map((e, idx) => (
+                    <div key={e.id || idx} className="flex items-center justify-between rounded-xl border border-white/[0.04] bg-white/[0.01] px-3.5 py-2 text-[11px]">
+                      <div className="flex items-center gap-2">
+                        <span className="text-white/50 flex h-4 w-4 items-center justify-center">
+                          {e.category === "food" ? <Utensils size={13} /> : e.category === "travel" ? <Car size={13} /> : e.category === "shopping" ? <ShoppingBag size={13} /> : <Package size={13} />}
+                        </span>
+                        <span className="text-white/70 capitalize font-medium">{e.category}</span>
+                      </div>
+                      <span className="font-semibold text-white/90">{formatMoney(Number(e.amount))}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
-        {/* Insights + Chart placeholder */}
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <ScrollReveal delay={0.45}>
-            <GlassCard className="p-5">
-              {/* Header */}
-              <div className="mb-4 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="grid h-9 w-9 place-items-center rounded-xl bg-emerald-500/12 ring-1 ring-emerald-400/20">
-                    <ShieldCheck size={15} className="text-emerald-300" />
-                  </div>
-                  <div>
-                    <div className="text-sm font-semibold text-white/90">Spending Control</div>
-                    <div className="text-[11px] text-white/45">Real-time today's view</div>
-                  </div>
-                </div>
-                {/* Today status badge */}
-                <div className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border ${
-                  controlPanel.dailyStatus === "exceeded" ? "border-red-400/25 bg-red-500/10 text-red-300"
-                  : controlPanel.dailyStatus === "risk"     ? "border-amber-400/25 bg-amber-500/10 text-amber-300"
-                  : controlPanel.dailyStatus === "safe"     ? "border-emerald-400/20 bg-emerald-500/10 text-emerald-300"
-                  : "border-white/10 bg-white/5 text-white/40"
-                }`}>
-                  {controlPanel.dailyStatus === "exceeded" ? "Limit Hit"
-                  : controlPanel.dailyStatus === "risk"    ? "Risk Zone"
-                  : controlPanel.dailyStatus === "safe"    ? "Safe Today"
-                  : "No Budget"}
-                </div>
+        {/* Right Side: AI Smart Insights */}
+        <div className={`rounded-[24px] p-6 shadow-sm space-y-4 transition-all duration-300 ease-out ${cardGrayClass}`}>
+          <div className="flex items-center justify-between border-b border-white/[0.04] pb-3">
+            <div className="flex items-center gap-2">
+              <div className={`grid h-8 w-8 place-items-center rounded-lg ${
+                isLightTheme ? "bg-[#84cc16]/10 text-[#84cc16]" : "bg-white/10 text-white/90"
+              }`}>
+                <Zap size={14} />
               </div>
+              <div>
+                <h3 className="text-xs font-semibold text-white/95">Smart Insights</h3>
+                <p className="text-[9px] text-white/40">AI-powered tracking engine</p>
+              </div>
+            </div>
+            <div className={`flex items-center gap-1 rounded-full border px-2 py-0.5 text-[8px] font-bold uppercase ${
+              isLightTheme
+                ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-300"
+                : "border-white/12 bg-white/5 text-white/80"
+            }`}>
+              <span>Live</span>
+            </div>
+          </div>
 
-              {loading || error ? (
-                <div className="space-y-2">
-                  {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-11 w-full" />)}
-                </div>
-              ) : (
-                <div className="space-y-2">
-
-                  {/* Today vs Yesterday */}
+          <div className="space-y-2.5 max-h-52 overflow-y-auto pr-1">
+            {expenses.length === 0 ? (
+              <div className="py-8 text-center text-[10px] text-white/35 border border-dashed border-white/[0.06] rounded-xl">
+                Add expenses to activate intelligence engine
+              </div>
+            ) : (
+              dynamicInsights.map((ins, i) => {
+                const IconComp = ICON_MAP[ins.iconName] || Zap;
+                return (
                   <Motion.div
-                    initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3"
+                    key={ins.type}
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.2, delay: i * 0.04 }}
+                    className={`rounded-xl border px-3.5 py-2.5 ${ins.style.border} ${ins.style.bg}`}
                   >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-[10px] text-white/40 uppercase tracking-wide">Today</div>
-                        <div className="mt-0.5 text-base font-bold text-white/90">{formatMoney(controlPanel.todayTotal)}</div>
-                      </div>
-                      <div className="h-8 w-px bg-white/8" />
-                      <div>
-                        <div className="text-[10px] text-white/40 uppercase tracking-wide">Yesterday</div>
-                        <div className="mt-0.5 text-sm font-semibold text-white/55">{formatMoney(controlPanel.yesterdayTotal)}</div>
-                      </div>
-                      <div>
-                        {controlPanel.todayVsYestPct !== null ? (
-                          <div className={`flex items-center gap-0.5 text-xs font-bold ${
-                            controlPanel.todayVsYestPct > 0 ? "text-red-300" : "text-emerald-300"
-                          }`}>
-                            {controlPanel.todayVsYestPct > 0
-                              ? <TrendingUp size={12} />
-                              : <TrendingDown size={12} />}
-                            {Math.abs(controlPanel.todayVsYestPct)}%
-                          </div>
-                        ) : (
-                          <div className="text-[10px] text-white/28">—</div>
-                        )}
+                    <div className="flex items-start gap-2">
+                      <IconComp size={12} className={`shrink-0 mt-0.5 ${ins.style.icon}`} />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[11px] font-bold text-white/90">{ins.title}</div>
+                        <div className={`mt-0.5 text-[10px] leading-relaxed ${ins.style.text}`}>{ins.body}</div>
                       </div>
                     </div>
                   </Motion.div>
-
-                  {/* Daily limit tracker */}
-                  {controlPanel.dailyLimit > 0 ? (
-                    <Motion.div
-                      initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.2, delay: 0.04 }}
-                      className={`rounded-2xl border px-4 py-3 ${
-                        controlPanel.dailyStatus === "exceeded" ? "border-red-400/20 bg-red-500/8"
-                        : controlPanel.dailyStatus === "risk"   ? "border-amber-400/20 bg-amber-500/8"
-                        : "border-white/8 bg-white/[0.03]"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1.5">
-                          <Clock size={11} className="text-white/35" />
-                          <span className="text-[10px] text-white/45">Daily limit</span>
-                        </div>
-                        <span className={`text-xs font-semibold ${
-                          controlPanel.dailyStatus === "exceeded" ? "text-red-300"
-                          : controlPanel.dailyStatus === "risk"   ? "text-amber-300"
-                          : "text-emerald-300"
-                        }`}>
-                          {formatMoney(Math.round(controlPanel.todayTotal))}
-                          <span className="font-normal text-white/30"> / {formatMoney(Math.round(controlPanel.dailyLimit))}</span>
-                        </span>
-                      </div>
-                      <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-white/8">
-                        <Motion.div
-                          initial={{ width: 0 }}
-                          animate={{ width: `${Math.min(100, (controlPanel.todayTotal / controlPanel.dailyLimit) * 100)}%` }}
-                          transition={{ duration: 0.5, ease: "easeOut" }}
-                          className={`h-full rounded-full ${
-                            controlPanel.dailyStatus === "exceeded" ? "bg-red-400/70"
-                            : controlPanel.dailyStatus === "risk"   ? "bg-amber-400/70"
-                            : "bg-emerald-400/65"
-                          }`}
-                        />
-                      </div>
-                    </Motion.div>
-                  ) : (
-                    <div className="rounded-2xl border border-dashed border-white/10 px-4 py-2.5 text-[11px] text-white/32">
-                      Set a monthly budget to enable daily limit tracking
-                    </div>
-                  )}
-
-                  {/* Overspend alert */}
-                  <AnimatePresence>
-                    {(controlPanel.dailyStatus === "risk" || controlPanel.dailyStatus === "exceeded") && (
-                      <Motion.div
-                        initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}
-                        transition={{ duration: 0.2 }}
-                        className="overflow-hidden"
-                      >
-                        <div className="flex items-start gap-2 rounded-2xl border border-red-400/20 bg-red-500/8 px-4 py-2.5">
-                          <Flame size={12} className="mt-0.5 shrink-0 text-red-300" />
-                          <div className="text-[11px] text-red-200/80">
-                            {controlPanel.dailyStatus === "exceeded"
-                              ? "Daily limit exceeded — consider pausing spending today"
-                              : "You've used 70%+ of today's daily limit"}
-                          </div>
-                        </div>
-                      </Motion.div>
-                    )}
-                  </AnimatePresence>
-
-                  {/* No-spend streak */}
-                  {controlPanel.streak > 1 && (
-                    <Motion.div
-                      initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.2, delay: 0.08 }}
-                      className="flex items-center gap-2 rounded-2xl border border-emerald-400/18 bg-emerald-500/8 px-4 py-2.5"
-                    >
-                      <span className="text-base">🔥</span>
-                      <div>
-                        <span className="text-xs font-semibold text-emerald-300">{controlPanel.streak}-day no-spend streak</span>
-                        <span className="ml-1.5 text-[10px] text-emerald-400/60">Keep it up!</span>
-                      </div>
-                    </Motion.div>
-                  )}
-
-                  {/* Last 3 transactions */}
-                  {controlPanel.last3.length > 0 && (
-                    <div>
-                      <div className="mb-1.5 text-[10px] font-medium uppercase tracking-wide text-white/32">Recent</div>
-                      <div className="space-y-1">
-                        {controlPanel.last3.map((e, i) => (
-                          <Motion.div
-                            key={e.id ?? i}
-                            initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }}
-                            transition={{ duration: 0.18, delay: i * 0.04 }}
-                            className="flex items-center justify-between rounded-xl border border-white/6 bg-white/[0.025] px-3 py-2"
-                          >
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm">
-                                {e.category === "food" ? "🍽️" : e.category === "travel" ? "✈️" : e.category === "shopping" ? "🛍️" : e.category === "entertainment" ? "🎭" : "📦"}
-                              </span>
-                              <span className="text-xs text-white/60 capitalize">{e.category}</span>
-                            </div>
-                            <span className="text-xs font-semibold text-white/80">{formatMoney(Number(e.amount))}</span>
-                          </Motion.div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {expenses.length === 0 && !loading && (
-                    <div className="rounded-2xl border border-dashed border-white/10 py-8 text-center text-xs text-white/35">
-                      No expenses yet — add one to start tracking
-                    </div>
-                  )}
-                </div>
-              )}
-            </GlassCard>
-          </ScrollReveal>
-
-          <ScrollReveal delay={0.5}>
-            <GlassCard className="p-5">
-              {/* Header */}
-              <div className="mb-4 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="grid h-9 w-9 place-items-center rounded-xl bg-violet-500/12 ring-1 ring-violet-400/20">
-                    <Zap size={15} className="text-violet-300" />
-                  </div>
-                  <div>
-                    <div className="text-sm font-semibold text-white/90">Smart Insights</div>
-                    <div className="text-[11px] text-white/45">AI-powered analysis</div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1 rounded-full border border-violet-400/20 bg-violet-500/10 px-2.5 py-1">
-                  <span className="h-1.5 w-1.5 rounded-full bg-violet-400" />
-                  <span className="text-[10px] font-semibold text-violet-300">Live</span>
-                </div>
-              </div>
-
-              {loading || error ? (
-                <div className="space-y-2">
-                  {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
-                </div>
-              ) : expenses.length === 0 ? (
-                <div className="grid h-52 place-items-center rounded-2xl border border-dashed border-white/10 text-xs text-white/35">
-                  Add expenses to unlock insights
-                </div>
-              ) : (
-                <div className="space-y-2.5">
-
-                  {/* Dynamic insight cards — engine-generated, priority-ranked */}
-                  {dynamicInsights.map((ins, i) => {
-                    const IconComp = ICON_MAP[ins.iconName] ?? Zap;
-                    return (
-                      <Motion.div
-                        key={ins.type}
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.22, delay: i * 0.05 }}
-                        className={`rounded-2xl border px-4 py-3 ${ins.style.border} ${ins.style.bg}`}
-                      >
-                        <div className="flex items-start gap-2">
-                          <IconComp size={13} className={`mt-0.5 shrink-0 ${ins.style.icon}`} />
-                          <div className="flex-1 min-w-0">
-                            <div className="text-xs font-semibold text-white/85">{ins.title}</div>
-                            <div className={`mt-0.5 text-[11px] leading-relaxed ${ins.style.text}`}>{ins.body}</div>
-                          </div>
-                        </div>
-                      </Motion.div>
-                    );
-                  })}
-
-
-                  <Motion.div
-                    initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.22, delay: 0.16 }}
-                    className="rounded-2xl border border-white/8 bg-white/[0.025] px-4 py-3"
-                  >
-                    <div className="mb-2 text-xs font-semibold text-white/70">Spending by Day of Week</div>
-                    <div className="flex items-end gap-1">
-                      {["S", "M", "T", "W", "T", "F", "S"].map((label, i) => (
-                        <div key={i} className="flex flex-1 flex-col items-center gap-1">
-                          <Motion.div
-                            initial={{ height: 0 }}
-                            animate={{ height: `${Math.max(4, (dayOfWeekSpend[i]?.pct ?? 0) * 0.4)}px` }}
-                            transition={{ duration: 0.6, delay: i * 0.04, ease: [0.22, 1, 0.36, 1] }}
-                            className={`w-full rounded-sm ${
-                              i === 0 || i === 6
-                                ? "bg-violet-400/50"
-                                : dayOfWeekSpend[i]?.pct >= 80
-                                  ? "bg-red-400/60"
-                                  : dayOfWeekSpend[i]?.pct >= 50
-                                    ? "bg-amber-400/55"
-                                    : "bg-emerald-400/45"
-                            }`}
-                          />
-                          <span className="text-[9px] text-white/35">{label}</span>
-                        </div>
-                      ))}
-                    </div>
-                    {(dayOfWeekSpend[0]?.pct + dayOfWeekSpend[6]?.pct) >
-                     (dayOfWeekSpend[1]?.pct + dayOfWeekSpend[2]?.pct + dayOfWeekSpend[3]?.pct) / 3 / 2 && (
-                      <div className="mt-2 text-[10px] text-white/40">
-                        💡 You tend to spend more on weekends
-                      </div>
-                    )}
-                  </Motion.div>
-
-                </div>
-              )}
-            </GlassCard>
-          </ScrollReveal>
+                );
+              })
+            )}
+          </div>
         </div>
       </div>
 
+      {/* Quick Add Modal */}
       <Modal open={quickAddOpen} onClose={() => setQuickAddOpen(false)} title="Add Expense">
-        <div className="space-y-3">
+        <div className="space-y-4 p-1">
           <Input
             label="Amount"
             inputMode="decimal"
-            placeholder="e.g. 24"
+            placeholder="e.g. 250"
             value={expenseForm.amount}
             onChange={(e) => setExpenseForm((f) => ({ ...f, amount: e.target.value }))}
           />
           <label className="block space-y-1">
-            <span className="text-xs font-medium text-white/70">Category</span>
+            <span className="text-xs font-semibold text-white/92">Category</span>
             <select
-              className="w-full rounded-xl border border-white/12 bg-white/6 px-3 py-2.5 text-sm text-white outline-none transition focus:border-emerald-400/35 focus:ring-2 focus:ring-emerald-400/12"
+              className="w-full rounded-xl border border-white/12 bg-[#0e1116] px-3 py-2.5 text-sm text-white outline-none transition focus:border-[#7CC6FF]/50 focus:ring-2 focus:ring-[#7CC6FF]/25 cursor-pointer"
               value={expenseForm.category}
               onChange={(e) => setExpenseForm((f) => ({ ...f, category: e.target.value }))}
             >
               {categories.map((c) => (
-                <option key={c.key} value={c.key}>{c.label}</option>
+                <option key={c.key} value={c.key} className="bg-[#090b0e]">{c.label}</option>
               ))}
             </select>
           </label>
           <Input
             label="Note"
-            placeholder="Short note..."
+            placeholder="Short details..."
             value={expenseForm.note}
             onChange={(e) => setExpenseForm((f) => ({ ...f, note: e.target.value }))}
           />
-          <div className="mt-4 flex justify-end gap-2">
-            <Button type="button" variant="ghost" onClick={() => setQuickAddOpen(false)}>Cancel</Button>
-            <Button type="button" onClick={() => {
-              const amount = Number(expenseForm.amount);
-              if (!amount || Number.isNaN(amount) || amount <= 0) {
-                notify({ type: "error", message: "Invalid amount" });
-                return;
-              }
-              // Close modal immediately for instant UX
-              setQuickAddOpen(false);
-              setExpenseForm({ amount: "", category: "food", note: "" });
-              notify({ type: "success", message: "Expense added" });
-              // API call runs in background — optimistic update already shows it
-              addExpenseOptimistic({
-                amount,
-                category: expenseForm.category,
-                note: expenseForm.note?.trim() || "",
-                workspaceId: activeWorkspaceId,
-              }).then((res) => {
-                if (!res.ok && !res.limitReached) {
-                  notify({ type: "error", message: res.message || "Failed to save expense" });
+          <div className="mt-6 flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setQuickAddOpen(false)}
+              className="px-4 py-2.5 rounded-xl text-sm font-normal border border-white/20 hover:border-white/40 bg-transparent hover:bg-white/[0.06] text-white/80 hover:text-white transition cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="px-4 py-2.5 rounded-xl text-sm font-semibold border border-transparent hover:border-white/50 bg-[#111827] text-white transition active:scale-95 cursor-pointer shadow-md"
+              onClick={() => {
+                const amount = Number(expenseForm.amount);
+                if (!amount || Number.isNaN(amount) || amount <= 0) {
+                  notify({ type: "error", message: "Invalid amount" });
+                  return;
                 }
-              });
-            }}>
+                setQuickAddOpen(false);
+                setExpenseForm({ amount: "", category: "food", note: "" });
+                notify({ type: "success", message: "Expense added" });
+                addExpenseOptimistic({
+                  amount,
+                  category: expenseForm.category,
+                  note: expenseForm.note?.trim() || "",
+                  workspaceId: activeWorkspaceId,
+                }).then((res) => {
+                  if (!res.ok && !res.limitReached) {
+                    notify({ type: "error", message: res.message || "Failed to save expense" });
+                  }
+                });
+              }}
+            >
               Add
-            </Button>
+            </button>
           </div>
         </div>
       </Modal>
     </div>
   );
 }
-

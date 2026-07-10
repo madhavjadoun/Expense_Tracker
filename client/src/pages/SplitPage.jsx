@@ -88,7 +88,7 @@ function BalChip({ value, fmt }) {
   const pos = value > 0;
   return (
     <span className={`flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold tabular-nums ${
-      pos ? "border-emerald-400/25 bg-emerald-500/10 text-emerald-300"
+      pos ? (isLightTheme ? "border-emerald-400/25 bg-emerald-500/10 text-emerald-300" : "border-white/15 bg-white/10 text-white/90")
           : "border-red-400/25 bg-red-500/10 text-red-300"
     }`}>
       {pos ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
@@ -110,6 +110,8 @@ function SectionLabel({ children }) {
 function AddExpenseModal({ open, onClose, members, workspaceId }) {
   const addSplitExpense = useSplitStore((s) => s.addSplitExpense);
   const fmt = useFmt();
+  const theme = useAppStore((s) => s.theme);
+  const isLightTheme = theme === "light";
 
   const INIT = {
     description: "", totalAmount: "", category: "food",
@@ -192,12 +194,20 @@ function AddExpenseModal({ open, onClose, members, workspaceId }) {
       maxWidth="max-w-lg"
       footer={
         <div className="flex justify-end gap-2">
-          <button type="button" onClick={handleClose}
-            className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/70 transition hover:bg-white/8">
+          <button
+            type="button"
+            onClick={handleClose}
+            className="px-4 py-2 text-xs font-normal border border-white/20 hover:border-white/40 bg-transparent hover:bg-white/[0.06] text-white/80 hover:text-white transition cursor-pointer rounded-xl"
+          >
             Cancel
           </button>
-          <button type="button" onClick={handleSubmit}
-            className="rounded-xl bg-violet-500/85 px-4 py-2 text-sm font-medium text-white transition hover:bg-violet-500 active:scale-95">
+          <button
+            type="button"
+            onClick={handleSubmit}
+            className={`px-4 py-2 text-xs font-semibold border border-transparent hover:border-white/50 transition active:scale-95 cursor-pointer shadow-md rounded-xl ${
+              isLightTheme ? "bg-[#84cc16] text-black" : "bg-[#EFF2F0] hover:bg-white text-black"
+            }`}
+          >
             Add Expense
           </button>
         </div>
@@ -211,7 +221,9 @@ function AddExpenseModal({ open, onClose, members, workspaceId }) {
           placeholder="What was this for?"
           value={form.description}
           onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-          className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white placeholder-white/30 outline-none transition focus:border-violet-400/35 focus:ring-2 focus:ring-violet-400/12"
+          className={`w-full rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2.5 text-sm text-white placeholder-white/25 outline-none transition ${
+            isLightTheme ? "focus:border-[#84cc16]/40 focus:ring-1 focus:ring-[#84cc16]/20" : "focus:border-white/30 focus:ring-1 focus:ring-white/10"
+          }`}
         />
 
         <div className="grid grid-cols-2 gap-3">
@@ -223,7 +235,9 @@ function AddExpenseModal({ open, onClose, members, workspaceId }) {
                 type="number" min={0} placeholder="0"
                 value={form.totalAmount}
                 onChange={(e) => setForm((f) => ({ ...f, totalAmount: e.target.value }))}
-                className="w-full rounded-xl border border-white/10 bg-white/5 pl-8 pr-3 py-2.5 text-sm text-white placeholder-white/30 outline-none transition focus:border-violet-400/35"
+                className={`w-full rounded-xl border border-white/[0.08] bg-white/[0.03] pl-8 pr-3 py-2.5 text-sm text-white placeholder-white/25 outline-none transition ${
+                  isLightTheme ? "focus:border-[#84cc16]/40 focus:ring-1 focus:ring-[#84cc16]/20" : "focus:border-white/30 focus:ring-1 focus:ring-white/10"
+                }`}
               />
             </div>
           </label>
@@ -232,7 +246,9 @@ function AddExpenseModal({ open, onClose, members, workspaceId }) {
             <select
               value={form.category}
               onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-              className="w-full rounded-xl border border-white/10 bg-[#0d1224] px-3 py-2.5 text-sm text-white outline-none"
+              className={`w-full rounded-xl border border-white/[0.08] px-3 py-2.5 text-sm text-white outline-none transition cursor-pointer ${
+                isLightTheme ? "bg-[#0e130e] focus:border-[#84cc16]/40 focus:ring-1 focus:ring-[#84cc16]/20" : "bg-[#181A1E] focus:border-white/30 focus:ring-1 focus:ring-white/10"
+              }`}
             >
               {CATEGORIES.map((c) => (
                 <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
@@ -246,7 +262,7 @@ function AddExpenseModal({ open, onClose, members, workspaceId }) {
           <div className="flex items-center justify-between">
             <SectionLabel>Split Between</SectionLabel>
             {perPerson > 0 && (
-              <span className="text-[11px] text-violet-300">{fmt(perPerson)} / person</span>
+              <span className={`text-[11px] font-medium ${isLightTheme ? "text-[#84cc16]" : "text-[#EFF2F0]"}`}>{fmt(perPerson)} / person</span>
             )}
           </div>
           <div className="flex flex-wrap gap-2">
@@ -256,7 +272,7 @@ function AddExpenseModal({ open, onClose, members, workspaceId }) {
                 <button key={m.id} type="button" onClick={() => toggleParticipant(m.id)}
                   className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition active:scale-95 ${
                     sel
-                      ? "border-violet-400/35 bg-violet-500/15 text-violet-200"
+                      ? (isLightTheme ? "border-[#84cc16]/40 bg-[#84cc16]/10 text-[#84cc16]" : "border-white/20 bg-white/10 text-[#EFF2F0]")
                       : "border-white/10 bg-white/5 text-white/55 hover:bg-white/8"
                   }`}>
                   <Avatar name={m.name} size="xs" />
@@ -281,7 +297,7 @@ function AddExpenseModal({ open, onClose, members, workspaceId }) {
                 <div className="flex items-center justify-between">
                   <SectionLabel>Who Paid</SectionLabel>
                   <button type="button" onClick={distributeEqually}
-                    className="text-[11px] font-medium text-violet-400 hover:underline">
+                    className={`text-[11px] font-medium hover:underline ${isLightTheme ? "text-[#84cc16]" : "text-[#EFF2F0]"}`}>
                     Distribute equally
                   </button>
                 </div>
@@ -298,7 +314,9 @@ function AddExpenseModal({ open, onClose, members, workspaceId }) {
                             type="number" min={0} placeholder="0"
                             value={form.paidBy[id] ?? ""}
                             onChange={(e) => setPaid(id, e.target.value)}
-                            className="w-full rounded-xl border border-white/10 bg-white/5 pl-7 pr-3 py-1.5 text-xs text-white placeholder-white/30 outline-none focus:border-violet-400/35"
+                            className={`w-full rounded-xl border border-white/[0.08] bg-white/[0.03] pl-7 pr-3 py-1.5 text-xs text-white placeholder-white/25 outline-none transition ${
+                              isLightTheme ? "focus:border-[#84cc16]/40 focus:ring-1 focus:ring-[#84cc16]/20" : "focus:border-white/30 focus:ring-1 focus:ring-white/10"
+                            }`}
                           />
                         </div>
                       </div>
@@ -308,7 +326,7 @@ function AddExpenseModal({ open, onClose, members, workspaceId }) {
                   {totalNum > 0 && (
                     <div className={`flex justify-between rounded-xl border px-3 py-2 text-xs font-medium ${
                       paidOk
-                        ? "border-emerald-400/18 bg-emerald-500/8 text-emerald-300"
+                        ? (isLightTheme ? "border-emerald-400/18 bg-emerald-500/8 text-emerald-300" : "border-white/10 bg-white/5 text-white/90")
                         : "border-amber-400/18 bg-amber-500/8 text-amber-300"
                     }`}>
                       <span>Payments entered</span>
@@ -337,6 +355,8 @@ function AddExpenseModal({ open, onClose, members, workspaceId }) {
 function SettleModal({ open, onClose, txn, members, workspaceId }) {
   const recordSettlement = useSplitStore((s) => s.recordSettlement);
   const fmt = useFmt();
+  const theme = useAppStore((s) => s.theme);
+  const isLightTheme = theme === "light";
   const [note, setNote] = useState("");
 
   const from = members.find((m) => m.id === txn?.from);
@@ -359,11 +379,14 @@ function SettleModal({ open, onClose, txn, members, workspaceId }) {
       footer={
         <div className="flex justify-end gap-2">
           <button type="button" onClick={onClose}
-            className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/70 transition hover:bg-white/8">
+            className="px-4 py-2 text-xs font-normal border border-white/20 hover:border-white/40 bg-transparent hover:bg-white/[0.06] text-white/80 hover:text-white transition cursor-pointer rounded-xl">
             Cancel
           </button>
           <button type="button" onClick={handleConfirm}
-            className="flex items-center gap-2 rounded-xl bg-emerald-500/85 px-4 py-2 text-sm font-medium text-emerald-950 transition hover:bg-emerald-500 active:scale-95">
+            className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold border border-transparent hover:border-white/50 transition active:scale-95 cursor-pointer shadow-md rounded-xl ${
+              isLightTheme ? "bg-[#84cc16] text-black" : "bg-[#EFF2F0] text-black hover:bg-white"
+            }`}
+          >
             <CheckCircle2 size={14} />
             Confirm
           </button>
@@ -400,7 +423,9 @@ function SettleModal({ open, onClose, txn, members, workspaceId }) {
             placeholder="e.g. Paid via UPI…"
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white placeholder-white/30 outline-none focus:border-emerald-400/35 focus:ring-2 focus:ring-emerald-400/12"
+            className={`w-full rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2.5 text-sm text-white placeholder-white/25 outline-none transition ${
+              isLightTheme ? "focus:border-[#84cc16]/40 focus:ring-1 focus:ring-[#84cc16]/20" : "focus:border-white/30 focus:ring-1 focus:ring-white/10"
+            }`}
           />
         </label>
       </div>
@@ -410,6 +435,8 @@ function SettleModal({ open, onClose, txn, members, workspaceId }) {
 
 // ─── Debt Row ─────────────────────────────────────────────────────────────────
 function DebtRow({ txn, members, fmt, onSettle }) {
+  const theme = useAppStore((s) => s.theme);
+  const isLightTheme = theme === "light";
   const from = members.find((m) => m.id === txn.from);
   const to   = members.find((m) => m.id === txn.to);
   if (!from || !to || txn.amount <= 0.01) return null;
@@ -425,7 +452,7 @@ function DebtRow({ txn, members, fmt, onSettle }) {
         <Avatar name={to.name} />
         <div className="min-w-0">
           <div className="text-xs font-semibold text-white/85 truncate">{to.name}</div>
-          <div className="text-[10px] text-emerald-300">receives</div>
+          <div className={`text-[10px] ${isLightTheme ? "text-emerald-300" : "text-white/40"}`}>receives</div>
         </div>
       </div>
       <div className="flex shrink-0 items-center gap-3">
@@ -434,7 +461,11 @@ function DebtRow({ txn, members, fmt, onSettle }) {
           type="button"
           onClick={() => onSettle(txn)}
           disabled={txn.amount <= 0.01}
-          className="flex items-center gap-1.5 rounded-xl border border-emerald-400/22 bg-emerald-500/10 px-3 py-1.5 text-xs font-medium text-emerald-300 transition hover:bg-emerald-500/18 active:scale-95 disabled:pointer-events-none disabled:opacity-40"
+          className={`flex items-center gap-1.5 rounded-xl border transition active:scale-95 disabled:pointer-events-none disabled:opacity-40 px-3 py-1.5 text-xs font-medium ${
+            isLightTheme
+              ? "border-emerald-400/22 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/18"
+              : "border-white/10 bg-white/5 text-white/80 hover:bg-white/10"
+          }`}
         >
           <Handshake size={12} />
           Settle
@@ -446,6 +477,13 @@ function DebtRow({ txn, members, fmt, onSettle }) {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function SplitPage() {
+  const theme = useAppStore((s) => s.theme);
+  const isLightTheme = theme === "light";
+
+  const cardClass = isLightTheme
+    ? "rounded-[24px] bg-[#090B0A] border border-[#1A1E1C] shadow-sm transition-all duration-300 ease-out hover:border-white/50 hover:ring-1 hover:ring-white/20"
+    : "rounded-[24px] border border-white/[0.05] bg-gradient-to-b from-[#090E0A] via-[#182C1C] to-[#324E38] shadow-[0_8px_30px_rgba(0,0,0,0.3)] transition-all duration-300 ease-out hover:border-white/12";
+
   const fmt = useFmt();
 
   const activeWorkspaceId = useWorkspaceStore((s) => s.activeWorkspaceId);
@@ -505,7 +543,7 @@ export default function SplitPage() {
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <div className="flex items-center gap-2 text-xs text-white/45">
-            <SplitSquareVertical size={13} className="text-violet-400" />
+            <SplitSquareVertical size={13} className={isLightTheme ? "text-[#84cc16]" : "text-[#EFF2F0]"} />
             Split
             {activeWs && (
               <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] text-white/40">
@@ -521,7 +559,9 @@ export default function SplitPage() {
           onClick={() => setAddExpenseOpen(true)}
           disabled={members.length < 2}
           title={members.length < 2 ? "Add at least 2 members first" : ""}
-          className="flex items-center gap-2 rounded-2xl border border-violet-400/28 bg-violet-500/12 px-4 py-2.5 text-sm font-medium text-violet-300 transition hover:bg-violet-500/20 active:scale-95 disabled:cursor-not-allowed disabled:opacity-35"
+          className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-35 cursor-pointer shadow-sm ${
+            isLightTheme ? "bg-[#84cc16] hover:bg-[#a3e635] text-black" : "bg-[#EFF2F0] hover:bg-white text-black"
+          }`}
         >
           <Plus size={15} />
           Add Split Expense
@@ -531,7 +571,7 @@ export default function SplitPage() {
       {/* ── Summary cards ── */}
       {members.length >= 2 && (
         <div className="mb-6 grid gap-4 sm:grid-cols-3">
-          <GlassCard className="flex items-center gap-4 p-5">
+          <div className={`flex items-center gap-4 p-5 ${cardClass}`}>
             <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-red-500/12">
               <TrendingDown size={20} className="text-red-300" />
             </div>
@@ -539,17 +579,17 @@ export default function SplitPage() {
               <div className="text-xs text-white/45">Outstanding debt</div>
               <div className="mt-0.5 text-lg font-bold text-red-300">{fmt(totalOwed)}</div>
             </div>
-          </GlassCard>
-          <GlassCard className="flex items-center gap-4 p-5">
-            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-emerald-500/12">
-              <TrendingUp size={20} className="text-emerald-300" />
+          </div>
+          <div className={`flex items-center gap-4 p-5 ${cardClass}`}>
+            <div className={`grid h-11 w-11 shrink-0 place-items-center rounded-2xl ${isLightTheme ? "bg-emerald-500/12 text-emerald-300" : "bg-white/10 text-[#EFF2F0]"}`}>
+              <TrendingUp size={20} />
             </div>
             <div>
               <div className="text-xs text-white/45">Outstanding credit</div>
-              <div className="mt-0.5 text-lg font-bold text-emerald-300">{fmt(totalCredit)}</div>
+              <div className={`mt-0.5 text-lg font-bold ${isLightTheme ? "text-emerald-300" : "text-white/90"}`}>{fmt(totalCredit)}</div>
             </div>
-          </GlassCard>
-          <GlassCard className="flex items-center gap-4 p-5">
+          </div>
+          <div className={`flex items-center gap-4 p-5 ${cardClass}`}>
             <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-amber-500/12">
               <Handshake size={20} className="text-amber-300" />
             </div>
@@ -557,7 +597,7 @@ export default function SplitPage() {
               <div className="text-xs text-white/45">Pending settlements</div>
               <div className="mt-0.5 text-lg font-bold text-amber-300">{debts.length}</div>
             </div>
-          </GlassCard>
+          </div>
         </div>
       )}
 
@@ -565,10 +605,10 @@ export default function SplitPage() {
 
         {/* ── Members panel ── */}
         <ScrollReveal>
-          <GlassCard className="p-5">
+          <div className={`${cardClass} p-5`}>
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2 text-sm font-semibold text-white/90">
-                <Users size={15} className="text-violet-400" />
+                <Users size={15} className={isLightTheme ? "text-[#84cc16]" : "text-[#EFF2F0]"} />
                 Members
               </div>
               <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] text-white/40">
@@ -585,13 +625,17 @@ export default function SplitPage() {
                 onChange={(e) => setNewMemberName(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleAddMember()}
                 maxLength={32}
-                className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white placeholder-white/30 outline-none transition focus:border-violet-400/35 focus:ring-2 focus:ring-violet-400/10"
+                className={`min-w-0 flex-1 rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-xs text-white placeholder-white/25 outline-none transition ${
+                  isLightTheme ? "focus:border-[#84cc16]/40 focus:ring-1 focus:ring-[#84cc16]/20" : "focus:border-white/30 focus:ring-1 focus:ring-white/10"
+                }`}
               />
               <button
                 type="button"
                 onClick={handleAddMember}
                 disabled={!newMemberName.trim()}
-                className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-violet-500/85 text-white transition hover:bg-violet-500 disabled:pointer-events-none disabled:opacity-40 active:scale-95"
+                className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl transition disabled:pointer-events-none disabled:opacity-40 active:scale-95 cursor-pointer ${
+                  isLightTheme ? "bg-[#84cc16] hover:bg-[#a3e635] text-black" : "bg-[#EFF2F0] hover:bg-white text-black"
+                }`}
               >
                 <UserPlus size={13} />
               </button>
@@ -635,7 +679,7 @@ export default function SplitPage() {
                 </div>
               </AnimatePresence>
             )}
-          </GlassCard>
+          </div>
         </ScrollReveal>
 
         {/* ── Right panel (tabs) ── */}
@@ -667,16 +711,20 @@ export default function SplitPage() {
               <Motion.div key="balances"
                 initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.15 }}>
-                <GlassCard className="p-5">
+                <div className={`${cardClass} p-5`}>
                   <div className="mb-4 text-sm font-semibold text-white/90">Settlement Plan</div>
                   {members.length < 2 ? (
                     <div className="rounded-xl border border-dashed border-white/12 px-4 py-8 text-center text-xs text-white/35">
                       Add at least 2 members and create a split expense to see balances.
                     </div>
                   ) : debts.length === 0 ? (
-                    <div className="flex flex-col items-center gap-3 rounded-2xl border border-emerald-400/15 bg-emerald-500/8 px-4 py-8 text-center">
-                      <CheckCircle2 size={30} className="text-emerald-400" />
-                      <div className="text-sm font-semibold text-emerald-300">All settled up!</div>
+                    <div className={`flex flex-col items-center gap-3 rounded-2xl px-4 py-8 text-center border ${
+                      isLightTheme
+                        ? "border-[#84cc16]/20 bg-[#84cc16]/5"
+                        : "border-white/10 bg-white/[0.02]"
+                    }`}>
+                      <CheckCircle2 size={30} className={isLightTheme ? "text-[#84cc16]" : "text-[#EFF2F0]"} />
+                      <div className={`text-sm font-semibold ${isLightTheme ? "text-[#84cc16]" : "text-white/90"}`}>All settled up!</div>
                       <div className="text-xs text-white/40">No outstanding balances.</div>
                     </div>
                   ) : (
@@ -686,7 +734,7 @@ export default function SplitPage() {
                       ))}
                     </div>
                   )}
-                </GlassCard>
+                </div>
               </Motion.div>
             )}
 
@@ -695,7 +743,7 @@ export default function SplitPage() {
               <Motion.div key="expenses"
                 initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.15 }}>
-                <GlassCard className="p-5">
+                <div className={`${cardClass} p-5`}>
                   <div className="mb-4 text-sm font-semibold text-white/90">Split Expenses</div>
                   {wsExpenses.length === 0 ? (
                     <div className="rounded-xl border border-dashed border-white/12 px-4 py-8 text-center text-xs text-white/35">
@@ -752,7 +800,7 @@ export default function SplitPage() {
                                   <span key={sp.memberId}
                                     className={`flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium ${
                                       settled
-                                        ? "border-emerald-400/22 bg-emerald-500/10 text-emerald-300"
+                                        ? (isLightTheme ? "border-emerald-400/22 bg-emerald-500/10 text-emerald-300" : "border-white/12 bg-white/5 text-white/80")
                                         : "border-white/10 bg-white/5 text-white/55"
                                     }`}>
                                     {settled ? <CheckCircle2 size={10} /> : null}
@@ -766,7 +814,7 @@ export default function SplitPage() {
                       })}
                     </div>
                   )}
-                </GlassCard>
+                </div>
               </Motion.div>
             )}
 
@@ -775,7 +823,7 @@ export default function SplitPage() {
               <Motion.div key="history"
                 initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.15 }}>
-                <GlassCard className="p-5">
+                <div className={`${cardClass} p-5`}>
                   <div className="mb-4 text-sm font-semibold text-white/90">Settlement History</div>
                   {wsSettlements.length === 0 ? (
                     <div className="rounded-xl border border-dashed border-white/12 px-4 py-8 text-center text-xs text-white/35">
@@ -799,7 +847,7 @@ export default function SplitPage() {
                               </div>
                             </div>
                             <div className="flex shrink-0 items-center gap-2.5">
-                              <span className="text-sm font-bold text-emerald-300 tabular-nums">
+                              <span className={`text-sm font-bold tabular-nums ${isLightTheme ? "text-emerald-300" : "text-[#EFF2F0]"}`}>
                                 {fmt(s.amount)}
                               </span>
                               <span className="text-[10px] text-white/30">
@@ -818,7 +866,7 @@ export default function SplitPage() {
                       })}
                     </div>
                   )}
-                </GlassCard>
+                </div>
               </Motion.div>
             )}
 

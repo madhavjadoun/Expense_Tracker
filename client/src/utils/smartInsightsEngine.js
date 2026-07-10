@@ -39,13 +39,13 @@ function stableShuffleGroup(arr, seed) {
 // ── Style token maps ──────────────────────────────────────────────────────────
 
 const STYLES = {
-  danger:  { border: "border-red-400/20",     bg: "bg-red-500/9",      text: "text-red-200/85",     icon: "text-red-300"     },
-  warn:    { border: "border-amber-400/20",   bg: "bg-amber-500/8",    text: "text-amber-200/80",   icon: "text-amber-300"   },
-  success: { border: "border-emerald-400/18", bg: "bg-emerald-500/8",  text: "text-emerald-200/80", icon: "text-emerald-300" },
-  info:    { border: "border-blue-400/18",    bg: "bg-blue-500/8",     text: "text-blue-200/80",    icon: "text-blue-300"    },
-  neutral: { border: "border-white/10",       bg: "bg-white/[0.025]",  text: "text-white/55",       icon: "text-white/45"    },
-  rose:    { border: "border-rose-400/18",    bg: "bg-rose-500/8",     text: "text-rose-200/80",    icon: "text-rose-300"    },
-  violet:  { border: "border-violet-400/18",  bg: "bg-violet-500/8",   text: "text-violet-200/80",  icon: "text-violet-300"  },
+  danger:  { border: "border-[#E09882]/20",   bg: "bg-[#E09882]/8",    text: "text-white/80",       icon: "text-[#E09882]"   },
+  warn:    { border: "border-[#D9C39E]/20",   bg: "bg-[#D9C39E]/8",    text: "text-white/80",       icon: "text-[#D9C39E]"   },
+  success: { border: "border-white/12",       bg: "bg-white/[0.035]",  text: "text-white/80",       icon: "text-white/90"    },
+  info:    { border: "border-white/12",       bg: "bg-white/[0.035]",  text: "text-white/80",       icon: "text-white/90"    },
+  neutral: { border: "border-white/10",       bg: "bg-white/[0.025]",  text: "text-white/60",       icon: "text-white/50"    },
+  rose:    { border: "border-[#E09882]/20",   bg: "bg-[#E09882]/8",    text: "text-white/80",       icon: "text-[#E09882]"   },
+  violet:  { border: "border-[#D9C39E]/20",   bg: "bg-[#D9C39E]/8",    text: "text-white/80",       icon: "text-[#D9C39E]"   },
 };
 
 // ── Engine ────────────────────────────────────────────────────────────────────

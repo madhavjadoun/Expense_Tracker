@@ -13,6 +13,9 @@ import {
   Tooltip,
   XAxis,
   YAxis,
+  Area,
+  AreaChart,
+  ReferenceLine,
 } from "recharts";
 import GlassCard from "../components/GlassCard";
 import ScrollReveal from "../components/ScrollReveal";
@@ -67,6 +70,7 @@ export default function AnalyticsPage() {
 
   const [chartType, setChartType] = useState("line");
   const [period, setPeriod]       = useState("weekly");
+  const [selectedChart, setSelectedChart] = useState("bar");
 
   function startOfDay(d) {
     return new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -223,28 +227,46 @@ export default function AnalyticsPage() {
       }).format(n);
   }, [currency]);
 
+  const theme = useAppStore((s) => s.theme);
+  const isLightTheme = theme === "light";
+
+  const cardWhiteClass = isLightTheme
+    ? "bg-[#090B0A] border border-[#1A1E1C] hover:border-white/50 hover:ring-1 hover:ring-white/20"
+    : "bg-gradient-to-b from-[#090E0A] via-[#182C1C] to-[#324E38] border border-white/[0.06] shadow-[0_8px_30px_rgba(0,0,0,0.3)] hover:border-white/12 transition-all duration-300";
+
+  const cardSageClass = isLightTheme
+    ? "bg-[#090B0A] border border-[#1A1E1C] hover:border-white/50 hover:ring-1 hover:ring-white/20"
+    : "bg-gradient-to-b from-[#090E0A] via-[#182C1C] to-[#324E38] border border-white/[0.05] shadow-[0_8px_30px_rgba(0,0,0,0.3)] hover:border-white/12 transition-all duration-300";
+
+  const cardGrayClass = isLightTheme
+    ? "bg-[#090B0A] border border-[#1A1E1C] hover:border-white/50 hover:ring-1 hover:ring-white/20"
+    : "bg-gradient-to-b from-[#090E0A] via-[#182C1C] to-[#324E38] border border-white/[0.05] shadow-[0_8px_30px_rgba(0,0,0,0.3)] hover:border-white/12 transition-all duration-300";
+
   return (
-    <div className="mx-auto w-full max-w-6xl">
-      <div className="mb-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
+    <div className="w-full space-y-6">
+      {/* Page Header */}
+      <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end border-b-2 border-white/10 pb-4">
         <div>
-          <div className="text-xs text-white/50">
-            Analytics
-            {activeWs && activeWs.id !== "default" && (
-              <span className="ml-1.5 rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-medium text-white/50">
-                {activeWs.name}
-              </span>
-            )}
+          <div className={`text-[11px] font-bold uppercase tracking-widest select-none ${
+            isLightTheme ? "text-[#84cc16]" : "text-[#EFF2F0]"
+          }`}>
+            {activeWs?.name || "Personal Finance"} Analytics
           </div>
-          <div className="text-xl font-semibold text-white/90">Spending insights</div>
+          <h2 className="mt-1 text-3xl font-extrabold tracking-tight text-white/95 sm:text-4xl">
+            Spending Insights
+          </h2>
+          <p className="mt-1.5 text-sm text-white/40 font-medium">
+            Deep statistical breakdown of workspace allocations
+          </p>
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="flex rounded-xl border border-white/10 bg-white/5 p-0.5 text-xs text-white/70">
+          <div className="flex rounded-xl border-2 border-white/20 bg-white/5 p-0.5 text-xs text-white/70">
             <button
               type="button"
               onClick={() => setPeriod("weekly")}
-              className={`rounded-lg px-2 py-1 ${
-                period === "weekly" ? "bg-white/15 text-white" : ""
+              className={`rounded-lg px-2.5 py-1 transition cursor-pointer ${
+                period === "weekly" ? "bg-white/15 text-white font-semibold" : "hover:text-white"
               }`}
             >
               Weekly
@@ -252,249 +274,231 @@ export default function AnalyticsPage() {
             <button
               type="button"
               onClick={() => setPeriod("monthly")}
-              className={`rounded-lg px-2 py-1 ${
-                period === "monthly" ? "bg-white/15 text-white" : ""
+              className={`rounded-lg px-2.5 py-1 transition cursor-pointer ${
+                period === "monthly" ? "bg-white/15 text-white font-semibold" : "hover:text-white"
               }`}
             >
               Monthly
             </button>
           </div>
-          <ChartSwitcher value={chartType} onChange={setChartType} />
         </div>
       </div>
 
-      <div className="mb-4 grid gap-4 md:grid-cols-3">
+      {/* Top 3 KPI Cards */}
+      <div className="grid gap-5 grid-cols-1 md:grid-cols-3">
         {[
           { label: "Total expense", value: money(totalExpense) },
-          { label: "Top category", value: topCategory },
+          { label: "Top category", value: topCategory ? topCategory.charAt(0).toUpperCase() + topCategory.slice(1) : "—" },
           {
-            label:
-              period === "weekly" ? "vs previous week" : "vs previous period",
+            label: period === "weekly" ? "vs previous week" : "vs previous period",
             value:
               trendChange.direction === "up"
-                ? `↑ ${trendChange.deltaPct}%`
+                ? `▲ ${trendChange.deltaPct}%`
                 : trendChange.direction === "down"
-                  ? `↓ ${trendChange.deltaPct}%`
+                  ? `▼ ${trendChange.deltaPct}%`
                   : "—",
+            colorClass: trendChange.direction === "down" ? "text-[#52b147]" : trendChange.direction === "up" ? "text-red-400" : "text-white"
           },
-        ].map((x, idx) => (
-          <ScrollReveal key={x.label} delay={0.03 * idx}>
-            <GlassCard className="p-5">
-              <div className="text-xs text-white/55">{x.label}</div>
-              <div className="mt-2 text-lg font-semibold text-white/90">
-                {loading ? <Skeleton className="h-5 w-24" /> : x.value}
+        ].map((x, idx) => {
+          const cls = idx === 2 ? cardSageClass : cardWhiteClass;
+          return (
+            <ScrollReveal key={x.label} delay={0.03 * idx}>
+              <div className={`rounded-[24px] p-6 shadow-sm transition-all duration-300 ease-out hover:-translate-y-[2px] hover:shadow-md cursor-pointer ${cls}`}>
+                <div className="text-[11px] uppercase tracking-wider font-semibold text-white/40">{x.label}</div>
+                <div className={`mt-2 text-2xl font-bold tracking-tight ${x.colorClass || "text-white"}`}>
+                  {loading ? <Skeleton className="h-8 w-24" /> : x.value}
+                </div>
               </div>
-            </GlassCard>
-          </ScrollReveal>
-        ))}
+            </ScrollReveal>
+          );
+        })}
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <ScrollReveal>
-          <GlassCard className="p-5">
-            <div className="mb-3 flex items-center justify-between">
-              <div className="text-sm font-semibold text-white/90">
-                Visualization
+      {/* Grid containing Chart Selector (Left) and Smart Insights (Right) */}
+      <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
+        {/* Left Column: Dynamic Chart Container */}
+        <ScrollReveal delay={0.05}>
+          <div className={`rounded-[24px] p-6 shadow-sm transition-all duration-300 ease-out hover:-translate-y-[2px] hover:shadow-md cursor-pointer flex flex-col justify-between min-h-[470px] ${cardSageClass}`}>
+            <div>
+              {/* Dropdown Selector Header */}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-white/[0.08] pb-4 mb-4">
+                <div>
+                  <span className="text-[11px] uppercase tracking-wider font-semibold text-white/40">Select View</span>
+                  <h3 className="text-sm font-bold text-white/90">Chart Visualization</h3>
+                </div>
+                <div>
+                  <select
+                    value={selectedChart}
+                    onChange={(e) => setSelectedChart(e.target.value)}
+                    className="rounded-xl border border-white/20 bg-white/[0.05] px-3 py-1.5 text-xs text-white outline-none hover:bg-white/[0.10] hover:border-white/40 transition cursor-pointer max-w-[220px]"
+                  >
+                    <option value="pie" className="bg-[#0e1116] text-white">Pie Chart</option>
+                    <option value="bar" className="bg-[#0e1116] text-white">Bar Chart (Histogram)</option>
+                    <option value="area" className="bg-[#0e1116] text-white">Line Chart</option>
+                  </select>
+                </div>
               </div>
-              <div className="text-xs text-white/45">
-                {chartType === "pie"
-                  ? "Category breakdown"
-                  : chartType === "bar"
-                    ? "Category totals"
-                    : "Total trend"}
+
+              {/* Selected Chart Rendering */}
+              <div className="relative h-80 w-full mt-4">
+                {loading ? (
+                  <Skeleton className="h-full w-full rounded-xl" />
+                ) : (
+                  <AnimatePresence mode="wait">
+                    <Motion.div
+                      key={selectedChart}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -8 }}
+                      transition={{ duration: 0.2, ease: "easeInOut" }}
+                      className="h-full w-full"
+                    >
+                      {selectedChart === "bar" && (
+                        <div className="h-full w-full">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={categoryData} margin={{ top: 10, right: 5, left: -25, bottom: 0 }}>
+                              <CartesianGrid stroke="rgba(255,255,255,0.03)" vertical={false} />
+                              <XAxis dataKey="category" tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 10 }} tickLine={false} axisLine={false} className="capitalize" />
+                              <YAxis tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 10 }} tickLine={false} axisLine={false} />
+                              <Tooltip cursor={{ fill: "transparent" }} content={(props) => <DarkTooltipContent {...props} total={totalExpense} currency={currency} />} />
+                              {totalExpense > 0 && (
+                                <ReferenceLine 
+                                  y={totalExpense / 4} 
+                                  stroke={isLightTheme ? "#84cc16" : "#EFF2F0"} 
+                                  strokeDasharray="4 4" 
+                                  label={{ value: '1 Week Avg.', fill: isLightTheme ? '#84cc16' : '#EFF2F0', fontSize: 10, position: 'top', className: 'font-semibold opacity-75' }} 
+                                />
+                              )}
+                              <Bar dataKey="value" radius={[8, 8, 0, 0]} maxBarSize={32}>
+                                {categoryData.map((d, index) => (
+                                  <Cell
+                                    key={`cell-${index}`}
+                                    fill={colors[d.category] || colors.other}
+                                  />
+                                ))}
+                              </Bar>
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </div>
+                      )}
+
+                      {selectedChart === "area" && (
+                        <div className="h-full w-full">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={lineData} margin={{ top: 10, right: 5, left: -25, bottom: 0 }}>
+                              <defs>
+                                <linearGradient id="areaGradient2" x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="5%" stopColor={isLightTheme ? "#84cc16" : "#EFF2F0"} stopOpacity={0.25} />
+                                  <stop offset="95%" stopColor={isLightTheme ? "#84cc16" : "#EFF2F0"} stopOpacity={0} />
+                                </linearGradient>
+                              </defs>
+                              <CartesianGrid stroke="rgba(255,255,255,0.03)" vertical={false} />
+                              <XAxis dataKey="name" tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 10 }} tickLine={false} axisLine={false} />
+                              <YAxis tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 10 }} tickLine={false} axisLine={false} />
+                              <Tooltip cursor={{ fill: "transparent" }} content={(props) => <DarkTooltipContent {...props} total={totalExpense} currency={currency} />} />
+                              <Area
+                                type="monotone"
+                                dataKey="amount"
+                                stroke={isLightTheme ? "#84cc16" : "#EFF2F0"}
+                                strokeWidth={2.5}
+                                fillOpacity={1}
+                                fill="url(#areaGradient2)"
+                                activeDot={{ r: 5, fill: "#ffffff", stroke: isLightTheme ? "#84cc16" : "#EFF2F0", strokeWidth: 2 }}
+                                isAnimationActive={true}
+                                animationDuration={900}
+                                animationEasing="ease-in-out"
+                              />
+                            </AreaChart>
+                          </ResponsiveContainer>
+                        </div>
+                      )}
+
+                      {selectedChart === "pie" && (
+                        <div className="h-full flex items-center justify-center relative">
+                          <div className="h-full w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <PieChart>
+                                <Pie
+                                  data={categoryData}
+                                  dataKey="value"
+                                  nameKey="category"
+                                  innerRadius={0}
+                                  outerRadius={85}
+                                  paddingAngle={2}
+                                >
+                                  {categoryData.map((d, index) => (
+                                    <Cell
+                                      key={`cell-${index}`}
+                                      fill={colors[d.category] || colors.other}
+                                      stroke="rgba(255, 255, 255, 0.1)"
+                                      strokeWidth={1.5}
+                                    />
+                                  ))}
+                                </Pie>
+                                <Tooltip cursor={{ fill: "transparent" }} content={(props) => <DarkTooltipContent {...props} total={totalExpense} currency={currency} />} />
+                              </PieChart>
+                            </ResponsiveContainer>
+                          </div>
+                        </div>
+                      )}
+                    </Motion.div>
+                  </AnimatePresence>
+                )}
               </div>
             </div>
-            {loading ? (
-              <div className="space-y-3">
-                <Skeleton className="h-40 w-full" />
-                <SkeletonText lines={2} />
-              </div>
-            ) : error ? (
-              <div className="rounded-2xl border border-white/10 bg-white/4 p-4">
-                <div className="text-sm font-semibold text-white/85">
-                  Something went wrong
-                </div>
-                <div className="mt-1 text-xs text-white/55">{error}</div>
-              </div>
-            ) : (
-              <div className="h-64 rounded-2xl border border-white/10 bg-white/4 p-3">
-                <AnimatePresence mode="wait">
-                  <Motion.div
-                    key={chartType}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -8 }}
-                    transition={{ duration: 0.18, ease: "easeOut" }}
-                    className="h-full"
-                  >
-                    <ResponsiveContainer width="100%" height="100%">
-                      {chartType === "pie" ? (
-                        <PieChart>
-                          <Tooltip
-                            cursor={{ fill: "transparent" }}
-                            content={(props) => (
-                              <DarkTooltipContent
-                                {...props}
-                                total={totalExpense}
-                                currency={currency}
-                              />
-                            )}
-                          />
-                          <Pie
-                            data={categoryData}
-                            dataKey="value"
-                            nameKey="category"
-                            innerRadius={54}
-                            outerRadius={86}
-                            paddingAngle={2}
-                          >
-                            {categoryData.map((d) => (
-                              <Cell key={d.category} fill={colors[d.category]} />
-                            ))}
-                          </Pie>
-                        </PieChart>
-                      ) : chartType === "bar" ? (
-                        <BarChart data={categoryData}>
-                          <CartesianGrid stroke="rgba(255,255,255,.06)" />
-                          <XAxis
-                            dataKey="category"
-                            tick={{ fill: "rgba(255,255,255,.55)", fontSize: 12 }}
-                            axisLine={{ stroke: "rgba(255,255,255,.10)" }}
-                            tickLine={{ stroke: "rgba(255,255,255,.10)" }}
-                          />
-                          <YAxis
-                            tick={{ fill: "rgba(255,255,255,.55)", fontSize: 12 }}
-                            axisLine={{ stroke: "rgba(255,255,255,.10)" }}
-                            tickLine={{ stroke: "rgba(255,255,255,.10)" }}
-                          />
-                          <Tooltip
-                            cursor={{ fill: "transparent" }}
-                            content={(props) => (
-                              <DarkTooltipContent
-                                {...props}
-                                total={totalExpense}
-                                currency={currency}
-                              />
-                            )}
-                          />
-                          <Bar
-                            dataKey="value"
-                            activeBar={false}
-                            radius={[10, 10, 8, 8]}
-                            animationDuration={700}
-                            animationEasing="ease-out"
-                          >
-                            {categoryData.map((d) => (
-                              <Cell key={d.category} fill={colors[d.category]} />
-                            ))}
-                          </Bar>
-                        </BarChart>
-                      ) : (
-                        <LineChart data={lineData}>
-                          <defs>
-                            <linearGradient id="lineGradient" x1="0" y1="0" x2="1" y2="0">
-                              <stop offset="0%" stopColor="rgba(59,130,246,1)" />
-                              <stop offset="55%" stopColor="rgba(99,102,241,.95)" />
-                              <stop offset="100%" stopColor="rgba(16,185,129,.95)" />
-                            </linearGradient>
-                          </defs>
-                          <CartesianGrid stroke="rgba(255,255,255,.06)" />
-                          <XAxis
-                            dataKey="name"
-                            tick={{ fill: "rgba(255,255,255,.55)", fontSize: 12 }}
-                            axisLine={{ stroke: "rgba(255,255,255,.10)" }}
-                            tickLine={{ stroke: "rgba(255,255,255,.10)" }}
-                          />
-                          <YAxis
-                            tick={{ fill: "rgba(255,255,255,.55)", fontSize: 12 }}
-                            axisLine={{ stroke: "rgba(255,255,255,.10)" }}
-                            tickLine={{ stroke: "rgba(255,255,255,.10)" }}
-                          />
-                          <Tooltip
-                            cursor={{ fill: "transparent" }}
-                            content={(props) => (
-                              <DarkTooltipContent 
-                                {...props} 
-                                total={totalExpense} 
-                                currency={currency} 
-                              />
-                            )}
-                          />
-                          <Line
-                            type="monotone"
-                            dataKey="amount"
-                            name="Daily spend"
-                            stroke="url(#lineGradient)"
-                            strokeWidth={3}
-                            dot={false}
-                            activeDot={{ r: 4, fill: "rgba(255,255,255,.95)" }}
-                          />
-                        </LineChart>
-                      )}
-                    </ResponsiveContainer>
-                  </Motion.div>
-                </AnimatePresence>
-              </div>
-            )}
-          </GlassCard>
+          </div>
         </ScrollReveal>
 
-        <ScrollReveal delay={0.05}>
-          <GlassCard className="p-5">
-            <div className="mb-3 flex items-center justify-between">
-              <div className="text-sm font-semibold text-white/90">
-                Smart insights
+        {/* Right Column: Smart Insights & Comparison Panel */}
+        <ScrollReveal delay={0.1}>
+          <div className={`rounded-[24px] p-6 shadow-sm flex flex-col justify-between min-h-[470px] ${cardGrayClass}`}>
+            <div className="space-y-4">
+              {/* Title Header */}
+              <div className="border-b-2 border-white/10 pb-4">
+                <span className="text-[11px] uppercase tracking-wider font-semibold text-white/40">AI Engine</span>
+                <h3 className="text-sm font-bold text-white/95">Smart Insights</h3>
               </div>
-              <div className="text-xs text-white/45">
-                {period === "weekly" ? "Weekly view" : "Monthly view"}
+
+              {/* Smart Insights List */}
+              {loading ? (
+                <div className="space-y-3">
+                  <Skeleton className="h-10 w-full rounded-xl" />
+                  <Skeleton className="h-10 w-full rounded-xl" />
+                </div>
+              ) : (
+                <div className="space-y-2.5">
+                  {smartInsights.map((line, idx) => (
+                    <div key={idx} className="rounded-xl border-2 border-white/10 bg-white/[0.01] px-4 py-3 text-xs text-white/70 leading-relaxed capitalize">
+                      {line}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Comparison Trends Section */}
+            <div className="mt-4 pt-4 border-t-2 border-white/10">
+              <span className="text-[10px] uppercase tracking-wider font-semibold text-white/40 block mb-3">Comparison Trend</span>
+              <div className="space-y-2">
+                <div className="rounded-xl border-2 border-white/10 bg-white/[0.01] px-4 py-2.5 flex items-center justify-between text-xs">
+                  <span className="text-white/50">Workspace top category</span>
+                  <span className="font-bold text-white/95 capitalize">{topCategory || "—"}</span>
+                </div>
+                <div className="rounded-xl border-2 border-white/10 bg-white/[0.01] px-4 py-2.5 flex items-center justify-between text-xs">
+                  <span className="text-white/50">Current vs previous period</span>
+                  <span className={`font-bold ${
+                    trendChange.direction === "up" ? "text-red-400"
+                    : trendChange.direction === "down" ? "text-[#52b147]"
+                    : "text-white/80"
+                  }`}>
+                    {trendChange.direction === "up" ? `▲ ${trendChange.deltaPct}% Up`
+                    : trendChange.direction === "down" ? `▼ ${trendChange.deltaPct}% Down`
+                    : "Stable"}
+                  </span>
+                </div>
               </div>
             </div>
-            {loading ? (
-              <div className="space-y-3">
-                <Skeleton className="h-40 w-full" />
-                <SkeletonText lines={2} />
-              </div>
-            ) : error ? (
-              <div className="rounded-2xl border border-white/10 bg-white/4 p-4 text-xs text-white/55">
-                Unable to load breakdown.
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {smartInsights.map((line, idx) => (
-                  <div
-                    key={idx}
-                    className="rounded-2xl border border-white/10 bg-white/4 px-4 py-3 text-sm text-white/80"
-                  >
-                    {line}
-                  </div>
-                ))}
-                <div className="mt-3 rounded-2xl border border-white/10 bg-white/4 px-4 py-3">
-                  <div className="text-xs text-white/55">Top category</div>
-                  <div className="mt-1 text-sm font-semibold text-white/90">
-                    {topCategory || "—"}
-                  </div>
-                </div>
-                <div className="rounded-2xl border border-white/10 bg-white/4 px-4 py-3">
-                  <div className="text-xs text-white/55">Current vs previous</div>
-                  <div
-                    className={`mt-1 text-sm font-semibold ${
-                      trendChange.direction === "up"
-                        ? "text-red-300"
-                        : trendChange.direction === "down"
-                          ? "text-emerald-300"
-                          : "text-white/85"
-                    }`}
-                  >
-                    {trendChange.direction === "up"
-                      ? `↑ ${trendChange.deltaPct}%`
-                      : trendChange.direction === "down"
-                        ? `↓ ${trendChange.deltaPct}%`
-                        : "No change"}
-                  </div>
-                </div>
-              </div>
-            )}
-          </GlassCard>
+          </div>
         </ScrollReveal>
       </div>
     </div>

@@ -8,12 +8,12 @@ export function Input({ label, className = "", type = "text", ...props }) {
   return (
     <label className="block space-y-1">
       {label ? (
-        <span className="text-xs font-medium text-white/70">{label}</span>
+        <span className="text-xs font-semibold tracking-wide text-white/95">{label}</span>
       ) : null}
       <div className="relative">
         <input
           type={inputType}
-          className={`w-full rounded-xl border border-white/12 bg-white/6 px-3 py-2.5 text-sm text-white placeholder:text-white/35 outline-none transition focus:border-emerald-400/35 focus:ring-2 focus:ring-emerald-400/12 ${isPassword ? "pr-10" : ""} ${className}`}
+          className={`w-full rounded-xl border border-white/12 bg-white/6 px-3 py-2.5 text-sm text-white placeholder:text-white/35 outline-none transition focus:border-[#7CC6FF]/50 focus:ring-2 focus:ring-[#7CC6FF]/25 ${isPassword ? "pr-10" : ""} ${className}`}
           {...props}
         />
         {isPassword && (

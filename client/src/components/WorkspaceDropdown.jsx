@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { motion as Motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, Plus, Check, Trash2, X, Lock, Link2 } from "lucide-react";
 import { useWorkspaceStore } from "../store/useWorkspaceStore";
+import { useAppStore } from "../store/useAppStore";
 import toast from "react-hot-toast";
 import { api } from "../services/api";
 
@@ -107,6 +108,9 @@ function CreateWorkspaceForm({ onDone }) {
 // ─── Main Dropdown ─────────────────────────────────────────────────────────────
 
 export default function WorkspaceDropdown({ collapsed }) {
+  const theme = useAppStore((s) => s.theme);
+  const isLightTheme = theme === "light";
+
   const workspaces         = useWorkspaceStore((s) => s.workspaces);
   const activeWorkspaceId  = useWorkspaceStore((s) => s.activeWorkspaceId);
   const setActiveWorkspace = useWorkspaceStore((s) => s.setActiveWorkspace);
@@ -197,7 +201,7 @@ export default function WorkspaceDropdown({ collapsed }) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -6, scale: 0.97 }}
             transition={{ type: "spring", stiffness: 340, damping: 28 }}
-            className="absolute left-3 right-3 top-full z-50 mt-1.5 overflow-hidden rounded-2xl border border-white/12 bg-[#0d1224]/95 shadow-[0_20px_60px_rgba(0,0,0,0.55)] backdrop-blur-xl"
+            className={`absolute left-3 right-3 top-full z-50 mt-1.5 overflow-hidden rounded-2xl border shadow-[0_20px_60px_rgba(0,0,0,0.25)] backdrop-blur-xl ${isLightTheme ? "bg-[#0E110F]/95 border-[#1A1E1C]" : "bg-gradient-to-b from-[#1C1F23]/98 to-[#181A1E]/98 border-white/[0.06]"}`}
           >
             {/* Header with usage */}
             <div className="flex items-center justify-between border-b border-white/7 px-3 py-2.5">
@@ -220,7 +224,7 @@ export default function WorkspaceDropdown({ collapsed }) {
                       onClick={() => handleSelect(ws.id)}
                       className={`flex min-w-0 flex-1 items-center gap-2 rounded-xl px-2 py-1.5 text-left transition ${
                         isActive
-                          ? "bg-emerald-500/10 text-emerald-300"
+                          ? (isLightTheme ? "bg-[#84cc16]/10 text-[#84cc16]" : "bg-white/10 text-[#EFF2F0]")
                           : "text-white/65 hover:bg-white/6 hover:text-white/88"
                       }`}
                     >
@@ -234,7 +238,7 @@ export default function WorkspaceDropdown({ collapsed }) {
                         )}
                       </div>
                       {isActive && (
-                        <Check size={12} className="shrink-0 text-emerald-400" strokeWidth={2.5} />
+                        <Check size={12} className={`shrink-0 ${isLightTheme ? "text-[#84cc16]" : "text-[#EFF2F0]"}`} strokeWidth={2.5} />
                       )}
                     </button>
 

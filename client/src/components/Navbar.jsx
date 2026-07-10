@@ -1,6 +1,6 @@
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion as Motion } from "framer-motion";
-import { Moon, Sun } from "lucide-react";
+import { Moon, Sun, Search, RefreshCw, Calendar, Bell } from "lucide-react";
 import Button from "./Button";
 import { useUserStore } from "../store/useUserStore";
 import { useAppStore } from "../store/useAppStore";
@@ -9,11 +9,13 @@ import { useState, useEffect, useRef } from "react";
 
 export default function Navbar({ onLogout, onHamburger }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const [notifOpen, setNotifOpen] = useState(false);
   const avatar = useUserStore((s) => s.avatar);
   const profile = useUserStore((s) => s.profile);
   const user = useAppStore((s) => s.user);
   const theme = useAppStore((s) => s.theme);
+  const isLightTheme = theme === "light";
   const toggleTheme = useAppStore((s) => s.toggleTheme);
   const currency = useAppStore((s) => s.currency);
   const setCurrency = useAppStore((s) => s.setCurrency);
@@ -47,57 +49,74 @@ export default function Navbar({ onLogout, onHamburger }) {
       .map((part) => part[0]?.toUpperCase())
       .join("") || "U";
 
+  const pageTitle = (() => {
+    switch (location.pathname) {
+      case "/dashboard": return "Dashboard";
+      case "/expenses": return "Expenses";
+      case "/analytics": return "Analytics";
+      case "/split": return "Split Bills";
+      case "/profile": return "Profile Settings";
+      default: return "Dashboard";
+    }
+  })();
+
   return (
-    <header className="sticky top-0 z-40 border-b border-white/10 bg-[#020617]/60 backdrop-blur-xl">
-      <div className="flex w-full items-center justify-between gap-4 px-4 py-3 sm:px-6">
+    <header className="z-40 bg-transparent px-6 py-6 sm:px-8">
+      <div className="flex w-full items-center justify-between gap-4">
+        {/* Left Side: Hamburger & Title */}
         <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={onHamburger}
-            className="inline-flex rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/70 transition hover:bg-white/7 hover:text-white/90 lg:hidden"
+            className="inline-flex rounded-xl border border-white/15 bg-white/[0.05] px-3.5 py-3 text-xs text-white/85 transition hover:bg-white/[0.10] hover:text-white hover:border-white/30 lg:hidden animate-pulse"
             aria-label="Open menu"
           >
             Menu
           </button>
-
-
-          <div className="lg:hidden">
-            <div className="text-xs text-white/50">Workspace</div>
-            <div className="text-sm font-semibold text-white/90">
-              Personal Finance
-            </div>
-          </div>
+          <h1 className="text-2xl font-bold tracking-tight text-white/95">
+            {pageTitle}
+          </h1>
         </div>
 
+        {/* Center: Search Bar */}
+        <div className="relative hidden w-full max-w-xs md:block">
+          <span className="absolute inset-y-0 left-3.5 flex items-center text-white/45">
+            <Search size={16} />
+          </span>
+          <input
+            type="text"
+            placeholder="Search anything..."
+            className="w-full rounded-full border border-white/15 bg-white/[0.05] py-2.5 pl-10 pr-4 text-xs text-white placeholder-white/45 outline-none transition focus:border-white/30 focus:bg-white/[0.08]"
+          />
+        </div>
+
+        {/* Right Side: Action utilities */}
         <div className="flex items-center gap-3">
-          <select
-            value={currency}
-            onChange={(e) => setCurrency(e.target.value)}
-            className="rounded-xl border border-white/10 bg-white/5 px-2 py-1.5 text-xs text-white/75 outline-none hover:bg-white/8 transition focus:ring-2 focus:ring-emerald-400/15 cursor-pointer max-w-[60px]"
-          >
-            <option value="INR" className="bg-[#020617]">INR</option>
-            <option value="USD" className="bg-[#020617]">USD</option>
-            <option value="EUR" className="bg-[#020617]">EUR</option>
-          </select>
+          {/* Reload / Refresh icon button */}
           <button
             type="button"
-            onClick={toggleTheme}
-            className="grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-white/5 text-white/75 transition hover:bg-white/8 hover:text-white"
-            aria-label="Toggle theme"
+            onClick={() => window.location.reload()}
+            className="grid h-10 w-10 place-items-center rounded-full border border-white/15 bg-white/[0.05] text-white/85 hover:text-white hover:bg-white/[0.10] hover:border-white/30 transition cursor-pointer"
+            title="Reload application"
           >
-            {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+            <RefreshCw size={17} />
           </button>
 
+
+
+          {/* Notifications button */}
           <div className="relative" ref={notifRef}>
             <button
               type="button"
               onClick={() => setNotifOpen((v) => !v)}
-              className="relative grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-white/5 text-white/75 transition hover:bg-white/8 hover:text-white"
+              className="relative grid h-10 w-10 place-items-center rounded-full border border-white/15 bg-white/[0.05] text-white/85 hover:text-white hover:bg-white/[0.10] hover:border-white/30 transition cursor-pointer"
               aria-label="Notifications"
             >
-              <span className="text-sm">🔔</span>
+              <Bell size={17} />
               {unreadCount > 0 ? (
-                <span className="absolute -right-1 -top-1 min-w-4 rounded-full bg-emerald-500 px-1 text-center text-[10px] font-semibold text-emerald-950">
+                <span className={`absolute -right-0.5 -top-0.5 min-w-3.5 rounded-full px-1 text-center text-[8px] font-bold text-black ${
+                  isLightTheme ? "bg-[#84cc16]" : "bg-[#EFF2F0]"
+                }`}>
                   {unreadCount > 9 ? "9+" : unreadCount}
                 </span>
               ) : null}
@@ -109,7 +128,9 @@ export default function Navbar({ onLogout, onHamburger }) {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 8, scale: 0.98 }}
                   transition={{ duration: 0.18, ease: "easeOut" }}
-                  className="absolute right-0 mt-2 w-80 rounded-2xl border border-white/12 bg-[#020617]/95 p-3 shadow-[0_20px_60px_rgba(0,0,0,.45)] backdrop-blur-xl"
+                  className={`absolute right-0 mt-2 w-80 rounded-2xl border border-white/[0.12] p-3 shadow-[0_20px_60px_rgba(0,0,0,.65)] backdrop-blur-xl ${
+                    isLightTheme ? "bg-[#0d0f14]/95" : "bg-[#15171A]/95"
+                  }`}
                 >
                   <div className="mb-2 flex items-center justify-between">
                     <div className="text-xs font-semibold text-white/85">
@@ -119,22 +140,22 @@ export default function Navbar({ onLogout, onHamburger }) {
                       <button
                         type="button"
                         onClick={markAllRead}
-                        className="text-[10px] text-white/55 hover:text-white/80"
+                        className="rounded-lg bg-white/5 px-2 py-1 text-[10px] text-white/60 transition hover:bg-white/10 hover:text-white/80"
                       >
-                        Mark read
+                        Read all
                       </button>
                       <button
                         type="button"
                         onClick={clearAll}
-                        className="text-[10px] text-white/55 hover:text-white/80"
+                        className="rounded-lg bg-white/5 px-2 py-1 text-[10px] text-white/60 transition hover:bg-white/10 hover:text-white/80"
                       >
-                        Clear all
+                        Clear
                       </button>
                     </div>
                   </div>
                   <div className="max-h-72 space-y-2 overflow-auto pr-1">
                     {notifications.length === 0 ? (
-                      <div className="rounded-xl border border-white/10 bg-white/4 px-3 py-3 text-xs text-white/50">
+                      <div className="rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-3 text-xs text-white/50">
                         No notifications yet.
                       </div>
                     ) : (
@@ -142,16 +163,18 @@ export default function Navbar({ onLogout, onHamburger }) {
                         <div
                           key={n.id}
                           className={`rounded-xl border px-3 py-2 text-xs ${n.type === "error"
-                              ? "border-red-400/25 bg-red-500/10 text-red-100"
+                              ? "border-red-500/20 bg-red-500/10 text-red-200"
                               : n.type === "success"
-                                ? "border-emerald-400/25 bg-emerald-500/10 text-emerald-100"
-                                : "border-white/10 bg-white/4 text-white/75"
+                                ? (isLightTheme ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-200" : "border-white/12 bg-white/5 text-white/90")
+                                : "border-white/[0.08] bg-white/[0.03] text-white/75"
                             }`}
                         >
                           <div className="flex items-center justify-between gap-2">
                             <div className="line-clamp-2">{n.message}</div>
                             {!n.read ? (
-                              <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-400/80" />
+                              <span className={`h-2 w-2 shrink-0 rounded-full ${
+                                isLightTheme ? "bg-[#84cc16]/80" : "bg-[#EFF2F0]"
+                              }`} />
                             ) : null}
                           </div>
                           <div className="mt-1 text-[10px] text-white/45">
@@ -166,12 +189,34 @@ export default function Navbar({ onLogout, onHamburger }) {
             </AnimatePresence>
           </div>
 
+          {/* Theme toggle */}
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className="grid h-10 w-10 place-items-center rounded-full border border-white/15 bg-white/[0.05] text-white/85 hover:text-white hover:bg-white/[0.10] hover:border-white/30 transition cursor-pointer"
+            aria-label="Toggle theme"
+          >
+            {theme === "dark" ? <Sun size={17} /> : <Moon size={17} />}
+          </button>
+
+          {/* Currency dropdown selector */}
+          <select
+            value={currency}
+            onChange={(e) => setCurrency(e.target.value)}
+            className="rounded-xl border border-white/15 bg-white/[0.05] px-2 py-1.5 text-xs text-white/85 outline-none hover:bg-white/[0.10] hover:border-white/30 transition focus:ring-2 focus:ring-[#84cc16]/15 cursor-pointer max-w-[60px] h-10"
+          >
+            <option value="INR" className="bg-[#090b0e]">INR</option>
+            <option value="USD" className="bg-[#090b0e]">USD</option>
+            <option value="EUR" className="bg-[#090b0e]">EUR</option>
+          </select>
+
+          {/* Profile Image & Logout */}
           <Motion.button
             type="button"
             onClick={() => navigate("/profile")}
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
-            className="relative grid h-9 w-9 place-items-center rounded-full bg-gradient-to-br from-blue-500/20 to-emerald-500/15 ring-1 ring-white/10 overflow-hidden cursor-pointer"
+            className="relative grid h-10 w-10 place-items-center rounded-full bg-gradient-to-br from-[#84cc16]/20 to-[#16a34a]/15 ring-1 ring-white/18 overflow-hidden cursor-pointer shrink-0"
           >
             {avatar ? (
               <img
@@ -190,7 +235,8 @@ export default function Navbar({ onLogout, onHamburger }) {
               <span className="text-xs font-semibold text-white/80">{initials}</span>
             )}
           </Motion.button>
-          <Button variant="subtle" onClick={onLogout}>
+
+          <Button variant="ghost" className="hidden sm:inline-flex border border-white/15 bg-white/[0.05] px-4.5 py-2.5 rounded-xl text-xs hover:bg-white/[0.10] hover:border-white/30 text-white/85 hover:text-white" onClick={onLogout}>
             Logout
           </Button>
         </div>
@@ -198,4 +244,3 @@ export default function Navbar({ onLogout, onHamburger }) {
     </header>
   );
 }
-

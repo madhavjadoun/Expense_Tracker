@@ -69,7 +69,11 @@ function PhotoMenu({ hasPhoto, onView, onUpload, onClose }) {
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.93, y: -6 }}
         transition={{ type: "spring", stiffness: 380, damping: 26 }}
-        className="absolute left-0 top-full z-30 mt-2 min-w-[188px] rounded-2xl border border-white/10 bg-[#0d1224]/96 shadow-2xl backdrop-blur-xl overflow-hidden"
+        className={`absolute left-0 top-full z-30 mt-2 min-w-[188px] rounded-2xl border shadow-2xl backdrop-blur-xl overflow-hidden ${
+          isLightTheme
+            ? "bg-[#0E110F]/95 border-[#1A1E1C]"
+            : "bg-gradient-to-b from-[#1C1F23]/98 to-[#181A1E]/98 border-white/[0.06]"
+        }`}
       >
         {hasPhoto && (
           <button
@@ -105,6 +109,9 @@ export default function ProfileForm() {
   const budgetMonthly = useAppStore((s) => s.budgetMonthly);
   const deleteAccount = useAppStore((s) => s.deleteAccount);
   const navigate = useNavigate();
+
+  const theme = useAppStore((s) => s.theme);
+  const isLightTheme = theme === "light";
 
   const [editing, setEditing]         = useState(false);
   const [draft, setDraft]             = useState(profile);
@@ -411,7 +418,11 @@ export default function ProfileForm() {
                 containerClass="!w-full relative"
                 buttonClass="!border-transparent !bg-transparent !pl-2 hover:!bg-white/5 !rounded-l-xl"
                 inputClass="!w-full !h-10 !rounded-xl !border !border-white/10 !bg-white/5 !text-sm !text-white !pl-12 !outline-none transition-colors"
-                dropdownClass="!max-w-[250px] !rounded-xl dark:!border-white/10 !border-gray-200 dark:!bg-[#020617] !bg-white dark:!text-white !text-gray-800"
+                dropdownClass={`!max-w-[250px] !rounded-xl !border !text-gray-800 dark:!text-white ${
+                  isLightTheme
+                    ? "!border-gray-200 !bg-white"
+                    : "!border-white/[0.06] bg-gradient-to-b !from-[#1C1F23] !to-[#181A1E]"
+                }`}
               />
               {errors.mobile && <p className="mt-1 text-xs text-rose-300">{errors.mobile}</p>}
             </label>
@@ -420,7 +431,9 @@ export default function ProfileForm() {
               <span className="text-xs font-medium text-white/70">Gender</span>
               <Motion.select
                 whileFocus={{ scale: 1.01 }}
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none transition focus:border-emerald-400/35 focus:ring-2 focus:ring-emerald-400/15 disabled:opacity-60"
+                className={`w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none transition disabled:opacity-60 ${
+                  isLightTheme ? "focus:border-emerald-400/35 focus:ring-2 focus:ring-emerald-400/15" : "focus:border-white/30 focus:ring-1 focus:ring-white/10"
+                }`}
                 value={display.gender || "male"}
                 disabled={!editing}
                 onChange={(e) => update("gender", e.target.value)}
@@ -436,7 +449,9 @@ export default function ProfileForm() {
               <span className="text-xs font-medium text-white/70">Profession</span>
               <Motion.select
                 whileFocus={{ scale: 1.01 }}
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none transition focus:border-emerald-400/35 focus:ring-2 focus:ring-emerald-400/15 disabled:opacity-60"
+                className={`w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none transition disabled:opacity-60 ${
+                  isLightTheme ? "focus:border-emerald-400/35 focus:ring-2 focus:ring-emerald-400/15" : "focus:border-white/30 focus:ring-1 focus:ring-white/10"
+                }`}
                 value={display.profession || ""}
                 disabled={!editing}
                 onChange={(e) => update("profession", e.target.value)}
@@ -455,7 +470,9 @@ export default function ProfileForm() {
             <span className="text-xs font-medium text-white/70">About You</span>
             <Motion.textarea
               whileFocus={{ scale: 1.005 }}
-              className="min-h-28 w-full resize-none rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/35 outline-none transition focus:border-emerald-400/35 focus:ring-2 focus:ring-emerald-400/15 disabled:opacity-60"
+              className={`min-h-28 w-full resize-none rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/35 outline-none transition disabled:opacity-60 ${
+                isLightTheme ? "focus:border-emerald-400/35 focus:ring-2 focus:ring-emerald-400/15" : "focus:border-white/30 focus:ring-1 focus:ring-white/10"
+              }`}
               value={display.about || ""}
               disabled={!editing}
               onChange={(e) => update("about", e.target.value)}
@@ -504,7 +521,9 @@ export default function ProfileForm() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.94, y: 14 }}
               transition={{ type: "spring", stiffness: 340, damping: 28 }}
-              className="relative w-full max-w-md rounded-2xl border border-red-500/20 bg-[#0d1224] p-5 shadow-2xl"
+              className={`relative w-full max-w-md rounded-2xl border border-red-500/20 p-5 shadow-2xl ${
+                isLightTheme ? "bg-[#0E110F]" : "bg-gradient-to-b from-[#1C1F23] to-[#181A1E]"
+              }`}
             >
               {/* Close */}
               <button
