@@ -1,6 +1,6 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion as Motion } from "framer-motion";
-import { Moon, Sun, Search, RefreshCw, Calendar, Bell } from "lucide-react";
+import { Moon, Sun, RefreshCw, Calendar, Bell } from "lucide-react";
 import Button from "./Button";
 import { useUserStore } from "../store/useUserStore";
 import { useAppStore } from "../store/useAppStore";
@@ -61,37 +61,26 @@ export default function Navbar({ onLogout, onHamburger }) {
   })();
 
   return (
-    <header className="z-40 bg-transparent px-6 py-6 sm:px-8">
-      <div className="flex w-full items-center justify-between gap-4">
+    <header className="z-40 bg-transparent px-3 py-4 sm:px-6 sm:py-6 md:px-8">
+      <div className="flex w-full items-center justify-between gap-2 sm:gap-4">
         {/* Left Side: Hamburger & Title */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <button
             type="button"
             onClick={onHamburger}
-            className="inline-flex rounded-xl border border-white/15 bg-white/[0.05] px-3.5 py-3 text-xs text-white/85 transition hover:bg-white/[0.10] hover:text-white hover:border-white/30 lg:hidden animate-pulse"
+            className="inline-flex rounded-xl border border-white/15 bg-white/[0.05] px-2.5 py-2.5 text-xs text-white/85 transition hover:bg-white/[0.10] hover:text-white hover:border-white/30 lg:hidden animate-pulse"
             aria-label="Open menu"
           >
             Menu
           </button>
-          <h1 className="text-2xl font-bold tracking-tight text-white/95">
+          <h1 className="text-lg sm:text-2xl font-bold tracking-tight text-white/95 truncate max-w-[120px] sm:max-w-none">
             {pageTitle}
           </h1>
         </div>
 
-        {/* Center: Search Bar */}
-        <div className="relative hidden w-full max-w-xs md:block">
-          <span className="absolute inset-y-0 left-3.5 flex items-center text-white/45">
-            <Search size={16} />
-          </span>
-          <input
-            type="text"
-            placeholder="Search anything..."
-            className="w-full rounded-full border border-white/15 bg-white/[0.05] py-2.5 pl-10 pr-4 text-xs text-white placeholder-white/45 outline-none transition focus:border-white/30 focus:bg-white/[0.08]"
-          />
-        </div>
 
         {/* Right Side: Action utilities */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-3">
           {/* Reload / Refresh icon button */}
           <button
             type="button"
@@ -199,11 +188,11 @@ export default function Navbar({ onLogout, onHamburger }) {
             {theme === "dark" ? <Sun size={17} /> : <Moon size={17} />}
           </button>
 
-          {/* Currency dropdown selector */}
+          {/* Currency dropdown selector - hidden on small mobile */}
           <select
             value={currency}
             onChange={(e) => setCurrency(e.target.value)}
-            className="rounded-xl border border-white/15 bg-white/[0.05] px-2 py-1.5 text-xs text-white/85 outline-none hover:bg-white/[0.10] hover:border-white/30 transition focus:ring-2 focus:ring-[#84cc16]/15 cursor-pointer max-w-[60px] h-10"
+            className="hidden sm:block rounded-xl border border-white/15 bg-white/[0.05] px-2 py-1.5 text-xs text-white/85 outline-none hover:bg-white/[0.10] hover:border-white/30 transition focus:ring-2 focus:ring-[#84cc16]/15 cursor-pointer max-w-[60px] h-10"
           >
             <option value="INR" className="bg-[#090b0e]">INR</option>
             <option value="USD" className="bg-[#090b0e]">USD</option>
@@ -236,7 +225,7 @@ export default function Navbar({ onLogout, onHamburger }) {
             )}
           </Motion.button>
 
-          <Button variant="ghost" className="hidden sm:inline-flex border border-white/15 bg-white/[0.05] px-4.5 py-2.5 rounded-xl text-xs hover:bg-white/[0.10] hover:border-white/30 text-white/85 hover:text-white" onClick={onLogout}>
+          <Button variant="ghost" className="hidden md:inline-flex border border-white/15 bg-white/[0.05] px-4.5 py-2.5 rounded-xl text-xs hover:bg-white/[0.10] hover:border-white/30 text-white/85 hover:text-white" onClick={onLogout}>
             Logout
           </Button>
         </div>

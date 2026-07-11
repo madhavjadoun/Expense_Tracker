@@ -4,6 +4,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import AnimatedBackground from "./components/AnimatedBackground";
 import Layout from "./components/Layout";
 import Loader from "./components/Loader";
+import SmoothScrollProvider from "./components/SmoothScroll";
 import { useAppStore } from "./store/useAppStore";
 import { Toaster } from "react-hot-toast";
 import { auth } from "./firebase";
@@ -70,7 +71,9 @@ export default function App() {
           path="/"
           element={
             <Suspense fallback={<Loader show label="Loading page…" />}>
-              <LandingPage />
+              <SmoothScrollProvider>
+                <LandingPage />
+              </SmoothScrollProvider>
             </Suspense>
           }
         />

@@ -263,10 +263,10 @@ export default function ExpensesPage() {
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35, ease: "easeOut" }}
-        className="flex items-center justify-between gap-4 border-b border-white/[0.04] pb-4"
+        className="flex flex-wrap items-start sm:items-center justify-between gap-3 border-b border-white/[0.04] pb-4"
       >
         <div>
-          <div className={`flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest ${isLightTheme ? "text-[#84cc16]" : "text-[#EFF2F0]"}`}>
+          <div className={`flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest ${isLightTheme ? "text-[#84cc16]" : "text-[#EFF2F0]"}` }>
             Expenses
             {activeWs && activeWs.id !== "default" && (
               <span className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${
@@ -278,10 +278,10 @@ export default function ExpensesPage() {
               </span>
             )}
           </div>
-          <h2 className="mt-1 text-3xl font-extrabold tracking-tight text-white/95">
+          <h2 className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight text-white/95">
             All Expenses
           </h2>
-          <p className="mt-1 text-sm text-white/40 font-medium">
+          <p className="mt-1 text-xs sm:text-sm text-white/40 font-medium">
             {loading ? "Loading..." : `${expenses.length} total · ${formatMoney(total)} spent`}
           </p>
         </div>
@@ -289,14 +289,14 @@ export default function ExpensesPage() {
           type="button"
           onClick={exportToCSV}
           disabled={visibleExpenses.length === 0}
-          className={`flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.03] px-4 py-2 text-xs font-semibold transition disabled:pointer-events-none disabled:opacity-30 ${
+          className={`flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.03] px-3 sm:px-4 py-2 text-xs font-semibold transition disabled:pointer-events-none disabled:opacity-30 shrink-0 ${
             isLightTheme
               ? "text-white/60 hover:border-[#84cc16]/30 hover:bg-[#84cc16]/10 hover:text-[#84cc16]"
               : "text-white/60 hover:border-white/30 hover:bg-white/10 hover:text-white/90"
           }`}
         >
           <Download size={12} />
-          Export CSV
+          <span className="hidden sm:inline">Export CSV</span>
         </button>
       </Motion.div>
 

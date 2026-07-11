@@ -525,7 +525,7 @@ export default function DashboardPage() {
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: "easeOut" }}
-        className="flex items-center justify-between gap-4 border-b border-white/[0.04] pb-4"
+        className="flex flex-wrap items-start sm:items-center justify-between gap-3 border-b border-white/[0.04] pb-4"
       >
         <div>
           <div className={`text-[11px] font-bold uppercase tracking-widest select-none ${
@@ -533,16 +533,16 @@ export default function DashboardPage() {
           }`}>
             {activeWs?.name || "Personal Finance"} Workspace
           </div>
-          <h2 className="mt-1 text-3xl font-extrabold tracking-tight text-white/95 sm:text-4xl">
+          <h2 className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight text-white/95 sm:text-4xl">
             <Typewriter text={greeting} />
           </h2>
-          <p className="mt-1.5 text-sm text-white/40 font-medium">
+          <p className="mt-1.5 text-xs sm:text-sm text-white/40 font-medium">
             Overview of your financial performance
           </p>
         </div>
         <button
           onClick={() => setQuickAddOpen(true)}
-          className="flex items-center gap-1.5 rounded-full bg-[#111827] border border-transparent hover:border-white/50 text-white px-4 py-2.5 text-xs font-semibold transition active:scale-95 cursor-pointer"
+          className="flex items-center gap-1.5 rounded-full bg-[#111827] border border-transparent hover:border-white/50 text-white px-3 sm:px-4 py-2 sm:py-2.5 text-xs font-semibold transition active:scale-95 cursor-pointer shrink-0"
         >
           <Plus size={14} />
           <span>Add Expense</span>

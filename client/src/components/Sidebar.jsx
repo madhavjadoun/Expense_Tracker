@@ -203,7 +203,7 @@ export default function Sidebar({
       animate={{ width: collapsed ? 84 : 264 }}
       transition={{ type: "spring", stiffness: 320, damping: 30 }}
       className={`sticky top-0 hidden h-screen shrink-0 border-r border-white/[0.05] lg:block transition-colors duration-300 backdrop-blur-md ${
-        theme === "light" ? "bg-[#212b21]/20" : "bg-[#0C0D0F]/45"
+        theme === "light" ? "bg-[#212b21]/88" : "bg-[#0C0D0F]/90"
       }`}
     >
       <SidebarContent

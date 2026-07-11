@@ -33,17 +33,17 @@ export default function Layout({ onLogout }) {
   const theme = useAppStore((s) => s.theme);
 
   return (
-    <div className="min-h-screen">
+    <div className="h-screen overflow-hidden">
       {/* Premium layout background */}
       <div className="pointer-events-none fixed inset-0 -z-20 overflow-hidden bg-gradient-to-b from-[#101E16] via-[#263D2B] to-[#859E7A]" />
-      <div className="mx-auto flex min-h-screen w-full">
+      <div className="mx-auto flex h-full w-full overflow-hidden">
         <Sidebar
           collapsed={ui?.sidebarCollapsed}
           onToggleCollapsed={toggleSidebarCollapsed}
           onHelpOpen={() => setHelpOpen(true)}
         />
 
-        <div className={`flex min-w-0 flex-1 flex-col m-3 lg:m-4 rounded-[28px] border transition-all duration-300 backdrop-blur-xl ${
+        <div className={`flex min-w-0 flex-1 flex-col m-2 sm:m-3 lg:m-4 rounded-[20px] sm:rounded-[28px] border transition-all duration-300 backdrop-blur-xl ${
           theme === "light"
             ? "bg-[#0e130e]/82 border-white/[0.08]"
             : "bg-[#0B0C0F]/82 border-white/[0.05]"

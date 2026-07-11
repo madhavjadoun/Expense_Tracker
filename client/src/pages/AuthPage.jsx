@@ -29,6 +29,8 @@ function passwordStrength(p = "") {
 const CLIP_LOGIN  = "polygon(0 0, 100% 0, 88% 100%, 0 100%)";
 const CLIP_SIGNUP = "polygon(12% 0, 100% 0, 100% 100%, 0 100%)";
 
+/* Mobile: hide image, show full-width form */
+
 /* ── Framer spring ──────────────────────────────────────── */
 const PANEL_SPRING = { type: "spring", stiffness: 340, damping: 38, mass: 1 };
 
@@ -99,13 +101,10 @@ export default function AuthPage({ onAuthSuccess, initialMode = "login" }) {
     <div className="relative flex min-h-screen w-full overflow-hidden bg-[#0D1810]">
 
       {/* ════════════════════════════════════════════════════
-          IMAGE PANEL  (52% wide, 14° SVG clip-path edge)
-          Slides left↔right on mode change via x animation
+          IMAGE PANEL  (hidden on mobile, 52% on md+)
       ════════════════════════════════════════════════════ */}
-      <Motion.div
-        key="image-panel-wrapper"
-        layout
-        animate={{ x: 0 }}
+      <div
+        className="hidden md:block"
         style={{
           position:    "absolute",
           top:         0,
@@ -115,7 +114,6 @@ export default function AuthPage({ onAuthSuccess, initialMode = "login" }) {
           height:      "100%",
           zIndex:      10,
         }}
-        transition={PANEL_SPRING}
       >
         {/* Clip container — SVG polygon for crisp angled edge */}
         <div
@@ -178,10 +176,22 @@ export default function AuthPage({ onAuthSuccess, initialMode = "login" }) {
             </span>
           </Motion.div>
         </div>
-      </Motion.div>
+      </div>
+
+      {/* Mobile background image (subtle) — shows on small screens only */}
+      <div
+        className="absolute inset-0 md:hidden"
+        style={{
+          backgroundImage: `url(${isLogin ? "/auth_login.png" : "/auth_signup.png"})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          opacity: 0.15,
+          zIndex: 0,
+        }}
+      />
 
       {/* ════════════════════════════════════════════════════
-          FORM PANEL  (48% wide, positioned on opposite side)
+          FORM PANEL  (full width on mobile, 48% on md+)
       ════════════════════════════════════════════════════ */}
       <Motion.div
         key="form-panel"
@@ -190,19 +200,9 @@ export default function AuthPage({ onAuthSuccess, initialMode = "login" }) {
           opacity: isLeaving ? 0 : 1,
         }}
         transition={{ ...PANEL_SPRING, opacity: { duration: 0.25 } }}
-        style={{
-          position:       "absolute",
-          top:            0,
-          left:           isLogin ? "auto" : 0,
-          right:          isLogin ? 0 : "auto",
-          width:          "48%",
-          height:         "100%",
-          display:        "flex",
-          alignItems:     "center",
-          justifyContent: "center",
-          padding:        "40px",
-          zIndex:         20,
-        }}
+        className={`relative z-20 flex min-h-screen w-full items-center justify-center px-5 py-10 md:absolute md:top-0 md:h-full md:w-[48%] md:px-10 ${
+          isLogin ? "md:right-0 md:left-auto" : "md:left-0 md:right-auto"
+        }`}
       >
         <div style={{ width: "100%", maxWidth: 380 }}>
           {/* InsightX wordmark */}
