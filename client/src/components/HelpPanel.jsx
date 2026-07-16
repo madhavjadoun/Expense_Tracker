@@ -77,7 +77,7 @@ export default function HelpPanel({ open, onClose }) {
   // AI Chat state
   /** @type {[ChatMessage[], React.Dispatch<React.SetStateAction<ChatMessage[]>>]} */
   const [chatMessages, setChatMessages] = useState([
-    { sender: "assistant", text: "Hi! I'm your Expense Tracker Assistant. How can I help you today?" }
+    { sender: "assistant", text: "Hi! I'm Nova, how can I assist you?" }
   ]);
   const [chatInput, setChatInput] = useState("");
   const [isAiTyping, setIsAiTyping] = useState(false);
@@ -321,7 +321,7 @@ export default function HelpPanel({ open, onClose }) {
       <Modal
         open={isAiOpen}
         onClose={() => setIsAiOpen(false)}
-        title="AI Help Assistant"
+        title="NOVA AI"
         maxWidth="max-w-md"
       >
         <div className="flex flex-col h-[480px]">
