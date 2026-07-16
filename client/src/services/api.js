@@ -4,8 +4,21 @@ import { auth } from "../firebase";
 
 // Central API utility (frontend ↔ backend)
 // Base URL: from env or fallback
+const getBaseURL = () => {
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  if (typeof window !== "undefined") {
+    if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+      return "http://localhost:5001";
+    }
+    return window.location.origin;
+  }
+  return "https://expense-tracker-rouge-chi-43.vercel.app";
+};
+
 const client = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "https://expense-tracker-rouge-chi-43.vercel.app",
+  baseURL: getBaseURL(),
   headers: {
     "Content-Type": "application/json",
   },

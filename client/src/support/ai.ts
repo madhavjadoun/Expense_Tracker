@@ -38,7 +38,19 @@ export async function sendChatMessage(userMessage: string): Promise<string> {
   }
 
   // Fallback to Express backend `/api/support` if no exact local match exists
-  const baseUrl = import.meta.env.VITE_API_URL || "https://expense-tracker-rouge-chi-43.vercel.app";
+  const getBaseURL = () => {
+    if (import.meta.env.VITE_API_URL) {
+      return import.meta.env.VITE_API_URL;
+    }
+    if (typeof window !== "undefined") {
+      if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+        return "http://localhost:5001";
+      }
+      return window.location.origin;
+    }
+    return "https://expense-tracker-rouge-chi-43.vercel.app";
+  };
+  const baseUrl = getBaseURL();
   const response = await fetch(`${baseUrl}/api/support`, {
     method: "POST",
     headers: {

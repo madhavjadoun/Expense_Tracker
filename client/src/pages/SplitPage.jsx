@@ -78,6 +78,9 @@ function Avatar({ name, size = "sm" }) {
 
 // ─── Balance chip ─────────────────────────────────────────────────────────────
 function BalChip({ value, fmt }) {
+  const theme = useAppStore((s) => s.theme);
+  const isLightTheme = theme === "light";
+
   if (Math.abs(value) < 0.01) {
     return (
       <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] font-medium text-white/40">
