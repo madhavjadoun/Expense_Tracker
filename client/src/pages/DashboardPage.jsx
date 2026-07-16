@@ -64,21 +64,24 @@ function CustomTooltip({ active, payload, formatMoney }) {
 }
 
 export default function DashboardPage() {
-  const currency = useAppStore((s) => s.currency);
-  const formatMoney = useMemo(() => {
-    return (n) =>
-      new Intl.NumberFormat("en-IN", {
-        style: "currency",
-        currency,
-        maximumFractionDigits: 0,
-      }).format(n);
-  }, [currency]);
+  const formatMoney = useAppStore((s) => s.formatMoney);
 
   const userName = useAppStore((s) => s.user?.name || "User");
-  const allExpenses        = useAppStore((s) => s.expenses);
+  const allExpensesRaw     = useAppStore((s) => s.expenses);
+  const rates              = useAppStore((s) => s.rates);
+  const currency           = useAppStore((s) => s.currency);
+  
+  const allExpenses = useMemo(() => {
+    const rate = rates["INR"]?.[currency] || 1;
+    if (rate === 1) return allExpensesRaw;
+    return allExpensesRaw.map((e) => ({
+      ...e,
+      amount: Math.round(e.amount * rate * 100) / 100,
+    }));
+  }, [allExpensesRaw, rates, currency]);
+
   const loading            = useAppStore((s) => s.loading?.expenses);
   const error              = useAppStore((s) => s.error?.expenses);
-  const budgetMonthly      = useAppStore((s) => s.budgetMonthly);      // default workspace (MongoDB)
   const setBudgetMonthly   = useAppStore((s) => s.setBudgetMonthly);
   const workspaceBudgets   = useAppStore((s) => s.workspaceBudgets);   // other workspaces (localStorage)
   const setWorkspaceBudget = useAppStore((s) => s.setWorkspaceBudget);
@@ -113,10 +116,8 @@ export default function DashboardPage() {
     : "bg-[#1b1b1d] border border-white/[0.05] shadow-[0_8px_30px_rgba(0,0,0,0.3)] hover:border-white/12 transition-all duration-300";
 
   // Effective budget for the active workspace
-  const isDefaultWs     = activeWorkspaceId === "default";
-  const effectiveBudget = isDefaultWs
-    ? budgetMonthly
-    : (workspaceBudgets[activeWorkspaceId] ?? 0);
+  const isDefaultWs = activeWorkspaceId === "default";
+  const effectiveBudget = useAppStore((s) => s.getConvertedBudget(activeWorkspaceId));
 
   function saveEffectiveBudget(value) {
     if (isDefaultWs) {

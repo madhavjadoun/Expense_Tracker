@@ -43,16 +43,16 @@ function SidebarContent({ collapsed, onToggleCollapsed, onNavigate, onHelpOpen, 
         <div className={`flex min-w-0 items-center gap-3 ${collapsed ? "justify-center" : ""}`}>
           {collapsed ? (
             <img
-              src={isLightTheme ? "/icon_black.png" : "/icon_white.png"}
-              alt="Fintra Logo"
-              style={{ height: "24px", width: "auto" }}
+              src={isLightTheme ? "/icon_black.svg" : "/icon_white.svg"}
+              alt="Arthaa Logo"
+              style={{ height: "30px", width: "auto" }}
               className="object-contain"
             />
           ) : (
             <img
-              src={isLightTheme ? "/logo_black.png" : "/logo_white.png"}
-              alt="Fintra Logo"
-              style={{ height: "24px", width: "auto", maxWidth: "100px" }}
+              src={isLightTheme ? "/logo_black.svg" : "/logo_white.svg"}
+              alt="Arthaa Logo"
+              style={{ height: "32px", width: "auto", maxWidth: "130px" }}
               className="object-contain"
             />
           )}

@@ -702,7 +702,7 @@ export default function LandingPage() {
         {/* Header */}
         <header className={`lp-header ${isScrolled ? "scrolled" : ""}`}>
           <div className="lp-logo" onClick={() => navigate("/")}>
-            <img src="/logo_black.png" alt="Fintra Logo" style={{ height: "28px", width: "auto", objectFit: "contain" }} />
+            <img src="/logo_black.svg" alt="Arthaa Logo" style={{ height: "38px", width: "auto", objectFit: "contain" }} />
           </div>
           <div className="lp-nav-actions">
             <button className="lp-btn-login" onClick={() => navigate("/login")}>
@@ -716,7 +716,7 @@ export default function LandingPage() {
 
         {/* Hero Section */}
         <section className="lp-hero">
-          <h1>Simplify Your Expenses. Settle Your Splits.</h1>
+          <h1>Money Without the Mess</h1>
           <p>
             Track your personal budgets, split bills with friends, and manage your shared expenses all in one beautiful workspace.
           </p>

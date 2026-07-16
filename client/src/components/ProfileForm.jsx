@@ -1,16 +1,134 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion as Motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { reauthenticateWithCredential, EmailAuthProvider } from "firebase/auth";
 import { auth } from "../firebase";
-import PhoneInput from "react-phone-input-2";
-import "react-phone-input-2/lib/style.css";
 import { Camera, Eye, EyeOff, Upload, X, Trash2, AlertTriangle } from "lucide-react";
 import Input from "./Input";
 import Button from "./Button";
 import { useUserStore } from "../store/useUserStore";
 import { useAppStore } from "../store/useAppStore";
 import { api } from "../services/api";
+
+const COUNTRIES = [
+  { code: "in", dialCode: "+91", flag: "🇮🇳", name: "India" },
+  { code: "us", dialCode: "+1", flag: "🇺🇸", name: "United States" },
+  { code: "gb", dialCode: "+44", flag: "🇬🇧", name: "United Kingdom" }
+];
+
+function parsePhone(phoneString) {
+  const normalized = phoneString || "";
+  if (normalized.startsWith("+44")) {
+    return { country: COUNTRIES[2], number: normalized.substring(3) };
+  }
+  if (normalized.startsWith("+91")) {
+    return { country: COUNTRIES[0], number: normalized.substring(3) };
+  }
+  if (normalized.startsWith("+1")) {
+    return { country: COUNTRIES[1], number: normalized.substring(2) };
+  }
+  return { country: COUNTRIES[0], number: normalized.replace(/^\+/, "") };
+}
+
+function CustomPhoneInput({ value, onChange, disabled }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  const { country, number } = useMemo(() => parsePhone(value), [value]);
+
+  useEffect(() => {
+    function handleOutsideClick(e) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setIsOpen(false);
+      }
+    }
+    if (isOpen) {
+      document.addEventListener("mousedown", handleOutsideClick);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+    };
+  }, [isOpen]);
+
+  const handleCountrySelect = (selectedCountry) => {
+    setIsOpen(false);
+    onChange(`${selectedCountry.dialCode}${number}`);
+  };
+
+  const handleNumberChange = (e) => {
+    const rawNumber = e.target.value.replace(/\D/g, "");
+    onChange(`${country.dialCode}${rawNumber}`);
+  };
+
+  return (
+    <div className="relative w-full flex items-center" ref={dropdownRef}>
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => setIsOpen(!isOpen)}
+        className="absolute left-1.5 z-10 flex h-7 items-center gap-1.5 rounded-lg px-2 text-sm text-white/90 hover:bg-white/5 active:scale-95 transition-all outline-none disabled:opacity-50 disabled:pointer-events-none"
+        style={{ top: "6px" }}
+      >
+        <span className="no-invert inline-block text-base leading-none">{country.flag}</span>
+        <svg
+          className={`h-3 w-3 text-white/40 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={2.5}
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      <input
+        type="tel"
+        value={number}
+        disabled={disabled}
+        onChange={handleNumberChange}
+        placeholder="Enter mobile number"
+        className="w-full h-10 rounded-xl border border-white/10 bg-white/5 text-sm text-white pl-[58px] pr-3 outline-none transition-colors focus:border-white/20 disabled:opacity-60"
+      />
+
+      <AnimatePresence>
+        {isOpen && (
+          <Motion.div
+            initial={{ opacity: 0, y: 8, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 8, scale: 0.95 }}
+            transition={{ type: "spring", stiffness: 350, damping: 25 }}
+            className="absolute left-0 top-full z-20 mt-2 w-[220px] rounded-xl border border-white/[0.08] bg-[#16181b]/95 backdrop-blur-xl p-1.5 shadow-2xl overflow-hidden"
+            style={{
+              boxShadow: "0 16px 40px -10px rgba(0, 0, 0, 0.6)"
+            }}
+          >
+            {COUNTRIES.map((c) => {
+              const isSelected = c.code === country.code;
+              return (
+                <button
+                  key={c.code}
+                  type="button"
+                  onClick={() => handleCountrySelect(c)}
+                  className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition-colors duration-150 ${
+                    isSelected
+                      ? "bg-white/10 text-white font-medium"
+                      : "text-white/70 hover:bg-white/5 hover:text-white"
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <span className="no-invert inline-block text-base leading-none">{c.flag}</span>
+                    <span className="font-normal">{c.name}</span>
+                  </div>
+                  <span className="text-xs text-white/40">{c.dialCode}</span>
+                </button>
+              );
+            })}
+          </Motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
 
 function isValidEmail(v) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
@@ -100,7 +218,6 @@ function PhotoMenu({ hasPhoto, onView, onUpload, onClose }) {
 export default function ProfileForm() {
   const ResolvedInput      = typeof Input      === "function" ? Input      : Input?.default;
   const ResolvedButton     = typeof Button     === "function" ? Button     : Button?.default;
-  const ResolvedPhoneInput = typeof PhoneInput === "function" ? PhoneInput : PhoneInput?.default;
 
   const profile       = useUserStore((s) => s.profile);
   const avatar        = useUserStore((s) => s.avatar);
@@ -136,8 +253,7 @@ export default function ProfileForm() {
 
   const hasInvalidComponents =
     typeof ResolvedInput !== "function" ||
-    typeof ResolvedButton !== "function" ||
-    typeof ResolvedPhoneInput !== "function";
+    typeof ResolvedButton !== "function";
 
   const initials = useMemo(() => {
     return (
@@ -407,22 +523,10 @@ export default function ProfileForm() {
 
             <label className="block space-y-1">
               <span className="text-xs font-medium text-white/70">Mobile Number</span>
-              <ResolvedPhoneInput
-                country="in"
-                onlyCountries={["in", "us", "gb"]}
-                preferredCountries={["in", "us", "gb"]}
-                value={(display.mobile || "").replace(/^\+/, "")}
+              <CustomPhoneInput
+                value={display.mobile || ""}
                 disabled={!editing}
-                onChange={(val) => update("mobile", `+${val}`)}
-                inputProps={{ name: "mobile" }}
-                containerClass="!w-full relative"
-                buttonClass="!border-transparent !bg-transparent !pl-2 hover:!bg-white/5 !rounded-l-xl"
-                inputClass="!w-full !h-10 !rounded-xl !border !border-white/10 !bg-white/5 !text-sm !text-white !pl-12 !outline-none transition-colors"
-                dropdownClass={`!max-w-[250px] !rounded-xl !border !text-gray-800 dark:!text-white ${
-                  isLightTheme
-                    ? "!border-gray-200 !bg-white"
-                    : "!border-white/[0.06] bg-gradient-to-b !from-[#1C1F23] !to-[#181A1E]"
-                }`}
+                onChange={(val) => update("mobile", val)}
               />
               {errors.mobile && <p className="mt-1 text-xs text-rose-300">{errors.mobile}</p>}
             </label>

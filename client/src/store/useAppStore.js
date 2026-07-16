@@ -7,7 +7,7 @@ import {
   updateProfile,
 } from "firebase/auth";
 import { auth } from "../firebase";
-import { notify, useNotificationStore } from "./useNotificationStore";
+import { notify } from "./useNotificationStore";
 import { useUserStore } from "./useUserStore";
 import { generateInsights } from "../utils/budgetInsights";
 import { useWorkspaceStore } from "./useWorkspaceStore";
@@ -107,6 +107,41 @@ export const useAppStore = create((set, get) => ({
     set({ currency });
   },
 
+  rates: {
+    INR: { INR: 1, USD: 0.012, EUR: 0.011 },
+    USD: { INR: 83.5, USD: 1, EUR: 0.92 },
+    EUR: { INR: 91.0, USD: 1.09, EUR: 1 }
+  },
+
+  fetchRates: async () => {
+    try {
+      const res = await api.fetchRates();
+      if (res && res.rates) {
+        set({ rates: res.rates });
+      }
+    } catch (e) {
+      console.warn("Failed to fetch exchange rates, using fallback:", e.message);
+    }
+  },
+
+
+  getConvertedBudget: (workspaceId) => {
+    const isDefault = workspaceId === "default";
+    const rawBudget = isDefault ? get().budgetMonthly : (get().workspaceBudgets[workspaceId] ?? 0);
+    const rate = get().rates["INR"]?.[get().currency] || 1;
+    return Math.round(rawBudget * rate);
+  },
+
+  formatMoney: (amount, maximumFractionDigits = 0) => {
+    const currency = get().currency;
+    const locale = currency === "INR" ? "en-IN" : "en-US";
+    return new Intl.NumberFormat(locale, {
+      style: "currency",
+      currency,
+      maximumFractionDigits
+    }).format(amount);
+  },
+
   ui: {
     sidebarOpen: false, // mobile drawer
     sidebarCollapsed: false, // desktop
@@ -179,7 +214,7 @@ export const useAppStore = create((set, get) => ({
     if (typeof window !== "undefined") {
       localStorage.setItem("activeSessionUid", uid);
     }
-    useNotificationStore.getState().reloadFromStorage();
+    get().fetchRates();
 
     // Pre-seed budget from localStorage (fast-path, already done in initial state
     // but re-applied here to handle user switching on the same device).
@@ -225,15 +260,20 @@ export const useAppStore = create((set, get) => ({
   setBudgetMonthly: (nextBudget) => {
     const budget = Number(nextBudget);
     const safeBudget = Number.isFinite(budget) ? budget : 0;
+    
+    // Convert active currency budget to base INR currency for database storage
+    const rate = get().rates[get().currency]?.["INR"] || 1;
+    const safeBudgetInINR = safeBudget * rate;
+
     const uid = get().user?.uid;
     const prevProfile = useUserStore.getState().profile;
-    useUserStore.getState().setProfile({ ...prevProfile, monthlyBudget: safeBudget });
+    useUserStore.getState().setProfile({ ...prevProfile, monthlyBudget: safeBudgetInINR });
     // Persist locally first so the value survives navigation without a server round-trip.
-    if (uid) saveCachedBudget(uid, safeBudget);
+    if (uid) saveCachedBudget(uid, safeBudgetInINR);
 
     const expenses = get().expenses;
-    const insights = generateInsights(expenses, safeBudget);
-    set({ budgetMonthly: safeBudget, insights });
+    const insights = generateInsights(expenses, safeBudgetInINR);
+    set({ budgetMonthly: safeBudgetInINR, insights });
 
     const wasNotified = get().budgetExceededNotified;
     const isExceeded = insights?.budgetStatus === "exceeded";
@@ -251,7 +291,7 @@ export const useAppStore = create((set, get) => ({
       }
       budgetSaveTimeout = setTimeout(async () => {
         try {
-          await api.saveProfile({ monthlyBudget: safeBudget });
+          await api.saveProfile({ monthlyBudget: safeBudgetInINR });
         } catch {
           // offline / server down — local cache still updated
         }
@@ -337,7 +377,6 @@ export const useAppStore = create((set, get) => ({
         localStorage.removeItem("xpense_active_workspace");
         localStorage.removeItem("xpense_current_plan");
       }
-      useNotificationStore.getState().clearAll();
       useUserStore.getState().resetForLogout();
       // Reset workspace in-memory state (uid-scoped LS keys are preserved for next login).
       useWorkspaceStore.getState().resetForLogout();
@@ -430,7 +469,6 @@ export const useAppStore = create((set, get) => ({
     try { await signOut(auth); } catch { /* ignore — token already invalidated */ }
 
     // ── 4. Reset all store slices ─────────────────────────────────────────────
-    useNotificationStore.getState().clearAll();
     useUserStore.getState().resetForLogout();
     useWorkspaceStore.getState().resetForLogout();
     useSplitStore.getState().resetForLogout();
@@ -483,10 +521,14 @@ export const useAppStore = create((set, get) => ({
     // ── Workspace tag ───────────────────────────────────────────────────
     const workspaceId = draftExpense.workspaceId ?? "default";
 
+    // Convert input amount from active currency to base INR currency for database storage
+    const rate = get().rates[get().currency]?.["INR"] || 1;
+    const amountInINR = Number(draftExpense.amount) * rate;
+
     const tempId = crypto.randomUUID();
     const optimistic = {
       id:          tempId,
-      amount:      Number(draftExpense.amount),
+      amount:      amountInINR,
       category:    draftExpense.category,
       note:        draftExpense.note || "",
       date:        new Date().toISOString(),
@@ -546,8 +588,10 @@ export const useAppStore = create((set, get) => ({
 
   /** Per-workspace budget (non-default workspaces only). */
   setWorkspaceBudget: (workspaceId, amount) => {
-    const safe = Number(amount) || 0;
-    const next = { ...get().workspaceBudgets, [workspaceId]: safe };
+    const budget = Number(amount) || 0;
+    const rate = get().rates[get().currency]?.["INR"] || 1;
+    const budgetInINR = budget * rate;
+    const next = { ...get().workspaceBudgets, [workspaceId]: budgetInINR };
     saveJSON(WS_BUDGETS_KEY, next);
     set({ workspaceBudgets: next });
   },
@@ -594,8 +638,16 @@ export const useAppStore = create((set, get) => ({
     const prev        = get().expenses;
     // Preserve workspaceId through the update — never let backend data overwrite it
     const existingWs  = prev.find((e) => e.id === id)?.workspaceId ?? "default";
+    
+    // Convert patch amount to base INR currency
+    const convertedPatch = { ...patch };
+    if (patch.amount !== undefined) {
+      const rate = get().rates[get().currency]?.["INR"] || 1;
+      convertedPatch.amount = Number(patch.amount) * rate;
+    }
+
     const nextExpenses = prev
-      .map((e) => (e.id === id ? { ...e, ...patch, workspaceId: existingWs } : e))
+      .map((e) => (e.id === id ? { ...e, ...convertedPatch, workspaceId: existingWs } : e))
       .slice()
       .sort(sortByDateDesc);
     const insights    = generateInsights(nextExpenses, get().budgetMonthly);
@@ -609,7 +661,7 @@ export const useAppStore = create((set, get) => ({
       set({ budgetExceededNotified: false });
     }
     try {
-      const saved = await api.updateExpense(id, patch);
+      const saved = await api.updateExpense(id, convertedPatch);
       set((s) => {
         const updated = s.expenses
           // Preserve workspaceId — backend response doesn't include it
@@ -625,4 +677,3 @@ export const useAppStore = create((set, get) => ({
     }
   },
 }));
-

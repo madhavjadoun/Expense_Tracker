@@ -79,6 +79,16 @@ export const api = {
     }
   },
 
+  async fetchRates() {
+    try {
+      const res = await client.get("/api/currencies/rates");
+      return res.data;
+    } catch (error) {
+      console.error("API fetchRates Error:", error);
+      throw error;
+    }
+  },
+
   async saveProfile(payload) {
     try {
       const res = await client.put("/api/profile", payload);

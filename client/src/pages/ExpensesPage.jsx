@@ -18,17 +18,20 @@ const categories = [
 ];
 
 export default function ExpensesPage() {
-  const currency = useAppStore((s) => s.currency);
-  const formatMoney = useMemo(() => {
-    return (n) =>
-      new Intl.NumberFormat("en-IN", {
-        style: "currency",
-        currency,
-        maximumFractionDigits: 0,
-      }).format(n);
-  }, [currency]);
+  const formatMoney = useAppStore((s) => s.formatMoney);
+  const allExpensesRaw     = useAppStore((s) => s.expenses);
+  const rates              = useAppStore((s) => s.rates);
+  const currency           = useAppStore((s) => s.currency);
+  
+  const allExpenses = useMemo(() => {
+    const rate = rates["INR"]?.[currency] || 1;
+    if (rate === 1) return allExpensesRaw;
+    return allExpensesRaw.map((e) => ({
+      ...e,
+      amount: Math.round(e.amount * rate * 100) / 100,
+    }));
+  }, [allExpensesRaw, rates, currency]);
 
-  const allExpenses = useAppStore((s) => s.expenses);
   const loading = useAppStore((s) => s.loading?.expenses);
   const error = useAppStore((s) => s.error?.expenses);
   const fetchExpenses = useAppStore((s) => s.fetchExpenses);

@@ -57,8 +57,18 @@ function DarkTooltipContent({ active, payload, label, total, currency }) {
 export default function AnalyticsPage() {
   const loading  = useAppStore((s) => s.loading?.expenses);
   const error    = useAppStore((s) => s.error?.expenses);
-  const allExpenses = useAppStore((s) => s.expenses);
-  const currency = useAppStore((s) => s.currency);
+  const allExpensesRaw     = useAppStore((s) => s.expenses);
+  const rates              = useAppStore((s) => s.rates);
+  const currency           = useAppStore((s) => s.currency);
+  
+  const allExpenses = useMemo(() => {
+    const rate = rates["INR"]?.[currency] || 1;
+    if (rate === 1) return allExpensesRaw;
+    return allExpensesRaw.map((e) => ({
+      ...e,
+      amount: Math.round(e.amount * rate * 100) / 100,
+    }));
+  }, [allExpensesRaw, rates, currency]);
 
   // Filter expenses to the active workspace (same as Dashboard & Expenses pages)
   const activeWorkspaceId = useWorkspaceStore((s) => s.activeWorkspaceId);
@@ -218,14 +228,7 @@ export default function AnalyticsPage() {
     other: "rgba(16,185,129,.55)", // emerald-variant
   };
 
-  const money = useMemo(() => {
-    return (n) =>
-      new Intl.NumberFormat("en-IN", {
-        style: "currency",
-        currency,
-        maximumFractionDigits: 0,
-      }).format(n);
-  }, [currency]);
+  const money = useAppStore((s) => s.formatMoney);
 
   const theme = useAppStore((s) => s.theme);
   const isLightTheme = theme === "light";

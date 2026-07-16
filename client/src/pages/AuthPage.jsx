@@ -623,7 +623,7 @@ export default function AuthPage({ onAuthSuccess, initialMode = "login" }) {
 
           {/* ── Logo top-left ── */}
           <div className="ax-topbar" style={{ cursor: "pointer" }} onClick={() => navigate("/")}>
-            <img src="/logo_black.png" alt="Fintra Logo" style={{ height: "28px", width: "auto", objectFit: "contain" }} />
+            <img src="/logo_black.svg" alt="Arthaa Logo" style={{ height: "38px", width: "auto", objectFit: "contain" }} />
           </div>
 
           {/* ── Body ── */}

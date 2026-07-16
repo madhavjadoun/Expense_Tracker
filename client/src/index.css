@@ -168,42 +168,7 @@ html:not(.dark) .no-invert {
   filter: invert(1) hue-rotate(180deg);
 }
 
-/* Phone input elements */
-html:not(.dark) .react-tel-input .country-list,
-html:not(.dark) .react-tel-input .selected-flag .flag {
-  filter: invert(1) hue-rotate(180deg);
-}
 
-.react-tel-input .country-list {
-  margin-top: 6px !important;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
-  @apply rounded-xl border border-white/10;
-}
-
-.react-tel-input .country-list .country {
-  padding: 8px 12px !important;
-  display: flex !important;
-  align-items: center !important;
-  transition: background-color 0.15s ease;
-}
-
-.react-tel-input .country-list .country .flag {
-  margin-top: 0 !important;
-}
-
-.react-tel-input .country-list .country .country-name {
-  margin-left: 10px !important;
-  margin-right: 6px !important;
-  font-size: 0.85rem;
-}
-
-.react-tel-input .country-list .country:hover {
-  background-color: rgba(148, 163, 184, 0.15) !important;
-}
-
-.react-tel-input .country-list .country.highlight {
-  background-color: rgba(148, 163, 184, 0.25) !important;
-}
 
 /* ─── Apple-Inspired Typography Hierarchy ─── */
 

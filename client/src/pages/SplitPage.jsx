@@ -35,13 +35,7 @@ import {
 // ─── Tiny helpers ─────────────────────────────────────────────────────────────
 
 function useFmt() {
-  const currency = useAppStore((s) => s.currency);
-  return (n) =>
-    new Intl.NumberFormat("en-IN", {
-      style: "currency",
-      currency,
-      maximumFractionDigits: 0,
-    }).format(n);
+  return useAppStore((s) => s.formatMoney);
 }
 
 function formatDateTime(iso) {

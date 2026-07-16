@@ -112,5 +112,12 @@ export const FAQ_ITEMS: FAQItem[] = [
     question: "How do I reset my account password?",
     answer: "If you want to change your password, click 'Logout' in the top-right, go to the Login screen, click the 'Forgot Password' link, and enter your email address to receive a secure password reset link.",
     keywords: ["reset", "password", "forgot", "change", "login", "auth", "email"]
+  },
+  {
+    id: "currency-conversion",
+    category: "workspaces",
+    question: "How does currency conversion work in Arthaa?",
+    answer: "Arthaa automatically pulls real-time exchange rates (USD, EUR, INR) from a live market API in the backend. When you switch your display currency in the top navbar, your expense history, category breakdowns, and monthly budget limits convert instantly using these latest rates, allowing you to see your finances in your preferred currency.",
+    keywords: ["currency", "conversion", "rate", "exchange", "market", "conversion rate", "live rates", "usd", "inr", "eur"]
   }
 ];
