@@ -7,7 +7,7 @@ import { useAppStore } from "../store/useAppStore";
 import { useNotificationStore } from "../store/useNotificationStore";
 import { useState, useEffect, useRef } from "react";
 
-export default function Navbar({ onLogout, onHamburger }) {
+export default function Navbar({ onLogout, onHamburger, isScrolled }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [notifOpen, setNotifOpen] = useState(false);
@@ -61,39 +61,58 @@ export default function Navbar({ onLogout, onHamburger }) {
   })();
 
   return (
-    <header className="z-40 bg-transparent px-3 py-4 sm:px-6 sm:py-6 md:px-8">
+    <header className={`absolute top-0 left-0 right-0 z-40 transition-all duration-300 border-b px-3 py-4 sm:px-6 sm:py-5 md:px-8 rounded-t-[20px] sm:rounded-t-[28px] ${
+      isScrolled 
+        ? `backdrop-blur-xl shadow-[0_4px_30px_rgba(0,0,0,0.03)] ${isLightTheme ? 'bg-[#0e130e]/80 border-white/[0.08]' : 'bg-[#0B0C0F]/80 border-white/[0.05]'}`
+        : 'bg-transparent border-transparent'
+    }`}>
       <div className="flex w-full items-center justify-between gap-2 sm:gap-4">
         {/* Left Side: Hamburger & Title */}
         <div className="flex items-center gap-2 sm:gap-3">
           <button
             type="button"
-            onClick={onHamburger}
-            className="inline-flex rounded-xl border border-white/15 bg-white/[0.05] px-2.5 py-2.5 text-xs text-white/85 transition hover:bg-white/[0.10] hover:text-white hover:border-white/30 lg:hidden animate-pulse"
+            onClick={(e) => { e.stopPropagation(); onHamburger(); }}
+            className="inline-flex rounded-xl border border-white/15 bg-white/[0.05] px-2.5 py-2.5 text-xs text-white/85 transition hover:bg-white/[0.10] hover:text-white hover:border-white/30 lg:hidden"
             aria-label="Open menu"
           >
-            Menu
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <line x1="3" y1="12" x2="21" y2="12" />
+              <line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
           </button>
-          <h1 className="text-lg sm:text-2xl font-bold tracking-tight text-white/95 truncate max-w-[120px] sm:max-w-none">
+          {/* Fintra logo for mobile — hidden on lg desktop since sidebar is visible */}
+          <div
+            onClick={() => navigate("/dashboard")}
+            className="flex items-center gap-2 cursor-pointer lg:hidden"
+          >
+            <img
+              src={isLightTheme ? "/logo_black.png" : "/logo_white.png"}
+              alt="Fintra Logo"
+              style={{ height: "24px", width: "auto", maxWidth: "95px" }}
+              className="object-contain"
+            />
+          </div>
+          {/* Page title — hidden on mobile/tablet, visible on desktop */}
+          <h1 className="hidden lg:block text-2xl font-bold tracking-tight text-white/95 truncate">
             {pageTitle}
           </h1>
         </div>
 
-
         {/* Right Side: Action utilities */}
         <div className="flex items-center gap-1.5 sm:gap-3">
-          {/* Reload / Refresh icon button */}
+
+          {/* Reload — hidden on mobile, visible sm+ */}
           <button
             type="button"
             onClick={() => window.location.reload()}
-            className="grid h-10 w-10 place-items-center rounded-full border border-white/15 bg-white/[0.05] text-white/85 hover:text-white hover:bg-white/[0.10] hover:border-white/30 transition cursor-pointer"
+            className="hidden sm:grid h-10 w-10 place-items-center rounded-full border border-white/15 bg-white/[0.05] text-white/85 hover:text-white hover:bg-white/[0.10] hover:border-white/30 transition cursor-pointer"
             title="Reload application"
           >
             <RefreshCw size={17} />
           </button>
 
-
-
-          {/* Notifications button */}
+          {/* Notifications — always visible */}
           <div className="relative" ref={notifRef}>
             <button
               type="button"
@@ -116,27 +135,25 @@ export default function Navbar({ onLogout, onHamburger }) {
                   initial={{ opacity: 0, y: 8, scale: 0.98 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 8, scale: 0.98 }}
-                  transition={{ duration: 0.18, ease: "easeOut" }}
-                  className={`absolute right-0 mt-2 w-80 rounded-2xl border border-white/[0.12] p-3 shadow-[0_20px_60px_rgba(0,0,0,.65)] backdrop-blur-xl ${
-                    isLightTheme ? "bg-[#0d0f14]/95" : "bg-[#15171A]/95"
+                  transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+                  className={`fixed inset-x-4 top-20 w-auto sm:absolute sm:left-auto sm:right-0 sm:top-auto sm:mt-3 sm:w-80 rounded-2xl border border-white/[0.08] p-4 shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur-2xl z-50 ${
+                    isLightTheme ? "bg-[#090B0A]/95" : "bg-[#0C0D0F]/95"
                   }`}
                 >
-                  <div className="mb-2 flex items-center justify-between">
-                    <div className="text-xs font-semibold text-white/85">
-                      Notifications
-                    </div>
-                    <div className="flex items-center gap-2">
+                  <div className="mb-3 flex items-center justify-between">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-white/40">Notifications</div>
+                    <div className="flex items-center gap-3">
                       <button
                         type="button"
                         onClick={markAllRead}
-                        className="rounded-lg bg-white/5 px-2 py-1 text-[10px] text-white/60 transition hover:bg-white/10 hover:text-white/80"
+                        className="text-[10px] font-bold text-white/50 hover:text-white transition cursor-pointer"
                       >
                         Read all
                       </button>
                       <button
                         type="button"
                         onClick={clearAll}
-                        className="rounded-lg bg-white/5 px-2 py-1 text-[10px] text-white/60 transition hover:bg-white/10 hover:text-white/80"
+                        className="text-[10px] font-bold text-white/50 hover:text-white transition cursor-pointer"
                       >
                         Clear
                       </button>
@@ -144,30 +161,31 @@ export default function Navbar({ onLogout, onHamburger }) {
                   </div>
                   <div className="max-h-72 space-y-2 overflow-auto pr-1">
                     {notifications.length === 0 ? (
-                      <div className="rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-3 text-xs text-white/50">
+                      <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-3 py-4 text-center text-xs text-white/35">
                         No notifications yet.
                       </div>
                     ) : (
                       notifications.map((n) => (
                         <div
                           key={n.id}
-                          className={`rounded-xl border px-3 py-2 text-xs ${n.type === "error"
-                              ? "border-red-500/20 bg-red-500/10 text-red-200"
+                          className={`rounded-xl border p-3 text-xs transition duration-200 ${
+                            n.type === "error"
+                              ? "border-red-500/20 bg-red-500/5 text-red-200"
                               : n.type === "success"
-                                ? (isLightTheme ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-200" : "border-white/12 bg-white/5 text-white/90")
-                                : "border-white/[0.08] bg-white/[0.03] text-white/75"
-                            }`}
+                              ? "border-emerald-500/20 bg-emerald-500/5 text-emerald-200"
+                              : "border-white/[0.06] bg-white/[0.015] text-white/80 hover:bg-white/[0.03]"
+                          }`}
                         >
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="line-clamp-2">{n.message}</div>
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="line-clamp-2 leading-relaxed">{n.message}</div>
                             {!n.read ? (
-                              <span className={`h-2 w-2 shrink-0 rounded-full ${
-                                isLightTheme ? "bg-[#84cc16]/80" : "bg-[#EFF2F0]"
+                              <span className={`h-1.5 w-1.5 shrink-0 rounded-full mt-1.5 ${
+                                isLightTheme ? "bg-[#84cc16]" : "bg-[#EFF2F0]"
                               }`} />
                             ) : null}
                           </div>
-                          <div className="mt-1 text-[10px] text-white/45">
-                            {new Date(n.createdAt).toLocaleString()}
+                          <div className="mt-1.5 text-[9px] text-white/30 font-medium">
+                            {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </div>
                         </div>
                       ))
@@ -178,28 +196,28 @@ export default function Navbar({ onLogout, onHamburger }) {
             </AnimatePresence>
           </div>
 
-          {/* Theme toggle */}
+          {/* Theme toggle — hidden on mobile */}
           <button
             type="button"
             onClick={toggleTheme}
-            className="grid h-10 w-10 place-items-center rounded-full border border-white/15 bg-white/[0.05] text-white/85 hover:text-white hover:bg-white/[0.10] hover:border-white/30 transition cursor-pointer"
+            className="hidden sm:grid h-10 w-10 place-items-center rounded-full border border-white/15 bg-white/[0.05] text-white/85 hover:text-white hover:bg-white/[0.10] hover:border-white/30 transition cursor-pointer"
             aria-label="Toggle theme"
           >
             {theme === "dark" ? <Sun size={17} /> : <Moon size={17} />}
           </button>
 
-          {/* Currency dropdown selector - hidden on small mobile */}
+          {/* Currency — hidden on mobile */}
           <select
             value={currency}
             onChange={(e) => setCurrency(e.target.value)}
-            className="hidden sm:block rounded-xl border border-white/15 bg-white/[0.05] px-2 py-1.5 text-xs text-white/85 outline-none hover:bg-white/[0.10] hover:border-white/30 transition focus:ring-2 focus:ring-[#84cc16]/15 cursor-pointer max-w-[60px] h-10"
+            className="hidden sm:block rounded-xl border border-white/15 bg-white/[0.05] px-2 py-1.5 text-xs text-white/85 outline-none hover:bg-white/[0.10] hover:border-white/30 transition cursor-pointer max-w-[60px] h-10"
           >
             <option value="INR" className="bg-[#090b0e]">INR</option>
             <option value="USD" className="bg-[#090b0e]">USD</option>
             <option value="EUR" className="bg-[#090b0e]">EUR</option>
           </select>
 
-          {/* Profile Image & Logout */}
+          {/* Profile Avatar — always visible */}
           <Motion.button
             type="button"
             onClick={() => navigate("/profile")}
@@ -208,26 +226,26 @@ export default function Navbar({ onLogout, onHamburger }) {
             className="relative grid h-10 w-10 place-items-center rounded-full bg-gradient-to-br from-[#84cc16]/20 to-[#16a34a]/15 ring-1 ring-white/18 overflow-hidden cursor-pointer shrink-0"
           >
             {avatar ? (
-              <img
-                src={avatar}
-                alt="Profile avatar"
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover",
-                  objectPosition: "center",
-                }}
-              />
+              <img src={avatar} alt="Profile avatar" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "center" }} />
             ) : (
               <span className="text-xs font-semibold text-white/80">{initials}</span>
             )}
           </Motion.button>
 
-          <Button variant="ghost" className="hidden md:inline-flex border border-white/15 bg-white/[0.05] px-4.5 py-2.5 rounded-xl text-xs hover:bg-white/[0.10] hover:border-white/30 text-white/85 hover:text-white" onClick={onLogout}>
-            Logout
-          </Button>
+          {/* SINGLE Logout — icon only on mobile, icon+text on sm+ */}
+          <button
+            type="button"
+            onClick={onLogout}
+            title="Logout"
+            className="flex items-center gap-1.5 rounded-xl border border-white/15 bg-white/[0.05] text-white/85 hover:text-white hover:bg-red-500/10 hover:border-red-400/30 transition cursor-pointer h-10 px-2.5 sm:px-3.5"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+              <polyline points="16 17 21 12 16 7"/>
+              <line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+            <span className="hidden sm:inline text-xs font-semibold">Logout</span>
+          </button>
         </div>
       </div>
     </header>

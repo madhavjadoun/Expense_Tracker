@@ -10,6 +10,7 @@ import { useWorkspaceStore } from "../store/useWorkspaceStore";
 export default function Layout({ onLogout }) {
   const ui = useAppStore((s) => s.ui);
   const setSidebarOpen = useAppStore((s) => s.setSidebarOpen);
+  const setSidebarCollapsed = useAppStore((s) => s.setSidebarCollapsed);
   const toggleSidebarOpen = useAppStore((s) => s.toggleSidebarOpen);
   const toggleSidebarCollapsed = useAppStore((s) => s.toggleSidebarCollapsed);
   const fetchExpenses = useAppStore((s) => s.fetchExpenses);
@@ -31,6 +32,23 @@ export default function Layout({ onLogout }) {
   }, [user?.uid, activeWorkspaceId, fetchExpenses]);
 
   const theme = useAppStore((s) => s.theme);
+  const [scrolled, setScrolled] = useState(false);
+
+  const handleHamburger = () => {
+    if (window.innerWidth < 1024) {
+      toggleSidebarOpen();
+    } else {
+      toggleSidebarCollapsed();
+    }
+  };
+
+  const handleScroll = (e) => {
+    if (e.target.scrollTop > 10) {
+      setScrolled(true);
+    } else {
+      setScrolled(false);
+    }
+  };
 
   return (
     <div className="h-screen overflow-hidden">
@@ -43,18 +61,26 @@ export default function Layout({ onLogout }) {
           onHelpOpen={() => setHelpOpen(true)}
         />
 
-        <div className={`flex min-w-0 flex-1 flex-col m-2 sm:m-3 lg:m-4 rounded-[20px] sm:rounded-[28px] border transition-all duration-300 backdrop-blur-xl ${
-          theme === "light"
-            ? "bg-[#0e130e]/82 border-white/[0.08]"
-            : "bg-[#0B0C0F]/82 border-white/[0.05]"
-        }`}>
+        <div 
+          onClick={() => {
+            if (window.innerWidth >= 1024 && !ui?.sidebarCollapsed) {
+              setSidebarCollapsed(true);
+            }
+          }}
+          className={`relative flex min-w-0 flex-1 flex-col m-2 sm:m-3 lg:m-4 rounded-[20px] sm:rounded-[28px] border transition-all duration-300 backdrop-blur-xl ${
+            theme === "light"
+              ? "bg-[#0e130e]/82 border-white/[0.08]"
+              : "bg-[#0B0C0F]/82 border-white/[0.05]"
+          }`}
+        >
           <Navbar
             onLogout={onLogout}
             onToggleSidebar={toggleSidebarCollapsed}
-            onHamburger={toggleSidebarOpen}
+            onHamburger={handleHamburger}
+            isScrolled={scrolled}
           />
 
-          <div className="min-w-0 flex-1 px-4 py-5 sm:px-6 overflow-y-auto">
+          <div onScroll={handleScroll} className="min-w-0 flex-1 px-4 pt-[76px] sm:pt-[84px] pb-5 sm:px-6 overflow-y-auto">
             <div className="min-w-0">
               <Outlet />
             </div>
@@ -82,25 +108,16 @@ export default function Layout({ onLogout }) {
               animate={{ x: 0 }}
               exit={{ x: -280 }}
               transition={{ type: "spring", stiffness: 320, damping: 30 }}
-              className="absolute left-0 top-0 h-full w-[280px] border-r border-white/10 bg-[#020617]/80 backdrop-blur-xl"
+              className={`absolute left-0 top-0 h-full w-[280px] border-r border-white/10 backdrop-blur-xl ${
+                theme === "light" 
+                  ? "bg-gradient-to-b from-[#0C100C]/92 to-[#212b21]/92" 
+                  : "bg-gradient-to-b from-[#161719]/95 to-[#0C0D0F]/95"
+              }`}
             >
-              <div className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="text-sm font-semibold text-white/90">
-                    Menu
-                  </div>
-                  <button
-                    className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/70 hover:bg-white/7"
-                    onClick={() => setSidebarOpen(false)}
-                    type="button"
-                  >
-                    Close
-                  </button>
-                </div>
-              </div>
-              <div className="h-[calc(100%-64px)]">
+              <div className="h-full">
                 <Sidebar
                   variant="mobile"
+                  onClose={() => setSidebarOpen(false)}
                   onNavigate={() => setSidebarOpen(false)}
                   onHelpOpen={() => { setSidebarOpen(false); setHelpOpen(true); }}
                 />

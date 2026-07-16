@@ -1,44 +1,36 @@
-import { useMemo, useState } from "react";
-import { AnimatePresence, motion as Motion } from "framer-motion";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { sendPasswordResetEmail } from "firebase/auth";
+import { useNavigate } from "react-router-dom";
 import { auth } from "../firebase";
-import Input from "../components/Input";
 import Modal from "../components/Modal";
 import { useAppStore } from "../store/useAppStore";
 import { notify } from "../store/useNotificationStore";
 
-/* ── Password strength ─────────────────────────────────── */
 function passwordStrength(p = "") {
   const len  = p.length >= 10 ? 2 : p.length >= 7 ? 1 : 0;
   const num  = /\d/.test(p) ? 1 : 0;
   const spec = /[^A-Za-z0-9]/.test(p) ? 1 : 0;
   const s    = len + num + spec;
-  if (s <= 1) return { label: "Weak",   pct: 33,  color: "#d97706" };
-  if (s <= 3) return { label: "Medium", pct: 66,  color: "#859E7A" };
-  return           { label: "Strong",  pct: 100, color: "#10B981" };
+  if (s <= 1) return { label: "Weak",   pct: 33,  color: "#ef4444" };
+  if (s <= 3) return { label: "Medium", pct: 66,  color: "#f59e0b" };
+  return           { label: "Strong",  pct: 100, color: "#22c55e" };
 }
 
-/*
-  ── SVG Clip-path constants ──────────────────────────────
-  The image panel occupies 52% width with a 14° angled right-edge cut.
-  Clip-paths are in % units so they scale perfectly with any viewport.
-
-  LOGIN:  image on LEFT  → clip cuts into right side (top-right pulled inward)
-  SIGNUP: image on RIGHT → image flips, clip cuts into left side
-*/
-const CLIP_LOGIN  = "polygon(0 0, 100% 0, 88% 100%, 0 100%)";
-const CLIP_SIGNUP = "polygon(12% 0, 100% 0, 100% 100%, 0 100%)";
-
-/* Mobile: hide image, show full-width form */
-
-/* ── Framer spring ──────────────────────────────────────── */
-const PANEL_SPRING = { type: "spring", stiffness: 340, damping: 38, mass: 1 };
-
-/* ── Input style ─────────────────────────────────────────  */
-const inputCls =
-  "w-full rounded-2xl border border-white/12 bg-white/[0.05] px-4 py-3 text-[13px] text-white/90 placeholder:text-white/35 focus:border-[#859E7A]/60 focus:ring-2 focus:ring-[#859E7A]/20 outline-none transition-all duration-300";
-
 export default function AuthPage({ onAuthSuccess, initialMode = "login" }) {
+  useEffect(() => {
+    // Force dark mode on html tag while AuthPage is mounted to prevent light theme inversion
+    const html = document.documentElement;
+    const originalTheme = localStorage.getItem("theme") || "light";
+    html.classList.add("dark");
+    return () => {
+      // Restore original dark class if next page matches light theme
+      if (originalTheme !== "dark") {
+        html.classList.remove("dark");
+      }
+    };
+  }, []);
+
+  const navigate = useNavigate();
   const [mode,            setMode]            = useState(initialMode === "signup" ? "signup" : "login");
   const [forgotOpen,      setForgotOpen]      = useState(false);
   const [isLeaving,       setIsLeaving]       = useState(false);
@@ -47,6 +39,68 @@ export default function AuthPage({ onAuthSuccess, initialMode = "login" }) {
   const [password,        setPassword]        = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [rememberMe,      setRememberMe]      = useState(false);
+  const [showPass,        setShowPass]        = useState(false);
+
+  const [typedText, setTypedText] = useState("");
+  const [showBubble, setShowBubble] = useState(true);
+  const targetText = mode === "signup" ? "Welcome! Let's get started!" : "Hii there, welcome back!";
+  const isInitialMount = useRef(true);
+
+  // Dynamic typing animation that bypasses Chrome back/forward history transitions
+  useEffect(() => {
+    let isBack = false;
+    try {
+      const navs = window.performance.getEntriesByType("navigation");
+      if (navs && navs[0] && navs[0].type === "back_forward") {
+        isBack = true;
+      }
+    } catch (e) {}
+
+    if (isInitialMount.current && isBack) {
+      setTypedText(targetText);
+      setShowBubble(false);
+      isInitialMount.current = false;
+      return;
+    }
+
+    isInitialMount.current = false;
+    let index = 0;
+    setTypedText("");
+    setShowBubble(true);
+    let timeoutId = null;
+
+    const interval = setInterval(() => {
+      if (index < targetText.length) {
+        setTypedText(targetText.slice(0, index + 1));
+        index++;
+      } else {
+        clearInterval(interval);
+        timeoutId = setTimeout(() => {
+          setShowBubble(false);
+        }, 2000);
+      }
+    }, 75);
+
+    return () => {
+      clearInterval(interval);
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [mode, targetText]);
+
+  // Intercept browser back button to redirect directly to landing page ("/")
+  useEffect(() => {
+    window.history.pushState(null, null, window.location.pathname);
+    
+    const handlePopState = () => {
+      window.history.pushState(null, null, window.location.pathname);
+      navigate("/", { replace: true });
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, [navigate]);
 
   const login       = useAppStore((s) => s.login);
   const signup      = useAppStore((s) => s.signup);
@@ -55,7 +109,6 @@ export default function AuthPage({ onAuthSuccess, initialMode = "login" }) {
   const strength = useMemo(() => passwordStrength(password), [password]);
   const isLogin  = mode === "login";
 
-  /* ── Handlers ────────────────────────────────────────── */
   async function handleResetPassword(e) {
     e?.preventDefault();
     const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -92,356 +145,673 @@ export default function AuthPage({ onAuthSuccess, initialMode = "login" }) {
   }
 
   function switchMode() {
-    setName(""); setPassword(""); setConfirmPassword("");
+    setName(""); setPassword(""); setConfirmPassword(""); setShowPass(false);
     setMode(isLogin ? "signup" : "login");
   }
 
-  /* ── Render ──────────────────────────────────────────── */
   return (
-    <div className="relative flex min-h-screen w-full overflow-hidden bg-[#0D1810]">
+    <>
+      <style>{`
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-      {/* ════════════════════════════════════════════════════
-          IMAGE PANEL  (hidden on mobile, 52% on md+)
-      ════════════════════════════════════════════════════ */}
-      <div
-        className="hidden md:block"
-        style={{
-          position:    "absolute",
-          top:         0,
-          left:        isLogin ? 0 : "auto",
-          right:       isLogin ? "auto" : 0,
-          width:       "52%",
-          height:      "100%",
-          zIndex:      10,
-        }}
-      >
-        {/* Clip container — SVG polygon for crisp angled edge */}
-        <div
-          style={{
-            width:      "100%",
-            height:     "100%",
-            clipPath:   isLogin ? CLIP_LOGIN : CLIP_SIGNUP,
-            borderRadius: "32px",
-            overflow:   "hidden",
-          }}
-        >
-          {/* ── Ken Burns base: slow infinite zoom ── */}
-          <Motion.div
-            key={mode}
-            initial={{ scale: 1.08, opacity: 0 }}
-            animate={{ scale: 1.0,  opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ opacity: { duration: 0.9 }, scale: { duration: 14, ease: "linear" } }}
-            style={{
-              width:              "100%",
-              height:             "100%",
-              backgroundImage:    `url(${isLogin ? "/auth_login.png" : "/auth_signup.png"})`,
-              backgroundSize:     "cover",
-              backgroundPosition: "center",
-            }}
-          />
+        .ax-page {
+          min-height: 100vh;
+          background: linear-gradient(to bottom, #c6c5b9 0%, #e3e1d7 50%, #f3f2ea 100%) !important;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 24px;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+        }
 
-          {/* ── Gradient overlay for text legibility ── */}
-          <div
-            style={{
-              position:   "absolute",
-              inset:      0,
-              background: isLogin
-                ? "linear-gradient(135deg, rgba(13,24,16,0.45) 0%, rgba(13,24,16,0.1) 60%, transparent 100%)"
-                : "linear-gradient(225deg, rgba(13,24,16,0.45) 0%, rgba(13,24,16,0.1) 60%, transparent 100%)",
-              pointerEvents: "none",
-            }}
-          />
+        /* ── Main card ── */
+        .ax-card {
+          background: rgba(255, 255, 255, 0.25) !important;
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+          border: 1px solid rgba(255, 255, 255, 0.45) !important;
+          border-radius: 24px;
+          box-shadow:
+            0 0 0 1px rgba(255, 255, 255, 0.4),
+            0 30px 80px rgba(0, 0, 0, 0.05),
+            0 0 120px rgba(255, 255, 255, 0.02) inset;
+          width: 100%;
+          max-width: 1080px;
+          min-height: 650px;
+          display: flex;
+          flex-direction: column;
+          position: relative;
+          overflow: hidden;
+        }
 
-          {/* ── Editorial label bottom ── */}
-          <Motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5, duration: 0.7 }}
-            style={{
-              position:    "absolute",
-              bottom:      36,
-              left:        isLogin ? 40 : "auto",
-              right:       isLogin ? "auto" : 40,
-              display:     "flex",
-              flexDirection: "column",
-              gap:         6,
-            }}
-          >
-            <span style={{ fontSize: 9, letterSpacing: "0.22em", textTransform: "uppercase", color: "rgba(232,237,230,0.5)", fontWeight: 600 }}>
-              {isLogin ? "Budget Ledger · Monthly Review" : "New Journal · Fresh Start"}
-            </span>
-            <span style={{ fontSize: 22, fontWeight: 300, color: "#E8EDE6", lineHeight: 1.3, fontStyle: "italic", fontFamily: "Georgia, serif", whiteSpace: "pre-line" }}>
-              {isLogin ? "Back to your\nclarity." : "My money.\nMy rules."}
-            </span>
-          </Motion.div>
-        </div>
-      </div>
+        /* subtle top glow line */
+        .ax-card::before {
+          content: "";
+          position: absolute;
+          top: 0; left: 10%; right: 10%;
+          height: 1px;
+          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+        }
 
-      {/* Mobile background image (subtle) — shows on small screens only */}
-      <div
-        className="absolute inset-0 md:hidden"
-        style={{
-          backgroundImage: `url(${isLogin ? "/auth_login.png" : "/auth_signup.png"})`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          opacity: 0.15,
-          zIndex: 0,
-        }}
-      />
+        /* ── Top bar ── */
+        .ax-topbar {
+          display: flex;
+          align-items: center;
+          padding: 24px 32px;
+          gap: 10px;
+          position: relative;
+          z-index: 10;
+        }
+        .ax-logo-icon {
+          width: 32px;
+          height: 32px;
+          background: rgba(13, 13, 18, 0.05);
+          border: 1px solid rgba(13, 13, 18, 0.12);
+          border-radius: 9px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .ax-logo-icon svg { width: 16px; height: 16px; }
+        .ax-logo-name {
+          font-size: 16px;
+          font-weight: 800;
+          color: #0d0d12 !important;
+          letter-spacing: -0.02em;
+        }
 
-      {/* ════════════════════════════════════════════════════
-          FORM PANEL  (full width on mobile, 48% on md+)
-      ════════════════════════════════════════════════════ */}
-      <Motion.div
-        key="form-panel"
-        animate={{
-          x:       0,
-          opacity: isLeaving ? 0 : 1,
-        }}
-        transition={{ ...PANEL_SPRING, opacity: { duration: 0.25 } }}
-        className={`relative z-20 flex min-h-screen w-full items-center justify-center px-5 py-10 md:absolute md:top-0 md:h-full md:w-[48%] md:px-10 ${
-          isLogin ? "md:right-0 md:left-auto" : "md:left-0 md:right-auto"
-        }`}
-      >
-        <div style={{ width: "100%", maxWidth: 380 }}>
-          {/* InsightX wordmark */}
-          <div style={{
-            display:        "flex",
-            alignItems:     "center",
-            gap:            8,
-            marginBottom:   48,
-          }}>
-            <div style={{
-              width:        12,
-              height:       12,
-              borderRadius: "50%",
-              border:       "1.5px solid #859E7A",
-            }} />
-            <span style={{
-              fontSize:      10,
-              letterSpacing: "0.22em",
-              textTransform: "uppercase",
-              color:         "#859E7A",
-              fontWeight:    700,
-            }}>InsightX</span>
+        /* ── Body ── */
+        .ax-body {
+          flex: 1;
+          display: flex;
+          align-items: stretch;
+        }
+
+        /* Left: SVG centred & big */
+        .ax-illus {
+          flex: 55;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 16px 20px 32px 32px;
+          position: relative;
+        }
+        /* soft glow behind SVG */
+        .ax-illus::before {
+          content: "";
+          position: absolute;
+          width: 400px;
+          height: 400px;
+          background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, transparent 70%);
+          border-radius: 50%;
+          pointer-events: none;
+        }
+        .ax-illus img {
+          width: 100%;
+          max-width: 530px;
+          height: auto;
+          object-fit: contain;
+          position: relative;
+          z-index: 1;
+          filter: brightness(0.98);
+        }
+
+        /* ── Centre divider ── */
+        .ax-divider {
+          width: 1px;
+          flex-shrink: 0;
+          position: relative;
+          margin: 32px 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        /* gradient line */
+        .ax-divider::before {
+          content: "";
+          position: absolute;
+          top: 0; bottom: 0;
+          left: 50%;
+          width: 1px;
+          transform: translateX(-50%);
+          background: linear-gradient(
+            to bottom,
+            transparent 0%,
+            rgba(0, 0, 0, 0.05) 20%,
+            rgba(0, 0, 0, 0.12) 50%,
+            rgba(0, 0, 0, 0.05) 80%,
+            transparent 100%
+          );
+        }
+        /* glowing dot in centre with breathing/pulse animation */
+        @keyframes pulseGlow {
+          0% {
+            box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.01), 0 0 8px rgba(0, 0, 0, 0.02);
+            border-color: rgba(0, 0, 0, 0.08);
+          }
+          55% {
+            box-shadow: 0 0 0 5px rgba(0, 0, 0, 0.03), 0 0 15px rgba(0, 0, 0, 0.08);
+            border-color: rgba(0, 0, 0, 0.2);
+          }
+          100% {
+            box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.01), 0 0 8px rgba(0, 0, 0, 0.02);
+            border-color: rgba(0, 0, 0, 0.08);
+          }
+        }
+        .ax-divider-dot {
+          position: relative;
+          z-index: 2;
+          width: 28px;
+          height: 28px;
+          border-radius: 50%;
+          background: rgba(243, 242, 234, 0.95);
+          border: 1px solid rgba(0, 0, 0, 0.12);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          animation: pulseGlow 4s infinite ease-in-out;
+        }
+        .ax-divider-dot::after {
+          content: "";
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: #0d0d12;
+          box-shadow: 0 0 6px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Right: form */
+        .ax-form-zone {
+          flex: 45;
+          padding: 48px 48px 48px 24px;
+          display: flex;
+          flex-direction: column;
+          justify-content: flex-start;
+        }
+
+        .ax-heading {
+          font-size: 28px;
+          font-weight: 900;
+          color: #0d0d12 !important;
+          margin-bottom: 4px;
+          letter-spacing: -0.03em;
+        }
+        .ax-subhead {
+          font-size: 13px;
+          color: #555566 !important;
+          margin-bottom: 22px;
+        }
+        .ax-subhead button {
+          color: #0d0d12 !important;
+          font-weight: 700;
+          background: none;
+          border: none;
+          cursor: pointer;
+          font-size: 13px;
+          padding: 0;
+          text-decoration: underline;
+        }
+        .ax-subhead button:hover { color: #000000 !important; }
+
+        /* Google button */
+        .ax-google-btn {
+          width: 100%;
+          padding: 11px 0;
+          border-radius: 10px;
+          border: 1px solid rgba(13, 13, 18, 0.12) !important;
+          background: rgba(255, 255, 255, 0.4) !important;
+          font-size: 13.5px;
+          font-weight: 600;
+          color: #0d0d12 !important;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          cursor: pointer;
+          transition: border-color 0.15s, background 0.15s;
+          margin-bottom: 16px;
+        }
+        .ax-google-btn:hover {
+          border-color: #0d0d12 !important;
+          background: rgba(255, 255, 255, 0.65) !important;
+          color: #000000 !important;
+        }
+
+        /* Divider */
+        .ax-or {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          margin-bottom: 16px;
+          font-size: 11px;
+          color: #666677 !important;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+        }
+        .ax-or::before, .ax-or::after {
+          content: "";
+          flex: 1;
+          height: 1px;
+          background: rgba(13, 13, 18, 0.08) !important;
+        }
+
+        /* Form */
+        .ax-form { display: flex; flex-direction: column; gap: 12px; }
+
+        .ax-label-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 5px;
+        }
+        .ax-label {
+          font-size: 12px;
+          font-weight: 700;
+          color: #444455 !important;
+          letter-spacing: 0.02em;
+        }
+        .ax-forgot {
+          font-size: 12px;
+          color: #555566 !important;
+          background: none;
+          border: none;
+          cursor: pointer;
+          font-weight: 600;
+          padding: 0;
+          text-decoration: underline;
+        }
+        .ax-forgot:hover { color: #0d0d12 !important; }
+
+        .ax-input-wrap { position: relative; }
+        .ax-input {
+          width: 100%;
+          padding: 10px 14px;
+          border-radius: 9px;
+          border: 1px solid rgba(13, 13, 18, 0.12) !important;
+          background: rgba(255, 255, 255, 0.4) !important;
+          font-size: 14px;
+          color: #0d0d12 !important;
+          outline: none;
+          transition: border-color 0.18s, box-shadow 0.18s;
+        }
+        .ax-input:focus {
+          border-color: rgba(13, 13, 18, 0.35) !important;
+          box-shadow: 0 0 0 3px rgba(13, 13, 18, 0.05) !important;
+        }
+        .ax-input::placeholder { color: rgba(13, 13, 18, 0.35) !important; }
+        .ax-input.has-icon { padding-right: 40px; }
+
+        /* Webkit autofill override for light theme matching */
+        .ax-input:-webkit-autofill,
+        .ax-input:-webkit-autofill:hover,
+        .ax-input:-webkit-autofill:focus,
+        .ax-input:-webkit-autofill:active {
+          -webkit-text-fill-color: #0d0d12 !important;
+          -webkit-box-shadow: 0 0 0 1000px rgba(255, 255, 255, 0.7) inset !important;
+          box-shadow: 0 0 0 1000px rgba(255, 255, 255, 0.7) inset !important;
+          transition: background-color 5000s ease-in-out 0s;
+        }
+
+        .ax-eye {
+          position: absolute;
+          right: 12px;
+          top: 50%;
+          transform: translateY(-50%);
+          background: none;
+          border: none;
+          cursor: pointer;
+          color: #666;
+          display: flex;
+          align-items: center;
+        }
+        .ax-eye:hover { color: #0d0d12 !important; }
+
+        /* strength */
+        .ax-strength {
+          padding: 9px 12px;
+          border-radius: 9px;
+          background: rgba(255, 255, 255, 0.4) !important;
+          border: 1px solid rgba(13, 13, 18, 0.12) !important;
+        }
+        .ax-str-row {
+          display: flex;
+          justify-content: space-between;
+          font-size: 11px;
+          color: #555566 !important;
+          margin-bottom: 6px;
+          font-weight: 500;
+        }
+        .ax-str-bar {
+          height: 3px;
+          border-radius: 99px;
+          background: #d6d5cb !important;
+          overflow: hidden;
+        }
+        .ax-str-fill {
+          height: 100%;
+          border-radius: 99px;
+          transition: width 0.3s ease;
+        }
+
+        /* Remember me */
+        .ax-check-label {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 12px;
+          color: #444455 !important;
+          cursor: pointer;
+        }
+        .ax-check-label input {
+          width: 14px;
+          height: 14px;
+          accent-color: #242426 !important;
+          cursor: pointer;
+        }
+
+        /* Submit */
+        .ax-submit {
+          width: 100%;
+          padding: 12px 0;
+          border-radius: 10px;
+          background: #242426 !important;
+          color: #ffffff !important;
+          font-size: 14px;
+          font-weight: 700;
+          border: none;
+          cursor: pointer;
+          letter-spacing: 0.01em;
+          transition: opacity 0.18s, box-shadow 0.18s;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08) !important;
+          margin-top: 4px;
+        }
+        .ax-submit:hover:not(:disabled) {
+          opacity: 0.9;
+          box-shadow: 0 6px 28px rgba(0, 0, 0, 0.15) !important;
+        }
+        .ax-submit:disabled { opacity: 0.45; cursor: not-allowed; }
+
+        /* modal */
+        .ax-modal-input {
+          width: 100%;
+          padding: 10px 14px;
+          border-radius: 9px;
+          border: 1px solid rgba(13, 13, 18, 0.12) !important;
+          background: rgba(255, 255, 255, 0.4) !important;
+          font-size: 14px;
+          color: #0d0d12 !important;
+          outline: none;
+          transition: border-color 0.18s;
+        }
+        .ax-modal-input:focus { border-color: #0d0d12 !important; }
+        .ax-modal-input::placeholder { color: rgba(13, 13, 18, 0.35) !important; }
+        .ax-modal-input:-webkit-autofill,
+        .ax-modal-input:-webkit-autofill:hover,
+        .ax-modal-input:-webkit-autofill:focus {
+          -webkit-text-fill-color: #0d0d12 !important;
+          -webkit-box-shadow: 0 0 0 1000px rgba(255, 255, 255, 0.7) inset !important;
+          box-shadow: 0 0 0 1000px rgba(255, 255, 255, 0.7) inset !important;
+          transition: background-color 5000s ease-in-out 0s;
+        }
+        .ax-modal-row { display: flex; justify-content: flex-end; gap: 8px; margin-top: 6px; }
+        .ax-modal-cancel {
+          padding: 9px 16px; border-radius: 8px; font-size: 13px;
+          border: 1px solid rgba(13, 13, 18, 0.15); background: transparent; color: #555566 !important; cursor: pointer;
+        }
+        .ax-modal-cancel:hover { border-color: #242426; color: #242426 !important; }
+        .ax-modal-send {
+          padding: 9px 16px; border-radius: 8px; font-size: 13px;
+          background: #242426 !important;
+          color: #fff !important; border: none; font-weight: 700; cursor: pointer;
+          box-shadow: 0 4px 14px rgba(0,0,0,0.15);
+        }
+
+        /* Force Light Glass modal overrides inside ax-page */
+        .ax-page [role="dialog"] {
+          background: rgba(243, 242, 236, 0.98) !important;
+          border: 1px solid rgba(13, 13, 18, 0.12) !important;
+          color: #0d0d12 !important;
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12) !important;
+          border-radius: 16px !important;
+          max-width: 380px !important;
+          width: 90% !important;
+        }
+        /* Top header container */
+        .ax-page [role="dialog"] > div:first-child {
+          padding: 20px 20px 6px !important;
+        }
+        /* Scrollable body container */
+        .ax-page [role="dialog"] > div:nth-child(2) {
+          padding: 4px 20px 20px !important;
+        }
+        .ax-page [role="dialog"] .font-bold {
+          color: #0d0d12 !important;
+          font-weight: 800;
+          font-size: 15px !important;
+        }
+        .ax-page [role="dialog"] [class*="text-white"] {
+          color: #0d0d12 !important;
+        }
+        .ax-page [role="dialog"] [aria-label="Close modal"] {
+          color: #555566 !important;
+        }
+        .ax-page [role="dialog"] [aria-label="Close modal"] svg {
+          color: #555566 !important;
+          stroke: #555566 !important;
+        }
+        .ax-page [role="dialog"] [aria-label="Close modal"]:hover svg {
+          color: #0d0d12 !important;
+          stroke: #0d0d12 !important;
+        }
+        .ax-modal-desc {
+          font-size: 13px;
+          color: #555566 !important;
+          line-height: 1.45;
+          margin-bottom: 2px;
+        }
+
+        /* Responsive */
+        @media (max-width: 680px) {
+          .ax-illus { display: none; }
+          .ax-form-zone { width: 100%; padding: 16px 28px 40px; }
+          .ax-card { max-width: 440px; }
+        }
+      `}</style>
+
+      <div className="ax-page">
+        <div className="ax-card">
+
+          {/* ── Logo top-left ── */}
+          <div className="ax-topbar" style={{ cursor: "pointer" }} onClick={() => navigate("/")}>
+            <img src="/logo_black.png" alt="Fintra Logo" style={{ height: "28px", width: "auto", objectFit: "contain" }} />
           </div>
 
-          {/* Heading block */}
-          <AnimatePresence mode="wait">
-            <Motion.div
-              key={mode + "-heading"}
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-              style={{ marginBottom: 32 }}
-            >
-              <div style={{ fontSize: 9, letterSpacing: "0.2em", textTransform: "uppercase", color: "rgba(133,158,122,0.7)", marginBottom: 10, fontWeight: 600 }}>
-                {isLogin ? "Secure Access" : "Create Account"}
-              </div>
-              <h1 style={{ fontSize: 32, fontWeight: 300, color: "#E8EDE6", lineHeight: 1.1, letterSpacing: "-0.02em", fontFamily: "Georgia, serif" }}>
-                {isLogin ? (
-                  <>Welcome <span style={{ fontStyle: "italic" }}>back.</span></>
-                ) : (
-                  <>Start your <span style={{ fontStyle: "italic" }}>journey.</span></>
-                )}
-              </h1>
-              <p style={{ marginTop: 8, fontSize: 12, color: "rgba(232,237,230,0.55)", fontWeight: 300, lineHeight: 1.6 }}>
-                {isLogin
-                  ? "Sign in to your quiet ledger and continue tracking with clarity."
-                  : "Create your space for intentional, mindful expense tracking."}
-              </p>
-            </Motion.div>
-          </AnimatePresence>
+          {/* ── Body ── */}
+          <div className="ax-body">
 
-          {/* Form fields */}
-          <AnimatePresence mode="wait">
-            <Motion.form
-              key={mode + "-form"}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-              onSubmit={(e) => { e.preventDefault(); handleAuth(); }}
-              style={{ display: "flex", flexDirection: "column", gap: 14 }}
-            >
-              {!isLogin && (
-                <div>
-                  <label style={{ display: "block", fontSize: 10, letterSpacing: "0.15em", textTransform: "uppercase", color: "rgba(133,158,122,0.8)", marginBottom: 6, fontWeight: 600 }}>Name</label>
-                  <input
-                    type="text"
-                    className={inputCls}
-                    placeholder="Your name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                  />
+            {/* Left: SVG big & centred with typing speech bubble */}
+            <div className="ax-illus">
+              {/* Speech Bubble (Fixed Width & Left Anchored for Left-to-Right typing with fade-out) */}
+              <div 
+                className={`absolute top-[20%] left-[58%] sm:left-[60%] z-10 w-[195px] rounded-[22px] rounded-bl-none border border-white/20 bg-white/45 px-5 py-4 shadow-lg backdrop-blur-xl transition-all duration-500 ease-in-out ${
+                  showBubble ? "opacity-100 scale-100 pointer-events-auto" : "opacity-0 scale-95 pointer-events-none"
+                }`}
+              >
+                <div className="text-[14px] font-bold text-black/80 flex items-center gap-0.5">
+                  <span>{typedText}</span>
+                  <span className="h-3.5 w-1 bg-black/60 animate-pulse shrink-0" style={{ display: typedText.length < targetText.length ? "inline-block" : "none", marginLeft: "2px" }} />
                 </div>
-              )}
-
-              <div>
-                <label style={{ display: "block", fontSize: 10, letterSpacing: "0.15em", textTransform: "uppercase", color: "rgba(133,158,122,0.8)", marginBottom: 6, fontWeight: 600 }}>Email</label>
-                <input
-                  type="email"
-                  className={inputCls}
-                  placeholder="you@example.com"
-                  autoComplete="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
               </div>
 
-              <div>
-                <label style={{ display: "block", fontSize: 10, letterSpacing: "0.15em", textTransform: "uppercase", color: "rgba(133,158,122,0.8)", marginBottom: 6, fontWeight: 600 }}>Password</label>
-                <input
-                  type="password"
-                  className={inputCls}
-                  placeholder="••••••••"
-                  autoComplete={isLogin ? "current-password" : "new-password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </div>
+              <img src="/animation.svg" alt="Fintra illustration" />
+            </div>
 
-              {/* Password strength bar */}
-              {!isLogin && password.length > 0 && (
-                <Motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  style={{ borderRadius: 16, border: "1px solid rgba(255,255,255,0.07)", padding: "10px 14px", background: "rgba(0,0,0,0.15)" }}
-                >
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-                    <span style={{ fontSize: 10, color: "rgba(232,237,230,0.5)", letterSpacing: "0.1em", textTransform: "uppercase" }}>Strength</span>
-                    <span style={{ fontSize: 10, fontWeight: 700, color: strength.color }}>{strength.label}</span>
+            {/* Centre aesthetic divider */}
+            <div className="ax-divider">
+              <div className="ax-divider-dot" />
+            </div>
+
+            {/* Right: Form */}
+            <div className="ax-form-zone">
+              <h1 className="ax-heading" style={{ marginBottom: "20px" }}>
+                {isLogin ? "Welcome back" : "Create account"}
+              </h1>
+
+              <form
+                className="ax-form"
+                onSubmit={(e) => { e.preventDefault(); handleAuth(); }}
+              >
+                {!isLogin && (
+                  <div>
+                    <div className="ax-label-row">
+                      <span className="ax-label">Full name</span>
+                    </div>
+                    <div className="ax-input-wrap">
+                      <input
+                        type="text"
+                        className="ax-input"
+                        placeholder="Your name"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                      />
+                    </div>
                   </div>
-                  <div style={{ height: 3, borderRadius: 99, background: "rgba(255,255,255,0.07)", overflow: "hidden" }}>
-                    <Motion.div
-                      animate={{ width: `${strength.pct}%` }}
-                      transition={{ duration: 0.3, ease: "easeOut" }}
-                      style={{ height: "100%", borderRadius: 99, background: strength.color }}
+                )}
+
+                <div>
+                  <div className="ax-label-row">
+                    <span className="ax-label">Email</span>
+                  </div>
+                  <div className="ax-input-wrap">
+                    <input
+                      type="email"
+                      className="ax-input"
+                      placeholder="alan.turing@example.com"
+                      autoComplete="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
                     />
                   </div>
-                </Motion.div>
-              )}
-
-              {!isLogin && (
-                <div>
-                  <label style={{ display: "block", fontSize: 10, letterSpacing: "0.15em", textTransform: "uppercase", color: "rgba(133,158,122,0.8)", marginBottom: 6, fontWeight: 600 }}>Confirm Password</label>
-                  <input
-                    type="password"
-                    className={inputCls}
-                    placeholder="••••••••"
-                    autoComplete="new-password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                  />
                 </div>
-              )}
 
-              {/* Remember me & forgot */}
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: 4 }}>
-                <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+                <div>
+                  <div className="ax-label-row">
+                    <span className="ax-label">Password</span>
+                    {isLogin && (
+                      <button type="button" className="ax-forgot" onClick={() => setForgotOpen(true)}>
+                        Forgot password?
+                      </button>
+                    )}
+                  </div>
+                  <div className="ax-input-wrap">
+                    <input
+                      type={showPass ? "text" : "password"}
+                      className="ax-input has-icon"
+                      placeholder="••••••••••"
+                      autoComplete={isLogin ? "current-password" : "new-password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                    />
+                    <button type="button" className="ax-eye" onClick={() => setShowPass(p => !p)} tabIndex={-1}>
+                      {showPass ? (
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+                          <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+                          <line x1="1" y1="1" x2="23" y2="23"/>
+                        </svg>
+                      ) : (
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                          <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {!isLogin && password.length > 0 && (
+                  <div className="ax-strength">
+                    <div className="ax-str-row">
+                      <span>Password strength</span>
+                      <span style={{ color: strength.color, fontWeight: 700 }}>{strength.label}</span>
+                    </div>
+                    <div className="ax-str-bar">
+                      <div className="ax-str-fill" style={{ width: `${strength.pct}%`, background: strength.color }} />
+                    </div>
+                  </div>
+                )}
+
+                {!isLogin && (
+                  <div>
+                    <div className="ax-label-row">
+                      <span className="ax-label">Confirm password</span>
+                    </div>
+                    <div className="ax-input-wrap">
+                      <input
+                        type="password"
+                        className="ax-input"
+                        placeholder="••••••••••"
+                        autoComplete="new-password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <label className="ax-check-label">
                   <input
                     type="checkbox"
                     checked={rememberMe}
                     onChange={(e) => setRememberMe(e.target.checked)}
-                    style={{ accentColor: "#859E7A" }}
                   />
-                  <span style={{ fontSize: 11, color: "rgba(232,237,230,0.6)" }}>Remember me</span>
+                  Remember me
                 </label>
-                {isLogin && (
-                  <button
-                    type="button"
-                    onClick={() => setForgotOpen(true)}
-                    style={{ fontSize: 11, color: "#859E7A", background: "none", border: "none", cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 3 }}
-                  >
-                    Forgot password
-                  </button>
-                )}
-              </div>
 
-              {/* Primary CTA */}
-              <button
-                type="submit"
-                disabled={authLoading || isLeaving}
-                style={{
-                  marginTop:     8,
-                  width:         "100%",
-                  padding:       "14px 0",
-                  borderRadius:  99,
-                  background:    "#859E7A",
-                  color:         "#101E16",
-                  fontSize:      12,
-                  fontWeight:    700,
-                  letterSpacing: "0.15em",
-                  textTransform: "uppercase",
-                  border:        "none",
-                  cursor:        authLoading || isLeaving ? "not-allowed" : "pointer",
-                  opacity:       authLoading || isLeaving ? 0.7 : 1,
-                  transition:    "all 0.25s ease",
-                  boxShadow:     "0 8px 24px rgba(133,158,122,0.28)",
-                }}
-                onMouseEnter={(e) => { e.target.style.background = "#10B981"; e.target.style.color = "#fff"; }}
-                onMouseLeave={(e) => { e.target.style.background = "#859E7A"; e.target.style.color = "#101E16"; }}
-              >
-                {authLoading || isLeaving ? (
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 8, justifyContent: "center" }}>
-                    <span style={{ width: 14, height: 14, borderRadius: "50%", border: "2px solid rgba(16,30,22,0.3)", borderTopColor: "#101E16", animation: "spin 0.8s linear infinite", display: "inline-block" }} />
-                    Please wait…
-                  </span>
-                ) : isLogin ? "Log In" : "Create Account"}
-              </button>
-
-              {/* Toggle link */}
-              <p style={{ textAlign: "center", marginTop: 16, fontSize: 11, color: "rgba(232,237,230,0.45)" }}>
-                {isLogin ? "New here? " : "Already have an account? "}
                 <button
-                  type="button"
-                  onClick={switchMode}
-                  style={{ color: "#859E7A", background: "none", border: "none", cursor: "pointer", fontWeight: 700, fontSize: 11, textDecoration: "underline", textUnderlineOffset: 3 }}
+                  type="submit"
+                  className="ax-submit"
+                  disabled={authLoading || isLeaving}
                 >
-                  {isLogin ? "Sign up" : "Sign in"}
+                  {authLoading || isLeaving
+                    ? "Please wait…"
+                    : isLogin ? "Log in" : "Create Account"}
                 </button>
-              </p>
-            </Motion.form>
-          </AnimatePresence>
-        </div>
-      </Motion.div>
 
-      {/* ── Spinner keyframes ── */}
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-
-      {/* ── Reset Password Modal ── */}
-      <Modal open={forgotOpen} onClose={() => setForgotOpen(false)} title="Reset password">
-        <form onSubmit={handleResetPassword} style={{ display: "flex", flexDirection: "column", gap: 14, padding: 4 }}>
-          <p style={{ fontSize: 12, color: "rgba(232,237,230,0.7)", fontWeight: 300 }}>
-            Enter your email and we'll send you a reset link.
-          </p>
-          <input
-            type="email"
-            className={inputCls}
-            placeholder="you@example.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-            <button
-              type="button"
-              onClick={() => setForgotOpen(false)}
-              style={{ padding: "10px 18px", borderRadius: 12, fontSize: 12, border: "1px solid rgba(255,255,255,0.15)", background: "transparent", color: "rgba(232,237,230,0.8)", cursor: "pointer" }}
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleResetPassword}
-              style={{ padding: "10px 18px", borderRadius: 12, fontSize: 12, background: "#859E7A", color: "#101E16", border: "none", fontWeight: 700, cursor: "pointer" }}
-            >
-              Send link
-            </button>
+                <p className="ax-subhead" style={{ marginTop: "16px", textAlign: "center", marginBottom: "0" }}>
+                  {isLogin
+                    ? <>New here? <button type="button" onClick={switchMode}>Create an account.</button></>
+                    : <>Already have one? <button type="button" onClick={switchMode}>Sign in.</button></>}
+                </p>
+              </form>
+            </div>
           </div>
-        </form>
-      </Modal>
-    </div>
+
+        </div>
+
+        {/* Reset Password Modal */}
+        <Modal open={forgotOpen} onClose={() => setForgotOpen(false)} title="Reset password">
+          <form
+            onSubmit={handleResetPassword}
+            style={{ display: "flex", flexDirection: "column", gap: 10, padding: 0 }}
+          >
+            <p className="ax-modal-desc">
+              Enter your email and we'll send you a reset link.
+            </p>
+            <input
+              type="email"
+              className="ax-modal-input"
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            <div className="ax-modal-row">
+              <button type="button" className="ax-modal-cancel" onClick={() => setForgotOpen(false)}>Cancel</button>
+              <button type="button" className="ax-modal-send" onClick={handleResetPassword}>Send link</button>
+            </div>
+          </form>
+        </Modal>
+      </div>
+    </>
   );
 }

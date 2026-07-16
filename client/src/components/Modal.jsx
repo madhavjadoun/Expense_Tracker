@@ -29,7 +29,7 @@ export default function Modal({
     <AnimatePresence>
       {open && (
         <Motion.div
-          className="fixed inset-0 z-50 flex items-center justify-center px-4 py-6"
+          className="fixed inset-0 z-[150] flex items-center justify-center px-4 py-6"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -39,12 +39,12 @@ export default function Modal({
           <Motion.button
             type="button"
             aria-label="Close modal"
-            className="absolute inset-0 bg-black/[0.04]"
+            className="absolute inset-0 bg-black/55 backdrop-blur-2xl"
             onClick={onClose}
-            initial={{ backdropFilter: "blur(0px)", WebkitBackdropFilter: "blur(0px)", opacity: 0 }}
-            animate={{ backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", opacity: 1 }}
-            exit={{ backdropFilter: "blur(0px)", WebkitBackdropFilter: "blur(0px)", opacity: 0 }}
-            transition={{ duration: 0.38, ease: [0.16, 1, 0.3, 1] }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
           />
 
           {/* ── Panel ── */}
@@ -66,8 +66,8 @@ export default function Modal({
               WebkitBackdropFilter: "blur(24px)",
             }}
             initial={{ y: 20, opacity: 0, scale: 0.97 }}
-            animate={{ y: 0,  opacity: 1, scale: 1    }}
-            exit={{    y: 20, opacity: 0, scale: 0.97 }}
+            animate={{ y: 0, opacity: 1, scale: 1 }}
+            exit={{ y: 20, opacity: 0, scale: 0.97 }}
             transition={{ type: "spring", stiffness: 280, damping: 24 }}
           >
             {/* ── Sticky header ── */}

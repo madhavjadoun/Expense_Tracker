@@ -1,677 +1,1014 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { ArrowRight, Wallet, Users, TrendingUp, Check, Shield, Zap, Sparkles, ChevronDown } from "lucide-react";
 import { useAppStore } from "../store/useAppStore";
-import { ArrowRight, Compass, Wind, Sparkles } from "lucide-react";
-import { motion as Motion } from "framer-motion";
-import { useEffect, useRef, useState } from "react";
-import gsap from "gsap";
-import ScrollTrigger from "gsap/ScrollTrigger";
-
-gsap.registerPlugin(ScrollTrigger);
-
-/* ─── Typewriter hook ─── */
-function useTypewriter(text, { startDelay = 0, speed = 55, onDone } = {}) {
-  const [displayed, setDisplayed] = useState("");
-  const [done, setDone] = useState(false);
-  useEffect(() => {
-    let i = 0;
-    setDisplayed("");
-    setDone(false);
-    let tid, iid;
-    tid = setTimeout(() => {
-      iid = setInterval(() => {
-        i += 1;
-        setDisplayed(text.slice(0, i));
-        if (i >= text.length) {
-          clearInterval(iid);
-          setDone(true);
-          onDone?.();
-        }
-      }, speed);
-    }, startDelay);
-    return () => { clearTimeout(tid); clearInterval(iid); };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [text]);
-  return { displayed, done };
-}
 
 export default function LandingPage() {
   const navigate = useNavigate();
-  const theme    = useAppStore((s) => s.theme);
-  const isLight  = theme === "light";
-
-  const P = isLight
-    ? {
-        pageBg:     "bg-[#F0F4F1]",
-        sectionAlt: "bg-[#E8EDE6]",
-        cardBg:     "bg-[#EBF0E8]",
-        cardBg2:    "bg-[#DDE5D9]",
-        border:     "border-[#C5D3BE]",
-        divider:    "divide-[#C5D3BE]",
-        text:       "text-[#101E16]",
-        textMuted:  "text-[#3D6647]",
-        textFaint:  "text-[#3D6647]/60",
-        accent:     "#3D6647",
-        accentCls:  "text-[#3D6647]",
-        btnPrimary: "bg-[#101E16] text-[#F0F4F1] hover:bg-[#3D6647]",
-        btnSecBdr:  "border-[#101E16]/25 hover:border-[#101E16]/50 text-[#101E16]",
-        chipBg:     "bg-[#DDE5D9] border-[#C5D3BE] text-[#101E16]",
-        overlayBg:  "rgba(240,244,241,0.88)",
-        overlayBdr: "rgba(197,211,190,0.7)",
-        headerBtn:  "border-[#101E16] bg-[#101E16] text-[#F0F4F1] hover:bg-transparent hover:text-[#101E16]",
-        circle:     "border-[#101E16]",
-        orb1:       "rgba(61,102,71,0.08)",
-        orb2:       "rgba(16,30,22,0.05)",
-      }
-    : {
-        pageBg:     "bg-[#101E16]",
-        sectionAlt: "bg-[#0D1A12]",
-        cardBg:     "bg-[#162B1E]",
-        cardBg2:    "bg-[#1C3325]",
-        border:     "border-[#263D2B]",
-        divider:    "divide-[#263D2B]",
-        text:       "text-[#E8EDE6]",
-        textMuted:  "text-[#859E7A]",
-        textFaint:  "text-[#859E7A]/70",
-        accent:     "#859E7A",
-        accentCls:  "text-[#859E7A]",
-        btnPrimary: "bg-[#859E7A] text-[#101E16] hover:bg-[#10B981] hover:text-white",
-        btnSecBdr:  "border-[#859E7A]/30 hover:border-[#859E7A]/70 text-[#E8EDE6]",
-        chipBg:     "bg-[#1C3325] border-[#263D2B] text-[#E8EDE6]",
-        overlayBg:  "rgba(16,30,22,0.88)",
-        overlayBdr: "rgba(38,61,43,0.8)",
-        headerBtn:  "border-[#859E7A] bg-[#859E7A] text-[#101E16] hover:bg-transparent hover:text-[#859E7A]",
-        circle:     "border-[#859E7A]",
-        orb1:       "rgba(133,158,122,0.10)",
-        orb2:       "rgba(16,185,129,0.06)",
-      };
-
-  const [parsed, setParsed] = useState(false);
-  const { displayed, done: twDone } = useTypewriter("Dinner with friends 2450 food", {
-    startDelay: 900,
-    speed: 52,
-    onDone: () => setTimeout(() => setParsed(true), 320),
-  });
-
-  // ── Parallax refs ────────────────────────────────────────────────────────
-  const heroRef        = useRef(null);   // hero section wrapper
-  const heroTextRef    = useRef(null);   // left text block
-  const heroImageRef   = useRef(null);   // right image card
-  const orb1Ref        = useRef(null);   // floating bg orb 1
-  const orb2Ref        = useRef(null);   // floating bg orb 2
-  const orb3Ref        = useRef(null);   // floating bg orb 3
-  const philLeftRef    = useRef(null);   // philosophy left col
-  const philRightRef   = useRef(null);   // philosophy right col (cards)
-  const mockupRef      = useRef(null);   // interface mockup card
-  const princCol1Ref   = useRef(null);   // principles col 1
-  const princCol2Ref   = useRef(null);   // principles col 2
-  const princCol3Ref   = useRef(null);   // principles col 3
-  const ctaHeadRef     = useRef(null);   // CTA heading
-  const scrollLineRef  = useRef(null);   // animated horizontal line
-
+  
   useEffect(() => {
-    const ctx = gsap.context(() => {
-
-      // ── 1. HERO: true multi-layer parallax ──────────────────────────────
-      // Background orbs move slowest (deepest layer)
-      gsap.to(orb1Ref.current, {
-        y: -160,
-        x: 40,
-        ease: "none",
-        scrollTrigger: {
-          trigger: heroRef.current,
-          start: "top top",
-          end: "bottom top",
-          scrub: 2,
-        },
-      });
-      gsap.to(orb2Ref.current, {
-        y: -80,
-        x: -30,
-        ease: "none",
-        scrollTrigger: {
-          trigger: heroRef.current,
-          start: "top top",
-          end: "bottom top",
-          scrub: 3,
-        },
-      });
-      gsap.to(orb3Ref.current, {
-        y: -220,
-        x: 60,
-        ease: "none",
-        scrollTrigger: {
-          trigger: heroRef.current,
-          start: "top top",
-          end: "bottom top",
-          scrub: 1.5,
-        },
-      });
-
-      // Hero text moves at 0.4x scroll speed (medium layer)
-      gsap.to(heroTextRef.current, {
-        y: -80,
-        ease: "none",
-        scrollTrigger: {
-          trigger: heroRef.current,
-          start: "top top",
-          end: "bottom top",
-          scrub: 1.2,
-        },
-      });
-
-      // Hero image moves at 0.55x scroll speed — slightly faster than text
-      // creating the "image coming forward" depth illusion
-      gsap.to(heroImageRef.current, {
-        y: -120,
-        ease: "none",
-        scrollTrigger: {
-          trigger: heroRef.current,
-          start: "top top",
-          end: "bottom top",
-          scrub: 1,
-        },
-      });
-
-      // ── 2. PHILOSOPHY: sticky left, floating right cards ────────────────
-      // Left column floats up slowly as right cards scroll in fast
-      gsap.fromTo(philLeftRef.current,
-        { y: 60, opacity: 0 },
-        {
-          y: 0,
-          opacity: 1,
-          ease: "none",
-          scrollTrigger: {
-            trigger: philLeftRef.current,
-            start: "top 85%",
-            end: "top 30%",
-            scrub: 1.5,
-          },
-        }
-      );
-
-      // Right cards: each card floats in from a different y offset
-      const philCards = philRightRef.current?.querySelectorAll(".phil-card");
-      if (philCards?.length) {
-        philCards.forEach((card, i) => {
-          gsap.fromTo(card,
-            { y: 80 + i * 30, opacity: 0 },
-            {
-              y: 0,
-              opacity: 1,
-              ease: "none",
-              scrollTrigger: {
-                trigger: philRightRef.current,
-                start: "top 80%",
-                end: "top 15%",
-                scrub: 1 + i * 0.2,
-              },
-            }
-          );
-        });
+    // Force dark class on html tag to bypass browser auto-inversion, allowing us to render light white natively
+    const html = document.documentElement;
+    const originalTheme = localStorage.getItem("theme") || "light";
+    html.classList.add("dark");
+    return () => {
+      // Revert if next route is light theme
+      if (originalTheme !== "dark") {
+        html.classList.remove("dark");
       }
-
-      // ── 3. INTERFACE: mockup drifts up at 0.6x speed ────────────────────
-      gsap.fromTo(mockupRef.current,
-        { y: 80, opacity: 0 },
-        {
-          y: -20,
-          opacity: 1,
-          ease: "none",
-          scrollTrigger: {
-            trigger: mockupRef.current,
-            start: "top 85%",
-            end: "top -20%",
-            scrub: 1.8,
-          },
-        }
-      );
-
-      // ── 4. PRINCIPLES: each column at different speeds ───────────────────
-      // Column 1 arrives earliest, col 3 arrives latest — wave effect
-      [princCol1Ref, princCol2Ref, princCol3Ref].forEach((ref, i) => {
-        gsap.fromTo(ref.current,
-          { y: 50 + i * 25, opacity: 0 },
-          {
-            y: 0,
-            opacity: 1,
-            ease: "none",
-            scrollTrigger: {
-              trigger: ref.current,
-              start: "top 88%",
-              end: "top 35%",
-              scrub: 0.9 + i * 0.25,
-            },
-          }
-        );
-      });
-
-      // ── 5. CTA: fade + scale tied to scroll ─────────────────────────────
-      gsap.fromTo(ctaHeadRef.current,
-        { y: 40, opacity: 0, scale: 0.97 },
-        {
-          y: 0,
-          opacity: 1,
-          scale: 1,
-          ease: "none",
-          scrollTrigger: {
-            trigger: ctaHeadRef.current,
-            start: "top 85%",
-            end: "top 40%",
-            scrub: 1.4,
-          },
-        }
-      );
-
-      // ── 6. Scroll indicator line that draws in ───────────────────────────
-      if (scrollLineRef.current) {
-        gsap.fromTo(scrollLineRef.current,
-          { scaleX: 0, transformOrigin: "left center" },
-          {
-            scaleX: 1,
-            ease: "none",
-            scrollTrigger: {
-              trigger: document.body,
-              start: "top top",
-              end: "bottom bottom",
-              scrub: 0.5,
-            },
-          }
-        );
-      }
-
-    });
-
-    return () => ctx.revert();
+    };
   }, []);
 
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScrollScrolled = (e) => {
+      const target = e.target;
+      const scrollPos = window.pageYOffset || 
+                        document.documentElement.scrollTop || 
+                        document.body.scrollTop || 
+                        (target && target.scrollTop) || 0;
+      
+      if (scrollPos > 12) {
+        setIsScrolled(true);
+      } else {
+        setIsScrolled(false);
+      }
+    };
+    
+    // Capture scroll events from any container bubbling up to document
+    document.addEventListener("scroll", handleScrollScrolled, true);
+    
+    // Fallback manual check on mount
+    const initialScroll = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
+    if (initialScroll > 12) setIsScrolled(true);
+
+    return () => document.removeEventListener("scroll", handleScrollScrolled, true);
+  }, []);
+
+  const [activeFaq, setActiveFaq] = useState(null);
+
+  const toggleFaq = (index) => {
+    setActiveFaq(activeFaq === index ? null : index);
+  };
+
+  const faqs = [
+    {
+      q: "Is my personal ledger data private?",
+      a: "Yes. Fintra is built with a personal-first blueprint. We secure your transaction sheets with encrypted Firebase Firestore vaults. We never sell your transaction schemas or share financial metrics with ad brokers."
+    },
+    {
+      q: "How do shared workspaces compute group splits?",
+      a: "You can create dedicated shared workspaces for household expenses or group trips. When you add a new transaction and split the bill, Fintra's balance engine compiles individual weights and generates the optimal settlement matrix."
+    },
+    {
+      q: "How do the monthly budget insights help me?",
+      a: "Each workspace maintains its own target budget. The built-in insights engine calculates your current spending pace, alerts you when you exceed target curves, and suggests category optimizations based on Recharts daily breakdowns."
+    }
+  ];
+
   return (
-    <div className={`no-invert min-h-screen font-sans selection:bg-[#859E7A]/30 transition-colors duration-700 overflow-x-hidden ${P.pageBg} ${P.text}`}>
+    <>
+      <style>{`
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-      {/* ── Scroll progress line ─────────────────────────────────────────── */}
-      <div
-        ref={scrollLineRef}
-        className="fixed top-0 left-0 right-0 z-[999] h-[2px] origin-left"
-        style={{ background: P.accent, scaleX: 0 }}
-      />
+        .lp-root {
+          min-height: 100vh;
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+          background: linear-gradient(to bottom, #c6c5b9 0%, #e3e1d7 50%, #f3f2ea 100%) !important;
+          color: #0d0d12 !important;
+          display: flex;
+          flex-direction: column;
+        }
 
-      {/* ══ HEADER ══════════════════════════════════════════ */}
-      <Motion.header
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-        className="mx-auto max-w-7xl px-4 sm:px-8 py-5 sm:py-8 flex items-center justify-between"
-      >
-        <div className={`flex items-center gap-2 tracking-widest text-xs font-semibold uppercase ${P.text}`}>
-          <Motion.span
-            initial={{ rotate: -18, scale: 0.8 }}
-            animate={{ rotate: 0, scale: 1 }}
-            transition={{ duration: 1, ease: "easeOut" }}
-            className={`w-3.5 h-3.5 rounded-full border ${P.circle}`}
-          />
-          <span>InsightX</span>
-        </div>
+        /* ── Header ── */
+        .lp-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 16px 8%;
+          border-bottom: none !important;
+          position: sticky;
+          top: 0;
+          backdrop-filter: none;
+          background: transparent;
+          z-index: 100;
+          transition: background 0.3s ease, backdrop-filter 0.3s ease, padding 0.3s ease, box-shadow 0.3s ease;
+        }
+        .lp-header.scrolled {
+          background: rgba(255, 255, 255, 0.15) !important;
+          border-bottom: none !important;
+          backdrop-filter: blur(10px) !important;
+          -webkit-backdrop-filter: blur(10px) !important;
+          box-shadow: 0 4px 30px rgba(0, 0, 0, 0.02), inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
+          padding: 12px 8%;
+        }
+        .lp-logo {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-weight: 800;
+          font-size: 19px;
+          cursor: pointer;
+          color: #0d0d12 !important;
+        }
+        .lp-logo-dot {
+          width: 26px;
+          height: 26px;
+          background: #0d0d12 !important;
+          border-radius: 7px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .lp-logo-dot svg {
+          stroke: #ffffff !important;
+          width: 13px;
+          height: 13px;
+        }
+        .lp-nav-actions {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+        }
+        .lp-btn-login {
+          font-size: 14px;
+          font-weight: 600;
+          color: #444 !important;
+          background: none;
+          border: none;
+          cursor: pointer;
+          transition: color 0.2s;
+        }
+        .lp-btn-login:hover {
+          color: #000 !important;
+        }
+        .lp-btn-signup {
+          font-size: 14px;
+          font-weight: 700;
+          color: #ffffff !important;
+          background: #242426 !important;
+          border: none;
+          padding: 8px 16px;
+          border-radius: 9px;
+          cursor: pointer;
+          transition: opacity 0.2s;
+        }
+        .lp-btn-signup:hover {
+          opacity: 0.9;
+        }
 
-        <nav className={`hidden md:flex items-center gap-10 text-[11px] font-medium tracking-wider uppercase opacity-60 ${P.text}`}>
-          <a href="#philosophy" className="hover:opacity-100 transition-opacity duration-300">Philosophy</a>
-          <a href="#interface"  className="hover:opacity-100 transition-opacity duration-300">Interface</a>
-          <a href="#principles" className="hover:opacity-100 transition-opacity duration-300">Principles</a>
-        </nav>
+        /* ── Hero Section ── */
+        .lp-hero {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+          padding: 100px 5% 60px;
+          max-width: 1000px;
+          margin: 0 auto;
+        }
+        .lp-hero h1 {
+          font-size: clamp(34px, 6vw, 64px);
+          font-weight: 900;
+          line-height: 1.1;
+          letter-spacing: -0.03em;
+          margin-bottom: 20px;
+          background: linear-gradient(135deg, #000000, #333333);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+        }
+        .lp-hero p {
+          font-size: clamp(16px, 2.5vw, 19px);
+          line-height: 1.6;
+          color: #555 !important;
+          max-width: 680px;
+          margin-bottom: 32px;
+        }
+        .lp-hero-ctas {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          margin-bottom: 48px;
+        }
+        .lp-hero-cta {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 16px;
+          font-weight: 700;
+          color: #ffffff !important;
+          background: #242426 !important;
+          border: none;
+          padding: 14px 28px;
+          border-radius: 12px;
+          cursor: pointer;
+          transition: transform 0.2s, opacity 0.2s;
+          box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+        }
+        .lp-hero-cta:hover {
+          transform: translateY(-2px);
+          opacity: 0.95;
+        }
+        .lp-hero-sec {
+          font-size: 15px;
+          font-weight: 700;
+          color: #0d0d12 !important;
+          background: none;
+          border: 1px solid rgba(0,0,0,0.15) !important;
+          padding: 14px 28px;
+          border-radius: 12px;
+          cursor: pointer;
+          transition: background 0.2s;
+        }
+        .lp-hero-sec:hover {
+          background: rgba(0,0,0,0.03);
+        }
 
-        <button
-          onClick={() => navigate("/login")}
-          className={`group flex items-center gap-1.5 px-4 py-2 text-[11px] font-semibold tracking-wider uppercase rounded-full border transition-all duration-500 ${P.headerBtn}`}
-        >
-          Enter Space
-          <ArrowRight size={10} className="group-hover:translate-x-0.5 transition-transform duration-300" />
-        </button>
-      </Motion.header>
+        /* ── Metric Stats Banner ── */
+        .lp-stats {
+          width: 100%;
+          border-top: 1px solid rgba(0,0,0,0.06);
+          border-bottom: 1px solid rgba(0,0,0,0.06);
+          background: rgba(0,0,0,0.02) !important;
+          padding: 40px 8%;
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: space-around;
+          gap: 30px;
+        }
+        .lp-stat-box {
+          text-align: center;
+        }
+        .lp-stat-val {
+          font-size: 32px;
+          font-weight: 800;
+          color: #0d0d12 !important;
+        }
+        .lp-stat-lbl {
+          font-size: 13px;
+          color: #666 !important;
+          margin-top: 4px;
+        }
 
-      {/* ══ HERO ═══════════════════════════════════════════════════════════ */}
-      <section
-        ref={heroRef}
-        className="relative mx-auto max-w-7xl px-4 sm:px-8 py-8 md:py-20 min-h-[88vh] grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center overflow-hidden"
-      >
-        {/* ── Floating background orbs (parallax layers 0, 1, 2) ─────────── */}
-        <div
-          ref={orb1Ref}
-          className="pointer-events-none absolute -top-20 -right-20 w-[480px] h-[480px] rounded-full blur-3xl"
-          style={{ background: P.orb1, willChange: "transform" }}
-        />
-        <div
-          ref={orb2Ref}
-          className="pointer-events-none absolute bottom-10 -left-24 w-[360px] h-[360px] rounded-full blur-3xl"
-          style={{ background: P.orb2, willChange: "transform" }}
-        />
-        <div
-          ref={orb3Ref}
-          className="pointer-events-none absolute top-1/3 left-1/3 w-[240px] h-[240px] rounded-full blur-3xl"
-          style={{ background: P.orb1, opacity: 0.5, willChange: "transform" }}
-        />
+        /* ── Features Grid ── */
+        .lp-features-section {
+          padding: 100px 8% 80px;
+          background: transparent;
+        }
+        .lp-features-title {
+          text-align: center;
+          margin-bottom: 60px;
+        }
+        .lp-features-title h2 {
+          font-size: 32px;
+          font-weight: 800;
+          margin-bottom: 16px;
+        }
+        .lp-features-title p {
+          font-size: 15px;
+          color: #666 !important;
+          max-width: 500px;
+          margin: 0 auto;
+        }
+        .lp-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+          gap: 28px;
+          max-width: 1100px;
+          margin: 0 auto;
+        }
+        .lp-card {
+          background: rgba(255, 255, 255, 0.25) !important;
+          border: 1px solid rgba(255, 255, 255, 0.45) !important;
+          padding: 40px 30px;
+          border-radius: 20px;
+          transition: transform 0.2s, border-color 0.2s;
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03) !important;
+          backdrop-filter: blur(16px) !important;
+          -webkit-backdrop-filter: blur(16px) !important;
+        }
+        .lp-card:hover {
+          transform: translateY(-4px);
+          border-color: rgba(0,0,0,0.15) !important;
+        }
+        .lp-icon-wrap {
+          width: 48px;
+          height: 48px;
+          background: rgba(0, 0, 0, 0.04) !important;
+          border: 1px solid rgba(0, 0, 0, 0.08) !important;
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 24px;
+          color: #0d0d12 !important;
+        }
+        .lp-card h3 {
+          font-size: 20px;
+          font-weight: 700;
+          margin-bottom: 12px;
+          color: #0d0d12 !important;
+        }
+        .lp-card p {
+          font-size: 14px;
+          line-height: 1.6;
+          color: #666 !important;
+        }
 
-        {/* ── Left text (medium layer) ─────────────────────────────────── */}
-        <div ref={heroTextRef} className="relative z-10 lg:col-span-6 space-y-6" style={{ willChange: "transform" }}>
-          <Motion.span
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.9, delay: 0.05, ease: [0.16, 1, 0.3, 1] }}
-            className={`text-[10px] uppercase font-bold tracking-widest block ${P.textMuted}`}
-          >
-            Quiet Ledger · Intentional Tracking
-          </Motion.span>
+        /* ── Rich Details (Split columns showcase) ── */
+        .lp-details-block {
+          padding: 80px 8%;
+          background: transparent;
+        }
+        .lp-details-container {
+          max-width: 1100px;
+          margin: 0 auto;
+          display: flex;
+          flex-direction: column;
+          gap: 80px;
+        }
+        .lp-details-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 48px;
+        }
+        .lp-details-row:nth-child(even) {
+          flex-direction: row-reverse;
+        }
+        .lp-details-col-text {
+          flex: 1;
+        }
+        .lp-details-col-text h3 {
+          font-size: 28px;
+          font-weight: 800;
+          margin-bottom: 16px;
+          color: #0d0d12 !important;
+        }
+        .lp-details-col-text p {
+          font-size: 15px;
+          line-height: 1.6;
+          color: #555 !important;
+          margin-bottom: 24px;
+        }
+        .lp-details-list {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+        .lp-details-item {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          font-size: 14px;
+          font-weight: 600;
+          color: #333 !important;
+        }
+        .lp-details-item svg {
+          color: #10b981;
+          flex-shrink: 0;
+        }
+        .lp-details-col-visual {
+          flex: 1.3;
+          background: rgba(255, 255, 255, 0.25) !important;
+          border: 1px solid rgba(255, 255, 255, 0.45) !important;
+          border-radius: 20px;
+          padding: 32px;
+          min-height: 240px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03) !important;
+          backdrop-filter: blur(16px) !important;
+          -webkit-backdrop-filter: blur(16px) !important;
+        }
+        @media (max-width: 768px) {
+          .lp-details-row, .lp-details-row:nth-child(even) {
+            flex-direction: column;
+            gap: 32px;
+          }
+        }
 
-          <div className="space-y-1">
-            <Motion.h1
-              initial={{ opacity: 0, y: 22 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 1, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
-              className="text-3xl sm:text-5xl lg:text-[3.6rem] font-light tracking-tight leading-[1.06] font-serif"
-            >
-              The art of
-            </Motion.h1>
-            <Motion.h1
-              initial={{ opacity: 0, y: 22 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 1, delay: 0.27, ease: [0.16, 1, 0.3, 1] }}
-              className="text-3xl sm:text-5xl lg:text-[3.6rem] font-light tracking-tight leading-[1.06] font-serif italic"
-            >
-              deliberate tracking.
-            </Motion.h1>
+        /* ── FAQ Section ── */
+        .lp-faq-section {
+          padding: 100px 8% 80px;
+          max-width: 800px;
+          margin: 0 auto;
+          width: 100%;
+        }
+        .lp-faq-title {
+          text-align: center;
+          margin-bottom: 48px;
+        }
+        .lp-faq-title h2 {
+          font-size: 30px;
+          font-weight: 800;
+          color: #0d0d12 !important;
+        }
+        .lp-faq-list {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+        }
+        .lp-faq-item {
+          border: 1px solid rgba(255, 255, 255, 0.45) !important;
+          border-radius: 12px;
+          background: rgba(255, 255, 255, 0.25) !important;
+          overflow: hidden;
+          transition: border-color 0.2s;
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.02) !important;
+          backdrop-filter: blur(16px) !important;
+          -webkit-backdrop-filter: blur(16px) !important;
+        }
+        .lp-faq-item:hover {
+          border-color: rgba(255, 255, 255, 0.6) !important;
+        }
+        .lp-faq-q {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 20px 24px;
+          font-weight: 700;
+          cursor: pointer;
+          font-size: 15px;
+          user-select: none;
+          color: #0d0d12 !important;
+        }
+        .lp-faq-a {
+          padding: 0 24px 20px;
+          font-size: 14.5px;
+          line-height: 1.5;
+          color: #555 !important;
+        }
+        .lp-faq-chevron {
+          transition: transform 0.2s;
+        }
+        .lp-faq-chevron.active {
+          transform: rotate(180deg);
+        }
+
+        /* ── CTA Banner ── */
+        .lp-cta-banner {
+          padding: 80px 8%;
+          text-align: center;
+          max-width: 1000px;
+          margin: 40px auto 80px;
+          width: 90%;
+          background: linear-gradient(135deg, #0d0d12, #1a1a24) !important;
+          border-radius: 24px;
+          color: #ffffff;
+          box-shadow: 0 20px 50px rgba(0,0,0,0.15);
+        }
+        .lp-cta-banner h2 {
+          font-size: 32px;
+          font-weight: 800;
+          margin-bottom: 16px;
+        }
+        .lp-cta-banner p {
+          font-size: 16px;
+          color: #aaa;
+          max-width: 500px;
+          margin: 0 auto 32px;
+          line-height: 1.5;
+        }
+        .lp-cta-banner button {
+          font-size: 15px;
+          font-weight: 700;
+          color: #000000;
+          background: #ffffff;
+          border: none;
+          padding: 14px 32px;
+          border-radius: 12px;
+          cursor: pointer;
+          transition: transform 0.2s;
+        }
+        .lp-cta-banner button:hover {
+          transform: translateY(-2px);
+        }
+
+
+        /* ── Interactive Mock Interface Card ── */
+        .lp-mock-card {
+          width: 100%;
+          max-width: 620px;
+          margin: 0 auto;
+          background: rgba(255, 255, 255, 0.25) !important;
+          border: 1px solid rgba(255, 255, 255, 0.45) !important;
+          border-radius: 24px;
+          padding: 24px 28px;
+          box-shadow: 0 24px 60px rgba(0, 0, 0, 0.03) !important;
+          backdrop-filter: blur(16px) !important;
+          -webkit-backdrop-filter: blur(16px) !important;
+          text-align: left;
+        }
+        .lp-mock-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+          padding-bottom: 12px;
+          margin-bottom: 16px;
+        }
+        .lp-mock-title {
+          font-size: 11px;
+          font-weight: 700;
+          color: #777788;
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+        }
+        .lp-mock-status-dot {
+          width: 7px;
+          height: 7px;
+          border-radius: 50%;
+          background: #10b981;
+          box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+        }
+        .lp-mock-input-sec {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          margin-bottom: 20px;
+        }
+        .lp-mock-label {
+          font-size: 10.5px;
+          font-weight: 700;
+          color: #777788;
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+        }
+        .lp-mock-ws-badge {
+          background: rgba(13, 13, 18, 0.04);
+          border: 1px solid rgba(13, 13, 18, 0.08);
+          border-radius: 99px;
+          padding: 4px 12px;
+          font-size: 12.5px;
+          font-weight: 700;
+          color: #0d0d12;
+        }
+         .lp-mock-typing-box {
+          border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+          padding-bottom: 12px;
+          margin-bottom: 16px;
+        }
+        .lp-mock-typed-text {
+          font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
+          font-size: 17px;
+          color: #0d0d12;
+          margin-top: 8px;
+          letter-spacing: -0.01em;
+        }
+        .lp-mock-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 12px;
+          margin-bottom: 24px;
+        }
+        .lp-mock-grid-box {
+          background: rgba(255, 255, 255, 0.3) !important;
+          border: 1px solid rgba(255, 255, 255, 0.45) !important;
+          border-radius: 12px;
+          padding: 12px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 4px;
+          text-align: center;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.01) !important;
+        }
+        .lp-mock-grid-lbl {
+          font-size: 9px;
+          font-weight: 700;
+          color: #777788;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+        }
+        .lp-mock-grid-val {
+          font-size: 14px;
+          font-weight: 700;
+          color: #0d0d12;
+        }
+        .lp-mock-ledger {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+        .lp-mock-ledger-hdr {
+          font-size: 11px;
+          font-weight: 700;
+          color: #777788;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          margin-bottom: 4px;
+        }
+        .lp-mock-ledger-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 12px 4px;
+          border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+        }
+        .lp-mock-ledger-row:last-child {
+          border-bottom: none;
+        }
+        .lp-mock-ledger-col {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          font-size: 13.5px;
+          color: #333344;
+          font-weight: 500;
+        }
+        .lp-mock-ledger-col strong {
+          color: #0d0d12;
+          font-weight: 600;
+        }
+        .lp-mock-avatar {
+          width: 24px;
+          height: 24px;
+          border-radius: 50%;
+          background: rgba(13, 13, 18, 0.06);
+          border: 1px solid rgba(13, 13, 18, 0.08);
+          color: #0d0d12;
+          font-size: 11px;
+          font-weight: 700;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          text-transform: uppercase;
+        }
+        .lp-mock-avatar.success {
+          background: rgba(13, 13, 18, 0.06);
+          border-color: rgba(13, 13, 18, 0.08);
+          color: #0d0d12;
+        }
+        .lp-mock-badge {
+          font-size: 10.5px;
+          font-weight: 700;
+          padding: 2px 8px;
+          border-radius: 99px;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+        }
+        .lp-mock-badge.pending {
+          background: rgba(168, 106, 72, 0.08) !important;
+          border: 1px solid rgba(168, 106, 72, 0.15) !important;
+          color: #a86a48 !important;
+        }
+        .lp-mock-badge.settled {
+          background: rgba(13, 13, 18, 0.04);
+          border: 1px solid rgba(13, 13, 18, 0.08);
+          color: #555566;
+        }
+        .lp-mock-ledger-val {
+          font-size: 14px;
+          font-weight: 700;
+          color: #0d0d12;
+          font-variant-numeric: tabular-nums;
+        }
+        .lp-mock-ledger-val.green {
+          color: #0d0d12;
+        }
+
+        /* Mobile adjustments for mock card */
+        @media (max-width: 600px) {
+          .lp-mock-card {
+            padding: 24px 20px;
+          }
+          .lp-mock-grid {
+            grid-template-columns: 1fr;
+            gap: 12px;
+          }
+          .lp-mock-typed-text {
+            font-size: 18px;
+          }
+        }
+
+        /* ── Footer ── */
+        .lp-footer {
+          text-align: center;
+          padding: 40px 8%;
+          font-size: 13.5px;
+          color: #292823 !important;
+          background: #e6e4d9 !important;
+          border-top: 1px solid rgba(0, 0, 0, 0.08);
+          margin-top: auto;
+        }
+      `}</style>
+
+      <div className="lp-root">
+        {/* Header */}
+        <header className={`lp-header ${isScrolled ? "scrolled" : ""}`}>
+          <div className="lp-logo" onClick={() => navigate("/")}>
+            <img src="/logo_black.png" alt="Fintra Logo" style={{ height: "28px", width: "auto", objectFit: "contain" }} />
           </div>
-
-          <Motion.p
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1, delay: 0.42, ease: [0.16, 1, 0.3, 1] }}
-            className={`text-sm leading-relaxed max-w-md font-light ${P.textFaint}`}
-          >
-            An editorial expense tracker for absolute financial clarity. Document spending in plain text, coordinate shared workspaces, and observe habits without the clutter of traditional dashboards.
-          </Motion.p>
-
-          <Motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.9, delay: 0.58, ease: [0.16, 1, 0.3, 1] }}
-            className="flex items-center gap-6 pt-1"
-          >
-            <button
-              onClick={() => navigate("/signup")}
-              className={`px-6 py-3 rounded-full text-xs font-semibold tracking-wider uppercase transition-all duration-300 shadow-sm hover:shadow-md active:scale-[0.98] ${P.btnPrimary}`}
-            >
-              Begin Journey
-            </button>
-            <button
-              onClick={() => navigate("/login")}
-              className={`text-xs font-semibold tracking-wider uppercase border-b pb-0.5 hover:opacity-60 transition-opacity duration-300 ${P.textMuted} border-current`}
-            >
+          <div className="lp-nav-actions">
+            <button className="lp-btn-login" onClick={() => navigate("/login")}>
               Sign In
             </button>
-          </Motion.div>
-        </div>
+            <button className="lp-btn-signup" onClick={() => navigate("/login?mode=signup")}>
+              Launch App
+            </button>
+          </div>
+        </header>
 
-        {/* ── Right image (foreground layer — fastest) ─────────────────── */}
-        <div ref={heroImageRef} className="relative z-10 lg:col-span-6 flex justify-end" style={{ willChange: "transform" }}>
-          <div className={`relative rounded-[28px] overflow-hidden border w-full max-w-[500px] shadow-2xl ${P.cardBg} ${P.border}`}>
-            <div className="relative overflow-hidden rounded-[22px] m-2.5">
-              <Motion.img
-                src="/editorial_notebook.png"
-                alt="Handcrafted expense notebook with pen, receipts, and coffee on a wooden desk"
-                initial={{ scale: 1.07 }}
-                animate={{ scale: 1 }}
-                transition={{ duration: 2.4, ease: [0.16, 1, 0.3, 1] }}
-                className="w-full aspect-[4/3.5] object-cover"
-              />
+        {/* Hero Section */}
+        <section className="lp-hero">
+          <h1>Simplify Your Expenses. Settle Your Splits.</h1>
+          <p>
+            Track your personal budgets, split bills with friends, and manage your shared expenses all in one beautiful workspace.
+          </p>
+          <div className="lp-hero-ctas">
+            <button className="lp-hero-cta" onClick={() => navigate("/login")}>
+              Launch Workspace
+              <ArrowRight size={18} />
+            </button>
+            <button className="lp-hero-sec" onClick={() => navigate("/login")}>
+              Explore Ledger
+            </button>
+          </div>
+        </section>
 
-              {/* Light sweep shimmer */}
-              <Motion.div
-                initial={{ x: "-110%" }}
-                animate={{ x: "220%" }}
-                transition={{ duration: 1.1, delay: 0.65, ease: "easeInOut" }}
-                className="absolute inset-0 w-1/3 bg-gradient-to-r from-transparent via-white/18 to-transparent pointer-events-none"
-                style={{ transform: "skewX(-12deg)" }}
-              />
+        {/* Core Steps Section */}
+        <section className="lp-steps-section" style={{ padding: "0 8% 80px", maxWidth: "1100px", margin: "0 auto", width: "100%" }}>
+          <div className="lp-grid">
+            <div className="lp-card">
+              <div style={{ fontSize: "11px", opacity: 0.5, fontWeight: 700, marginBottom: "12px", textTransform: "uppercase", letterSpacing: "0.08em" }}>Step 01</div>
+              <h3>Create Workspace</h3>
+              <p>Segregate personal budgets from shared ledgers. Create private workspaces or invite friends to shared split ledgers.</p>
+            </div>
+            <div className="lp-card">
+              <div style={{ fontSize: "11px", opacity: 0.5, fontWeight: 700, marginBottom: "12px", textTransform: "uppercase", letterSpacing: "0.08em" }}>Step 02</div>
+              <h3>Invite & Sync Dues</h3>
+              <p>Send instant shared workspace invite tokens. Members can join and log rent, groceries, or travel expenses dynamically.</p>
+            </div>
+            <div className="lp-card">
+              <div style={{ fontSize: "11px", opacity: 0.5, fontWeight: 700, marginBottom: "12px", textTransform: "uppercase", letterSpacing: "0.08em" }}>Step 03</div>
+              <h3>Auto-Settle Splits</h3>
+              <p>Log transactions with custom categories. Let the split engine calculate balances and generate optimal settlement matrices.</p>
+            </div>
+          </div>
+        </section>
 
-              {/* AI parse chip */}
-              <Motion.div
-                initial={{ opacity: 0, y: 10, scale: 0.93 }}
-                animate={parsed ? { opacity: 1, y: 0, scale: 1 } : {}}
-                transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                className="absolute bottom-4 left-4 flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl backdrop-blur-md border shadow-lg"
-                style={{ background: P.overlayBg, borderColor: P.overlayBdr }}
-              >
-                <span className={`text-[8px] uppercase tracking-widest font-bold ${P.textMuted}`}>AI Parsed</span>
-                <span className={`text-[10px] font-mono font-semibold ${P.text}`}>
-                  Dinner ₹2,450 → 🍔 Food
+        {/* Mock Interface Section */}
+        <section className="lp-interface-section" style={{ padding: "0 8% 80px", maxWidth: "1100px", margin: "0 auto", width: "100%", textAlign: "center" }}>
+          <div style={{ textAlign: "center", marginBottom: "48px" }}>
+            <div style={{ fontSize: "11px", color: "#10b981", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em", marginBottom: "12px" }}>The Interface</div>
+            <h2 style={{ fontSize: "clamp(28px, 4vw, 38px)", fontWeight: 800, color: "#0d0d12", letterSpacing: "-0.03em" }}>A collaborative, modern ledger.</h2>
+            <p style={{ fontSize: "15.5px", color: "#555", maxWidth: "600px", margin: "14px auto 0", lineHeight: 1.6 }}>
+              Ditch complicated spreadsheets. Create shared spaces, invite your housemates or team members, log common expenses, and track balanced dues instantly.
+            </p>
+          </div>
+
+          {/* Interactive Mock Card */}
+          <div className="lp-mock-card">
+            <div className="lp-mock-header">
+              <span className="lp-mock-title">Shared Workspace Split Engine</span>
+              <div className="lp-mock-status-dot" />
+            </div>
+
+            <div className="lp-mock-input-sec">
+              <span className="lp-mock-label">Active Workspace:</span>
+              <div className="lp-mock-ws-badge">Apartment 4B Split</div>
+            </div>
+
+            <div className="lp-mock-typing-box">
+              <div className="lp-mock-label">WHAT YOU LOGGED:</div>
+              <div className="lp-mock-typed-text">Grocery store checkout ₹1,500 split</div>
+            </div>
+
+            <div className="lp-mock-grid">
+              <div className="lp-mock-grid-box">
+                <span className="lp-mock-grid-lbl">TOTAL SPLIT</span>
+                <span className="lp-mock-grid-val">₹1,500.00</span>
+              </div>
+              <div className="lp-mock-grid-box">
+                <span className="lp-mock-grid-lbl">MEMBERS</span>
+                <span className="lp-mock-grid-val">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: "15px", height: "15px", marginRight: "6px", display: "inline-block", verticalAlign: "middle", marginTop: "-3px" }}>
+                    <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                    <path d="M23 21v-2a4 4 0 00-3-3.87" />
+                    <path d="M16 3.13a4 4 0 010 7.75" />
+                  </svg>
+                  <span style={{ verticalAlign: "middle" }}>3 Active</span>
                 </span>
-              </Motion.div>
+              </div>
+              <div className="lp-mock-grid-box">
+                <span className="lp-mock-grid-lbl">ALLOCATION</span>
+                <span className="lp-mock-grid-val">₹500.00 / head</span>
+              </div>
             </div>
 
-            {/* Caption strip */}
-            <div className={`px-5 py-3 flex items-center justify-between text-[10px] font-medium tracking-wide opacity-50 ${P.text}`}>
-              <span>Morning Ledger</span>
-              <span>InsightX</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Scroll hint */}
-        <Motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 2, duration: 1 }}
-          className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
-        >
-          <span className={`text-[9px] uppercase tracking-widest ${P.textMuted} opacity-50`}>Scroll</span>
-          <div className={`w-px h-10 origin-top`} style={{ background: P.accent, opacity: 0.3 }}>
-            <Motion.div
-              animate={{ scaleY: [0, 1, 0], y: [0, 20, 40] }}
-              transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
-              className="w-full h-1/2 origin-top"
-              style={{ background: P.accent }}
-            />
-          </div>
-        </Motion.div>
-      </section>
-
-      {/* ══ SECTION 2 – PHILOSOPHY ════════════════════════════════════════ */}
-      <section
-        id="philosophy"
-        className={`py-20 sm:py-32 border-t ${P.border} overflow-hidden`}
-      >
-        <div className="mx-auto max-w-7xl px-4 sm:px-8 grid grid-cols-1 lg:grid-cols-12 gap-8 sm:gap-12">
-
-          {/* Left col — floats up slowly on scroll */}
-          <div ref={philLeftRef} className="lg:col-span-5 space-y-4 lg:sticky lg:top-24 self-start" style={{ willChange: "transform, opacity" }}>
-            <span className={`text-[10px] uppercase font-bold tracking-widest ${P.textMuted}`}>The Premise</span>
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-light tracking-tight font-serif">
-              A dialogue with <br />
-              <span className="italic font-normal">your daily ledger.</span>
-            </h2>
-            <p className={`text-sm font-light leading-relaxed ${P.textFaint}`}>
-              InsightX is built on the philosophy that tracking is not restriction — it is understanding the gravity of your choices. Every entry is an act of deliberate awareness.
-            </p>
-          </div>
-
-          {/* Right col — cards float in at staggered speeds */}
-          <div ref={philRightRef} className="lg:col-span-7 lg:pl-12 grid grid-cols-1 sm:grid-cols-2 gap-10">
-            {[
-              { n: "01", title: "Natural Language Parser", body: "Type transactions as you speak. Engine extracts amount, category, and date dynamically." },
-              { n: "02", title: "Silent Limit Guard",      body: "No loud alerts. Muted visual markers reflect budget status when approaching limits." },
-              { n: "03", title: "Shared Workspaces",       body: "Split bills and track collective debts with family or friends without messy spreadsheets." },
-              { n: "04", title: "No-Spend Streaks",        body: "Observe consecutive spend-free days with minimalist streak indicators." },
-            ].map(({ n, title, body }) => (
-              <div key={n} className="phil-card space-y-2" style={{ willChange: "transform, opacity" }}>
-                <span className={`text-[10px] font-mono block opacity-40 ${P.text}`}>{n} /</span>
-                <h4 className={`text-xs font-bold uppercase tracking-wider ${P.text}`}>{title}</h4>
-                <p className={`text-[11px] leading-relaxed ${P.textFaint}`}>{body}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ══ SECTION 3 – INTERFACE ════════════════════════════════════════ */}
-      <section
-        id="interface"
-        className={`py-20 sm:py-32 border-t ${P.border} ${P.sectionAlt} overflow-hidden`}
-      >
-        <div className="mx-auto max-w-7xl px-4 sm:px-8 space-y-12">
-          {/* Section heading — standard fade reveal */}
-          <div className="text-center max-w-xl mx-auto space-y-3">
-            <span className={`text-[10px] uppercase font-bold tracking-widest ${P.textMuted}`}>The Interface</span>
-            <h2 className="text-3xl font-light tracking-tight font-serif">
-              A quiet, <span className="italic font-normal">uncluttered ledger.</span>
-            </h2>
-            <p className={`text-xs leading-relaxed ${P.textFaint}`}>
-              No spreadsheets, no flashing charts. Type in one natural line; AI maps categories, recurrence, and limits in real-time.
-            </p>
-          </div>
-
-          {/* Mockup card — drifts upward at 0.6x scroll speed */}
-          <div ref={mockupRef} className="max-w-2xl mx-auto" style={{ willChange: "transform, opacity" }}>
-            <div className={`rounded-3xl border p-4 sm:p-6 md:p-8 space-y-6 shadow-lg ${P.cardBg} ${P.border}`}>
-              <div className={`flex items-center justify-between border-b pb-4 ${P.border}`}>
-                <span className={`text-[10px] uppercase font-bold tracking-wider opacity-50 ${P.text}`}>Live Transaction Input</span>
-                <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: P.accent }} />
-              </div>
-
-              <div className="space-y-2">
-                <div className={`text-[9px] uppercase tracking-wider opacity-40 ${P.text}`}>What you type:</div>
-                <div className={`text-base sm:text-lg font-mono font-light border-b pb-2 flex items-center justify-between ${P.border}`}>
-                  <span className={P.text}>{displayed}</span>
-                  {!twDone && <span className="w-[2px] h-5 animate-pulse ml-0.5 inline-block" style={{ background: P.accent }} />}
+            <div className="lp-mock-ledger">
+              <div className="lp-mock-ledger-hdr">Optimal Settlement Plan</div>
+              
+              <div className="lp-mock-ledger-row">
+                <div className="lp-mock-ledger-col">
+                  <span className="lp-mock-avatar">K</span>
+                  <span>Kabir owes <strong>You</strong></span>
+                </div>
+                <div className="lp-mock-ledger-col">
+                  <span className="lp-mock-badge pending">Pending</span>
+                  <span className="lp-mock-ledger-val">₹500.00</span>
                 </div>
               </div>
 
-              <Motion.div
-                initial={{ opacity: 0, y: 8 }}
-                animate={parsed ? { opacity: 1, y: 0 } : {}}
-                transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                className="grid grid-cols-3 gap-4"
-              >
-                {[
-                  { label: "Amount",     value: "₹2,450.00", mono: true  },
-                  { label: "Category",   value: "🍔 Food",    mono: false },
-                  { label: "Recurrence", value: "One-time",   mono: false },
-                ].map(({ label, value, mono }, i) => (
-                  <Motion.div
-                    key={label}
-                    initial={{ opacity: 0, y: 6 }}
-                    animate={parsed ? { opacity: 1, y: 0 } : {}}
-                    transition={{ duration: 0.4, delay: i * 0.09, ease: [0.16, 1, 0.3, 1] }}
-                    className={`p-3.5 rounded-2xl border text-center space-y-1 ${P.cardBg2} ${P.border}`}
-                  >
-                    <span className={`block text-[8px] uppercase tracking-widest opacity-40 ${P.text}`}>{label}</span>
-                    <span className={`text-xs font-semibold ${mono ? "font-mono" : ""} ${P.text}`}>{value}</span>
-                  </Motion.div>
-                ))}
-              </Motion.div>
+              <div className="lp-mock-ledger-row">
+                <div className="lp-mock-ledger-col">
+                  <span className="lp-mock-avatar">R</span>
+                  <span>Riya owes <strong>You</strong></span>
+                </div>
+                <div className="lp-mock-ledger-col">
+                  <span className="lp-mock-badge pending">Pending</span>
+                  <span className="lp-mock-ledger-val">₹500.00</span>
+                </div>
+              </div>
 
-              <div className={`border-t pt-5 space-y-3 ${P.border}`}>
-                <div className={`text-[9px] uppercase tracking-wider opacity-40 ${P.text}`}>Ledger Records</div>
-                {[
-                  { desc: "Dinner with friends",     cat: "🍔 Food",      amt: "₹2,450.00", date: "Today"      },
-                  { desc: "Weekly organic groceries", cat: "🛍️ Shopping", amt: "₹1,200.00", date: "Yesterday"  },
-                  { desc: "Office workspace split",   cat: "🏠 Rent",      amt: "₹8,000.00", date: "2 days ago" },
-                ].map((item, i) => (
-                  <div key={i} className={`flex items-center justify-between text-xs py-2 border-b last:border-0 ${P.border}`}>
-                    <div className="flex items-center gap-2 sm:gap-4 min-w-0">
-                      <span className={`font-mono text-[9px] w-12 sm:w-16 shrink-0 opacity-40 ${P.text}`}>{item.date}</span>
-                      <span className={`font-medium truncate ${P.text}`}>{item.desc}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
-                      <span className={`hidden sm:inline text-[10px] px-2 py-0.5 rounded-full border ${P.chipBg}`}>{item.cat}</span>
-                      <span className={`font-mono font-semibold text-[11px] sm:text-xs ${P.text}`}>{item.amt}</span>
-                    </div>
+              <div className="lp-mock-ledger-row">
+                <div className="lp-mock-ledger-col">
+                  <span className="lp-mock-avatar success">Y</span>
+                  <span>You settled with <strong>Aman</strong></span>
+                </div>
+                <div className="lp-mock-ledger-col">
+                  <span className="lp-mock-badge settled">Settled</span>
+                  <span className="lp-mock-ledger-val green">₹250.00</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Metric Stats Banner */}
+        <section className="lp-stats">
+          <div className="lp-stat-box">
+            <div className="lp-stat-val">100%</div>
+            <div className="lp-stat-lbl">Data Ownership</div>
+          </div>
+          <div className="lp-stat-box">
+            <div className="lp-stat-val">Real-time</div>
+            <div className="lp-stat-lbl">Workspace Sync</div>
+          </div>
+          <div className="lp-stat-box">
+            <div className="lp-stat-val">0</div>
+            <div className="lp-stat-lbl">Ad Trackers</div>
+          </div>
+          <div className="lp-stat-box">
+            <div className="lp-stat-val">Recharts</div>
+            <div className="lp-stat-lbl">Dynamic Sheets</div>
+          </div>
+        </section>
+
+        {/* Features Section */}
+        <section className="lp-features-section">
+          <div className="lp-features-title">
+            <h2>Collaborative Ledger Infrastructure</h2>
+            <p>Advanced metrics, budgets, and splits designed to keep your balances aligned.</p>
+          </div>
+          <div className="lp-grid">
+            <div className="lp-card">
+              <div className="lp-icon-wrap">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: "24px", height: "24px" }}>
+                  <path d="M3 12h18M3 6h18M3 18h18" strokeWidth="2.2" />
+                  <path d="M8 3v18M16 3v18" strokeWidth="1" strokeDasharray="2 2" />
+                  <rect x="5" y="4" width="6" height="4" rx="1" fill="currentColor" stroke="none" />
+                  <rect x="13" y="10" width="6" height="4" rx="1" fill="currentColor" stroke="none" />
+                </svg>
+              </div>
+              <h3>Multi-Workspace Sheets</h3>
+              <p>Toggle between separate financial vaults. Maintain dedicated lists of expenses, monthly budgets, and group metrics per workspace.</p>
+            </div>
+
+            <div className="lp-card">
+              <div className="lp-icon-wrap">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: "24px", height: "24px" }}>
+                  <circle cx="6" cy="18" r="3" strokeWidth="2" />
+                  <circle cx="18" cy="18" r="3" strokeWidth="2" />
+                  <circle cx="12" cy="6" r="3" strokeWidth="2" />
+                  <path d="M12 9l-4.5 6M12 9l4.5 6" strokeWidth="1.8" />
+                  <path d="M9 18h6" strokeWidth="1.8" />
+                  <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" />
+                </svg>
+              </div>
+              <h3>Auto-Balancing Split Engine</h3>
+              <p>Ditch complex spreadsheets. Log common bills, allocate individual weights, and trace who owes whom through automated matrix sheets.</p>
+            </div>
+
+            <div className="lp-card">
+              <div className="lp-icon-wrap">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: "24px", height: "24px" }}>
+                  <path d="M3 3v18h18" strokeWidth="2" />
+                  <path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3" strokeWidth="2" />
+                  <path d="M15 8h4v4" strokeWidth="2" />
+                  <path d="M7 14.3l3.8-3.8 2.8 2.7 5.1-5.2V21H7z" fill="currentColor" opacity="0.1" stroke="none" />
+                </svg>
+              </div>
+              <h3>Recharts Audit Sheets</h3>
+              <p>Visualize daily expense trends, track active budget threshold gaps, and receive smart engine insights dynamically.</p>
+            </div>
+          </div>
+        </section>
+
+        {/* Details Showcase Block */}
+        <section className="lp-details-block">
+          <div className="lp-details-container">
+            {/* Detail Row 1 */}
+            <div className="lp-details-row">
+              <div className="lp-details-col-text">
+                <div className="lp-icon-wrap">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: "22px", height: "22px" }}>
+                    <path d="M12 2L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-3z" strokeWidth="2" />
+                    <path d="M12 7a2.5 2.5 0 00-2.5 2.5V11h5V9.5A2.5 2.5 0 0012 7z" />
+                    <rect x="8.5" y="11" width="7" height="5" rx="1" fill="currentColor" stroke="none" />
+                  </svg>
+                </div>
+                <h3>Personal Data Privacy Architecture</h3>
+                <p>
+                  We build with security-first parameters. Your workspaces, transaction ledgers, and budget profiles are securely synced using Firebase Firestore databases.
+                </p>
+                <div className="lp-details-list">
+                  <div className="lp-details-item">
+                    <Check size={16} />
+                    <span>Firebase Encrypted Authentication schemes</span>
                   </div>
-                ))}
+                  <div className="lp-details-item">
+                    <Check size={16} />
+                    <span>Vaulted Firestore ledger storage rules</span>
+                  </div>
+                </div>
+              </div>
+              <div className="lp-details-col-visual" style={{ padding: 0, overflow: "hidden", minHeight: "280px", height: "280px" }}>
+                <img src="/security_vault.png" alt="Cybersecurity Vault" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+              </div>
+            </div>
+
+            {/* Detail Row 2 */}
+            <div className="lp-details-row">
+              <div className="lp-details-col-text">
+                <div className="lp-icon-wrap">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: "22px", height: "22px" }}>
+                    <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 11-.57-8.38l5.67-5.67" strokeWidth="2" />
+                    <path d="M13 10l-4 6h4v4l4-6h-4v-4z" fill="currentColor" stroke="none" />
+                  </svg>
+                </div>
+                <h3>Collaborative Group Sync</h3>
+                <p>
+                  No more manually syncing ledger sheets. Invite partners or split-bill members using real-time synchronization channels. Updates reflect instantly across all screens.
+                </p>
+                <div className="lp-details-list">
+                  <div className="lp-details-item">
+                    <Check size={16} />
+                    <span>Instant token-based invite links</span>
+                  </div>
+                  <div className="lp-details-item">
+                    <Check size={16} />
+                    <span>Optimized settlement calculations</span>
+                  </div>
+                </div>
+              </div>
+              <div className="lp-details-col-visual" style={{ padding: 0, overflow: "hidden", minHeight: "280px", height: "280px" }}>
+                <img src="/meeting_sync.png" alt="Real-Time Workspace Collaboration" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ══ SECTION 4 – PRINCIPLES ════════════════════════════════════════ */}
-      <section
-        id="principles"
-        className={`py-20 sm:py-32 border-t ${P.border} overflow-hidden`}
-      >
-        <div className="mx-auto max-w-7xl px-4 sm:px-8 space-y-12">
-          <div className="space-y-3">
-            <span className={`text-[10px] uppercase font-bold tracking-widest ${P.textMuted}`}>Core Values</span>
-            <h2 className="text-3xl font-light tracking-tight font-serif">
-              Timeless guidelines for <br />
-              <span className="italic font-normal">financial tranquility.</span>
-            </h2>
+        {/* FAQ Accordion Section */}
+        <section className="lp-faq-section">
+          <div className="lp-faq-title">
+            <h2>Frequently Asked Questions</h2>
           </div>
-
-          {/* Three columns — each arrives at different scroll speed (wave) */}
-          <div className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 border-t border-b ${P.border} divide-y sm:divide-y-0 sm:divide-x ${P.divider}`}>
-            {[
-              { ref: princCol1Ref, icon: Wind,     n: "01", title: "Clarification", body: "Remove the noise of traditional charts. Budget, streaks, and score summarized in one serene daily snapshot.", pad: "md:pr-8" },
-              { ref: princCol2Ref, icon: Compass,  n: "02", title: "Autonomy",      body: "Share expenses and settle balances effortlessly. Keep your shared workspace in equilibrium, always.", pad: "md:px-8" },
-              { ref: princCol3Ref, icon: Sparkles, n: "03", title: "Reflection",    body: "Intelligence that reflects your patterns gently — automated insights that suggest minor adjustments, never commands.", pad: "md:pl-8" },
-            ].map(({ ref, icon: Icon, n, title, body, pad }) => (
-              <div
-                key={n}
-                ref={ref}
-                className={`py-10 space-y-4 ${pad}`}
-                style={{ willChange: "transform, opacity" }}
-              >
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center border opacity-80 ${P.textMuted} ${P.border}`}>
-                  <Icon size={14} />
+          <div className="lp-faq-list">
+            {faqs.map((faq, index) => (
+              <div className="lp-faq-item" key={index}>
+                <div className="lp-faq-q" onClick={() => toggleFaq(index)}>
+                  <span>{faq.q}</span>
+                  <ChevronDown className={`lp-faq-chevron ${activeFaq === index ? "active" : ""}`} size={16} />
                 </div>
-                <h3 className={`text-xs font-bold tracking-wider uppercase ${P.text}`}>{n} / {title}</h3>
-                <p className={`text-[11px] leading-relaxed ${P.textFaint}`}>{body}</p>
+                {activeFaq === index && (
+                  <div className="lp-faq-a">
+                    {faq.a}
+                  </div>
+                )}
               </div>
             ))}
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ══ CTA ══════════════════════════════════════════════════════════ */}
-      <section className={`py-24 sm:py-36 border-t text-center ${P.border} ${P.sectionAlt} overflow-hidden`}>
-        <div
-          ref={ctaHeadRef}
-          className="mx-auto max-w-4xl px-4 sm:px-8 space-y-6"
-          style={{ willChange: "transform, opacity" }}
-        >
-          <div className="space-y-4">
-            <h2 className="text-3xl sm:text-4xl font-light tracking-tight font-serif">
-              Welcome to <span className="italic font-normal">financial composure.</span>
-            </h2>
-            <p className={`text-xs max-w-sm mx-auto leading-relaxed ${P.textFaint}`}>
-              Step inside the space and experience tracking designed with deliberate intent and luxurious clarity.
-            </p>
-          </div>
+        {/* CTA Banner */}
+        <section className="lp-cta-banner">
+          <h2>Simplify your workspaces today</h2>
+          <p>Create a secure ledger workspace and invite your partners or split-bill members.</p>
+          <button onClick={() => navigate("/login")}>Launch Workspace</button>
+        </section>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
-            <button
-              onClick={() => navigate("/signup")}
-              className={`px-8 py-3 rounded-full text-xs font-semibold tracking-wider uppercase transition-all duration-300 shadow-md hover:shadow-lg active:scale-[0.98] ${P.btnPrimary}`}
-            >
-              Begin Journey
-            </button>
-            <button
-              onClick={() => navigate("/login")}
-              className={`px-8 py-3 rounded-full text-xs font-semibold tracking-wider uppercase border transition-all duration-300 active:scale-[0.98] ${P.btnSecBdr}`}
-            >
-              Sign In
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* ══ FOOTER ════════════════════════════════════════════════════════ */}
-      <footer className={`py-10 border-t text-[10px] tracking-wider uppercase opacity-40 ${P.border} ${P.text}`}>
-        <div className="mx-auto max-w-7xl px-4 sm:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-6">
-          <span>&copy; {new Date().getFullYear()} InsightX. All rights reserved.</span>
-          <div className="flex gap-8">
-            <a href="#philosophy" className="hover:opacity-100 transition-opacity">Philosophy</a>
-            <a href="#interface"  className="hover:opacity-100 transition-opacity">Interface</a>
-            <a href="#principles" className="hover:opacity-100 transition-opacity">Principles</a>
-          </div>
-        </div>
-      </footer>
-    </div>
+        {/* Footer */}
+        <footer className="lp-footer">
+          &copy; {new Date().getFullYear()} Fintra Ledger. All rights reserved.
+        </footer>
+      </div>
+    </>
   );
 }

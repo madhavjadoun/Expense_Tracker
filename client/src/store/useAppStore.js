@@ -90,7 +90,7 @@ export const useAppStore = create((set, get) => ({
   user: null,
 
   theme: (() => {
-    const saved = localStorage.getItem("theme") || "dark";
+    const saved = localStorage.getItem("theme") || "light";
     document.documentElement.classList.toggle("dark", saved === "dark");
     return saved;
   })(),
@@ -165,6 +165,8 @@ export const useAppStore = create((set, get) => ({
     set((s) => ({ ui: { ...s.ui, sidebarOpen: !s.ui.sidebarOpen } })),
   toggleSidebarCollapsed: () =>
     set((s) => ({ ui: { ...s.ui, sidebarCollapsed: !s.ui.sidebarCollapsed } })),
+  setSidebarCollapsed: (collapsed) =>
+    set((s) => ({ ui: { ...s.ui, sidebarCollapsed: collapsed } })),
 
   /**
    * After login: sync profile + budget from MongoDB, then fetch expenses.

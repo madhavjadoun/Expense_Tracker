@@ -50,13 +50,22 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen text-white/90">
+    <div className="min-h-screen text-white/90" style={{ background: "#090909" }}>
       {location.pathname === "/login" || location.pathname === "/signup" ? <AnimatedBackground /> : null}
       <Toaster
         position="top-right"
         toastOptions={{
           duration: 2600,
-          style: {
+          style: (location.pathname === "/" || location.pathname === "/login" || location.pathname === "/signup") ? {
+            background: "rgba(243, 242, 236, 0.96)",
+            color: "#0d0d12",
+            border: "1px solid rgba(13, 13, 18, 0.12)",
+            borderRadius: "14px",
+            backdropFilter: "blur(12px)",
+            boxShadow: "0 10px 30px rgba(0, 0, 0, 0.08)",
+            fontSize: "13.5px",
+            fontWeight: "500",
+          } : {
             background: "rgba(2,6,23,0.92)",
             color: "rgba(255,255,255,0.92)",
             border: "1px solid rgba(255,255,255,0.12)",
@@ -71,9 +80,7 @@ export default function App() {
           path="/"
           element={
             <Suspense fallback={<Loader show label="Loading page…" />}>
-              <SmoothScrollProvider>
-                <LandingPage />
-              </SmoothScrollProvider>
+              <LandingPage />
             </Suspense>
           }
         />

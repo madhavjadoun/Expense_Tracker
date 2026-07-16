@@ -34,7 +34,7 @@ export default function ProfilePage() {
 
   const cardClass = isLightTheme
     ? "rounded-2xl bg-[#090B0A] border border-[#1A1E1C] shadow-sm p-5 sm:p-6"
-    : "rounded-2xl border border-white/[0.05] bg-gradient-to-b from-[#090E0A] via-[#182C1C] to-[#324E38] shadow-[0_8px_30px_rgba(0,0,0,0.3)] p-5 sm:p-6";
+    : "rounded-2xl border border-white/[0.05] bg-[#1b1b1d] shadow-[0_8px_30px_rgba(0,0,0,0.3)] p-5 sm:p-6";
 
   const shouldRenderSkeleton = loading && !profile?.name && !authUser?.name;
 

@@ -11,7 +11,7 @@ const mainItems = [
   { to: "/split",     label: "Split Bills", icon: SplitSquareVertical },
 ];
 
-function SidebarContent({ collapsed, onToggleCollapsed, onNavigate, onHelpOpen }) {
+function SidebarContent({ collapsed, onToggleCollapsed, onNavigate, onHelpOpen, onClose, isMobile }) {
   const navigate = useNavigate();
   const user = useAppStore((s) => s.user);
   const theme = useAppStore((s) => s.theme);
@@ -27,49 +27,47 @@ function SidebarContent({ collapsed, onToggleCollapsed, onNavigate, onHelpOpen }
       .map((part) => part[0]?.toUpperCase())
       .join("") || "W";
 
+  const handleToggle = () => {
+    if (isMobile && onClose) {
+      onClose();
+    } else if (onToggleCollapsed) {
+      onToggleCollapsed();
+    }
+  };
+
   return (
     <div className="flex h-full flex-col">
-      {/* ── Brand Header ── */}
-      <div className="flex items-center justify-between gap-3 px-4 py-4">
-        <div className="flex min-w-0 items-center gap-3">
-          <div className={`grid h-10 w-10 place-items-center rounded-xl transition ${
-            isLightTheme ? "bg-[#84cc16]/12 ring-1 ring-[#84cc16]/25" : "bg-white/10 ring-1 ring-white/10"
-          }`}>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className={`h-5 w-5 transition ${isLightTheme ? "text-[#84cc16]" : "text-[#EFF2F0]"}`}
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-            >
-              <circle cx="12" cy="12" r="10" />
-              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-              <path d="M2 12h20" />
-            </svg>
-          </div>
-          {!collapsed ? (
-            <div className="min-w-0 leading-tight">
-              <div className="text-base font-bold tracking-tight text-white/95">
-                InsightX
-              </div>
-              <div className={`truncate text-[10px] uppercase tracking-widest font-semibold ${
-                isLightTheme ? "text-[#84cc16]" : "text-[#EFF2F0]"
-              }`}>
-                Premium
-              </div>
-            </div>
-          ) : null}
+      <div className={`flex px-4 py-4 transition-all duration-200 ${
+        collapsed ? "flex-col items-center justify-center gap-2.5" : "items-center justify-between gap-3"
+      }`}>
+        <div className={`flex min-w-0 items-center gap-3 ${collapsed ? "justify-center" : ""}`}>
+          {collapsed ? (
+            <img
+              src={isLightTheme ? "/icon_black.png" : "/icon_white.png"}
+              alt="Fintra Logo"
+              style={{ height: "24px", width: "auto" }}
+              className="object-contain"
+            />
+          ) : (
+            <img
+              src={isLightTheme ? "/logo_black.png" : "/logo_white.png"}
+              alt="Fintra Logo"
+              style={{ height: "24px", width: "auto", maxWidth: "100px" }}
+              className="object-contain"
+            />
+          )}
         </div>
 
-        <button
-          onClick={onToggleCollapsed}
-          className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-2 text-white/50 transition duration-200 hover:bg-white/[0.08] hover:text-white"
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          type="button"
-        >
-          {collapsed ? <Menu size={14} /> : <X size={14} />}
-        </button>
+        {(onToggleCollapsed || isMobile) && (
+          <button
+            onClick={(e) => { e.stopPropagation(); handleToggle(); }}
+            className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-2 text-white/50 transition duration-200 hover:bg-white/[0.08] hover:text-white cursor-pointer"
+            aria-label={isMobile ? "Close sidebar" : (collapsed ? "Expand sidebar" : "Collapse sidebar")}
+            type="button"
+          >
+            <Menu size={14} />
+          </button>
+        )}
       </div>
 
       {/* ── Workspace picker ── */}
@@ -91,11 +89,9 @@ function SidebarContent({ collapsed, onToggleCollapsed, onNavigate, onHelpOpen }
               className={({ isActive }) =>
                 [
                    "flex items-center justify-between rounded-xl px-3 py-2.5 text-sm transition-all duration-200 ease-out",
-                   isActive
-                     ? (isLightTheme
-                        ? "bg-[#171d17] text-[#68995E] no-invert font-semibold shadow-sm"
-                        : "bg-[#181A1E] text-[#EFF2F0] border border-white/[0.06] font-semibold shadow-sm")
-                     : "text-white/60 hover:bg-white/5 hover:text-white/95 group",
+                    isActive
+                      ? "bg-[#181A1E] text-[#EFF2F0] border border-white/[0.06] font-semibold shadow-sm"
+                      : "text-white/60 hover:bg-white/5 hover:text-white/95 group",
                 ].join(" ")
               }
             >
@@ -107,7 +103,7 @@ function SidebarContent({ collapsed, onToggleCollapsed, onNavigate, onHelpOpen }
                       size={18}
                       className={`transition-colors ${
                         isActive
-                          ? (isLightTheme ? "text-[#68995E]" : "text-[#EFF2F0]")
+                          ? "text-[#EFF2F0]"
                           : "text-white/60 group-hover:text-white/95"
                       }`}
                     />
@@ -182,6 +178,7 @@ export default function Sidebar({
   variant = "desktop", // "desktop" | "mobile"
   onNavigate,
   onHelpOpen,
+  onClose,
 }) {
   const theme = useAppStore((s) => s.theme);
 
@@ -190,9 +187,10 @@ export default function Sidebar({
       <div className="h-full">
         <SidebarContent
           collapsed={false}
-          onToggleCollapsed={() => {}}
           onNavigate={onNavigate}
           onHelpOpen={onHelpOpen}
+          onClose={onClose}
+          isMobile={true}
         />
       </div>
     );
@@ -203,7 +201,9 @@ export default function Sidebar({
       animate={{ width: collapsed ? 84 : 264 }}
       transition={{ type: "spring", stiffness: 320, damping: 30 }}
       className={`sticky top-0 hidden h-screen shrink-0 border-r border-white/[0.05] lg:block transition-colors duration-300 backdrop-blur-md ${
-        theme === "light" ? "bg-[#212b21]/88" : "bg-[#0C0D0F]/90"
+        theme === "light" 
+          ? "bg-gradient-to-b from-[#0C100C]/92 to-[#212b21]/92" 
+          : "bg-gradient-to-b from-[#161719]/95 to-[#0C0D0F]/95"
       }`}
     >
       <SidebarContent

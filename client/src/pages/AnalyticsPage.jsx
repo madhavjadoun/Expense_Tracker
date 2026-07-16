@@ -232,15 +232,15 @@ export default function AnalyticsPage() {
 
   const cardWhiteClass = isLightTheme
     ? "bg-[#090B0A] border border-[#1A1E1C] hover:border-white/50 hover:ring-1 hover:ring-white/20"
-    : "bg-gradient-to-b from-[#090E0A] via-[#182C1C] to-[#324E38] border border-white/[0.06] shadow-[0_8px_30px_rgba(0,0,0,0.3)] hover:border-white/12 transition-all duration-300";
+    : "bg-[#1b1b1d] border border-white/[0.05] shadow-[0_8px_30px_rgba(0,0,0,0.3)] hover:border-white/12 transition-all duration-300";
 
   const cardSageClass = isLightTheme
     ? "bg-[#090B0A] border border-[#1A1E1C] hover:border-white/50 hover:ring-1 hover:ring-white/20"
-    : "bg-gradient-to-b from-[#090E0A] via-[#182C1C] to-[#324E38] border border-white/[0.05] shadow-[0_8px_30px_rgba(0,0,0,0.3)] hover:border-white/12 transition-all duration-300";
+    : "bg-[#1b1b1d] border border-white/[0.05] shadow-[0_8px_30px_rgba(0,0,0,0.3)] hover:border-white/12 transition-all duration-300";
 
   const cardGrayClass = isLightTheme
     ? "bg-[#090B0A] border border-[#1A1E1C] hover:border-white/50 hover:ring-1 hover:ring-white/20"
-    : "bg-gradient-to-b from-[#090E0A] via-[#182C1C] to-[#324E38] border border-white/[0.05] shadow-[0_8px_30px_rgba(0,0,0,0.3)] hover:border-white/12 transition-all duration-300";
+    : "bg-[#1b1b1d] border border-white/[0.05] shadow-[0_8px_30px_rgba(0,0,0,0.3)] hover:border-white/12 transition-all duration-300";
 
   return (
     <div className="w-full space-y-6">

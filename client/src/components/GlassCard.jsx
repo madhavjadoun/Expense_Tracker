@@ -20,8 +20,6 @@ export default function GlassCard({
 
   return (
     <Tilt
-      glareEnable
-      glareMaxOpacity={0.12}
       scale={1.005}
       tiltMaxAngleX={4}
       tiltMaxAngleY={4}

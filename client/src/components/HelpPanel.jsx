@@ -65,7 +65,7 @@ export default function HelpPanel({ open, onClose }) {
 
   const cardClass = isLightTheme
     ? "rounded-2xl bg-[#090B0A] border border-[#1A1E1C] shadow-sm transition-all duration-300 ease-out hover:border-white/50 hover:ring-1 hover:ring-white/20"
-    : "rounded-2xl border border-white/[0.05] bg-gradient-to-b from-[#090E0A] via-[#182C1C] to-[#324E38] shadow-[0_8px_30px_rgba(0,0,0,0.3)] transition-all duration-300 ease-out hover:border-white/12";
+    : "rounded-2xl border border-white/[0.05] bg-[#1b1b1d] shadow-[0_8px_30px_rgba(0,0,0,0.3)] transition-all duration-300 ease-out hover:border-white/12";
 
   const [searchQuery, setSearchQuery] = useState("");
   const [openFaqIndex, setOpenFaqIndex] = useState(null);
@@ -159,7 +159,7 @@ export default function HelpPanel({ open, onClose }) {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="fixed inset-0 z-40 bg-black/25 backdrop-blur-[1px] lg:hidden"
+              className="fixed inset-0 z-[90] bg-black/55 backdrop-blur-md"
               onClick={onClose}
               aria-hidden="true"
             />
@@ -171,7 +171,7 @@ export default function HelpPanel({ open, onClose }) {
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: -460, opacity: 0 }}
               transition={{ type: "spring", stiffness: 340, damping: 32 }}
-              className={`fixed left-0 top-0 z-50 flex h-full w-full sm:w-[460px] flex-col border-r shadow-2xl ${isLightTheme ? "bg-[#0E110F]/95 border-[#1A1E1C]" : "bg-[#0e1116]/95 border-white/[0.08]"}`}
+              className={`fixed left-0 top-0 z-[100] flex h-full w-full sm:w-[460px] flex-col border-r shadow-2xl ${isLightTheme ? "bg-[#0E110F] border-[#1A1E1C]" : "bg-[#0e1116] border-white/[0.08]"}`}
               role="dialog"
               aria-label="Help Panel"
             >

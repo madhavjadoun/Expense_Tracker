@@ -101,16 +101,16 @@ export default function DashboardPage() {
   // cardBgClass → #F3F8F2  sage tint   (secondary KPI + metric cards)
   // cardGrayClass → #F6F7F9 cool gray  (functional / insight panels)
   const card1Class = isLightTheme
-    ? "bg-gradient-to-b from-[#000000] via-[#233529] to-[#75907A] border border-white/[0.08] no-invert hover:border-white/70 hover:ring-1 hover:ring-white/20"
-    : "border border-white/[0.09] shadow-[0_12px_40px_rgba(0,0,0,0.35)] hover:border-white/20 transition-all duration-300";
+    ? "bg-[#090B0A] border border-[#1A1E1C] hover:border-white/50 hover:ring-1 hover:ring-white/20"
+    : "bg-[#1b1b1d] border border-white/[0.05] shadow-[0_12px_40px_rgba(0,0,0,0.35)] hover:border-white/12 transition-all duration-300";
 
   const cardBgClass = isLightTheme
     ? "bg-[#090B0A] border border-[#1A1E1C] hover:border-white/50 hover:ring-1 hover:ring-white/20"
-    : "bg-gradient-to-b from-[#090E0A] via-[#182C1C] to-[#324E38] border border-white/[0.05] shadow-[0_8px_30px_rgba(0,0,0,0.3)] hover:border-white/12 transition-all duration-300";
+    : "bg-[#1b1b1d] border border-white/[0.05] shadow-[0_8px_30px_rgba(0,0,0,0.3)] hover:border-white/12 transition-all duration-300";
 
   const cardGrayClass = isLightTheme
     ? "bg-[#090B0A] border border-[#1A1E1C] hover:border-white/50 hover:ring-1 hover:ring-white/20"
-    : "bg-gradient-to-b from-[#090E0A] via-[#182C1C] to-[#324E38] border border-white/[0.05] shadow-[0_8px_30px_rgba(0,0,0,0.3)] hover:border-white/12 transition-all duration-300";
+    : "bg-[#1b1b1d] border border-white/[0.05] shadow-[0_8px_30px_rgba(0,0,0,0.3)] hover:border-white/12 transition-all duration-300";
 
   // Effective budget for the active workspace
   const isDefaultWs     = activeWorkspaceId === "default";
@@ -131,6 +131,10 @@ export default function DashboardPage() {
 
   const [budgetInput, setBudgetInput] = useState(String(effectiveBudget || ""));
   const [isFocused, setIsFocused] = useState(false);
+
+  // Set Budget modal
+  const [budgetModalOpen, setBudgetModalOpen] = useState(false);
+  const [budgetDraft, setBudgetDraft] = useState("");
 
   useEffect(() => {
     if (!isFocused) {
@@ -540,13 +544,22 @@ export default function DashboardPage() {
             Overview of your financial performance
           </p>
         </div>
-        <button
-          onClick={() => setQuickAddOpen(true)}
-          className="flex items-center gap-1.5 rounded-full bg-[#111827] border border-transparent hover:border-white/50 text-white px-3 sm:px-4 py-2 sm:py-2.5 text-xs font-semibold transition active:scale-95 cursor-pointer shrink-0"
-        >
-          <Plus size={14} />
-          <span>Add Expense</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => { setBudgetDraft(String(effectiveBudget || "")); setBudgetModalOpen(true); }}
+            className="flex items-center gap-1.5 rounded-full bg-white/[0.05] border border-white/[0.12] hover:border-white/40 hover:bg-white/[0.09] text-white/75 hover:text-white px-3 sm:px-4 py-2 sm:py-2.5 text-xs font-semibold transition active:scale-95 cursor-pointer shrink-0"
+          >
+            <ShieldCheck size={14} />
+            <span>Set Budget</span>
+          </button>
+          <button
+            onClick={() => setQuickAddOpen(true)}
+            className="flex items-center gap-1.5 rounded-full bg-[#111827] border border-transparent hover:border-white/50 text-white px-3 sm:px-4 py-2 sm:py-2.5 text-xs font-semibold transition active:scale-95 cursor-pointer shrink-0"
+          >
+            <Plus size={14} />
+            <span>Add Expense</span>
+          </button>
+        </div>
       </Motion.div>
 
       {/* Top row: 3 Key KPI cards matching mockup */}
@@ -556,8 +569,8 @@ export default function DashboardPage() {
           <div className={`relative overflow-hidden rounded-[24px] p-6 shadow-sm transition-all duration-300 ease-out hover:-translate-y-[2px] hover:shadow-md cursor-pointer ${card1Class}`}>
             {!isLightTheme && (
               <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-[24px]">
-                {/* Background mockup gradient: top pitch black to bottom green */}
-                <div className="absolute inset-0 bg-gradient-to-b from-[#000000] via-[#031E0D] to-[#094423]" />
+                {/* Background mockup gradient: deep charcoal to pitch black */}
+                <div className="absolute inset-0 bg-gradient-to-b from-[#1C1C1E] via-[#111113] to-[#000000]" />
                 
                 {/* Moving fog shape 1: wide cloud drifting left/right */}
                 <Motion.div
@@ -1103,6 +1116,91 @@ export default function DashboardPage() {
               }}
             >
               Add
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Set Budget Modal */}
+      <Modal open={budgetModalOpen} onClose={() => setBudgetModalOpen(false)} title="Set Monthly Budget">
+        <div className="space-y-4">
+          <div className={`rounded-xl border p-3 text-[11px] ${
+            isLightTheme
+              ? "border-white/[0.08] bg-white/[0.03] text-white/60"
+              : "border-white/[0.06] bg-white/[0.025] text-white/55"
+          }`}>
+            <div className="flex items-center justify-between">
+              <span>Current budget</span>
+              <span className="font-semibold text-white/80">
+                {effectiveBudget > 0 ? formatMoney(effectiveBudget) : "Not set"}
+              </span>
+            </div>
+            {effectiveBudget > 0 && (
+              <div className="mt-1.5">
+                <div className="h-1 w-full overflow-hidden rounded-full bg-white/8">
+                  <div
+                    className="h-full rounded-full bg-white/40 transition-all"
+                    style={{ width: `${Math.min(100, (monthTotals.total / effectiveBudget) * 100)}%` }}
+                  />
+                </div>
+                <div className="mt-1 flex justify-between text-[10px] text-white/35">
+                  <span>Spent: {formatMoney(monthTotals.total)}</span>
+                  <span>Remaining: {formatMoney(Math.max(0, effectiveBudget - monthTotals.total))}</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-white/70">New Monthly Budget</label>
+            <input
+              type="number"
+              min="0"
+              autoFocus
+              placeholder="e.g. 15000"
+              value={budgetDraft}
+              onChange={(e) => setBudgetDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  const n = Number(budgetDraft);
+                  if (!Number.isNaN(n) && n >= 0) {
+                    saveEffectiveBudget(n);
+                    setBudgetInput(String(n));
+                    notify({ type: "success", message: "Budget updated!" });
+                    setBudgetModalOpen(false);
+                  }
+                }
+              }}
+              className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/30 outline-none transition focus:border-white/30 focus:ring-1 focus:ring-white/10"
+            />
+            <p className="text-[10px] text-white/35">This sets your spending limit for the current month</p>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-1">
+            <button
+              type="button"
+              onClick={() => setBudgetModalOpen(false)}
+              className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs text-white/65 transition hover:bg-white/8"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const n = Number(budgetDraft);
+                if (!Number.isNaN(n) && n >= 0) {
+                  saveEffectiveBudget(n);
+                  setBudgetInput(String(n));
+                  notify({ type: "success", message: "Budget updated!" });
+                  setBudgetModalOpen(false);
+                } else {
+                  notify({ type: "error", message: "Please enter a valid budget amount" });
+                }
+              }}
+              className="flex items-center gap-1.5 rounded-xl bg-white/90 px-4 py-2 text-xs font-semibold text-black/90 transition hover:bg-white active:scale-95"
+            >
+              <ShieldCheck size={12} />
+              Save Budget
             </button>
           </div>
         </div>

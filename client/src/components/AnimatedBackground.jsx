@@ -2,30 +2,27 @@ import { motion as Motion } from "framer-motion";
 
 export default function AnimatedBackground() {
   return (
-    <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-      {/* Base gradient */}
-      <div className="absolute inset-0 bg-[radial-gradient(1200px_circle_at_25%_10%,rgba(34,197,94,.14),transparent_58%),radial-gradient(1000px_circle_at_80%_20%,rgba(59,130,246,.12),transparent_55%),radial-gradient(900px_circle_at_40%_90%,rgba(148,163,184,.10),transparent_60%)]" />
+    <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden" style={{ background: "radial-gradient(ellipse at top left, #141418 0%, #0c0c0e 50%, #070709 100%)" }}>
 
-      {/* Animated blobs */}
+      {/* Animated dark indigo blobs */}
       <Motion.div
-        className="absolute -top-28 -left-28 h-[440px] w-[440px] rounded-full bg-emerald-500/14 blur-3xl"
+        className="absolute -top-32 -left-32 h-[500px] w-[500px] rounded-full blur-3xl"
+        style={{ background: "rgba(99,102,241,0.07)" }}
         animate={{ x: [0, 40, -20, 0], y: [0, 20, -30, 0] }}
         transition={{ duration: 16, repeat: Infinity, ease: "easeInOut" }}
       />
       <Motion.div
-        className="absolute top-24 right-[-160px] h-[560px] w-[560px] rounded-full bg-blue-500/12 blur-3xl"
+        className="absolute top-20 right-[-180px] h-[580px] w-[580px] rounded-full blur-3xl"
+        style={{ background: "rgba(139,92,246,0.06)" }}
         animate={{ x: [0, -30, 20, 0], y: [0, -20, 25, 0] }}
         transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
       />
       <Motion.div
-        className="absolute bottom-[-160px] left-1/3 h-[540px] w-[540px] rounded-full bg-slate-200/8 blur-3xl"
+        className="absolute bottom-[-180px] left-1/3 h-[560px] w-[560px] rounded-full blur-3xl"
+        style={{ background: "rgba(79,70,229,0.05)" }}
         animate={{ x: [0, 25, -25, 0], y: [0, -15, 20, 0] }}
         transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
       />
-
-      {/* Vignette */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/0 via-black/10 to-black/55" />
     </div>
   );
 }
-

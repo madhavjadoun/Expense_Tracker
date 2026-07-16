@@ -242,11 +242,11 @@ export default function ExpensesPage() {
 
   const cardBaseLeft = isLightTheme
     ? "rounded-[24px] bg-[#090B0A] border border-[#1A1E1C] shadow-sm transition-all duration-300 ease-out hover:border-white/50 hover:ring-1 hover:ring-white/20"
-    : "rounded-[24px] border border-white/[0.06] bg-gradient-to-b from-[#090E0A] via-[#182C1C] to-[#324E38] shadow-[0_8px_30px_rgba(0,0,0,0.3)] transition-all duration-300 ease-out hover:border-white/12";
+    : "rounded-[24px] border border-white/[0.05] bg-[#1b1b1d] shadow-[0_8px_30px_rgba(0,0,0,0.3)] transition-all duration-300 ease-out hover:border-white/12";
 
   const cardBaseRight = isLightTheme
     ? "rounded-[24px] bg-[#090B0A] border border-[#1A1E1C] shadow-sm transition-all duration-300 ease-out hover:border-white/50 hover:ring-1 hover:ring-white/20"
-    : "rounded-[24px] border border-white/[0.05] bg-gradient-to-b from-[#090E0A] via-[#182C1C] to-[#324E38] shadow-[0_8px_30px_rgba(0,0,0,0.3)] transition-all duration-300 ease-out hover:border-white/12";
+    : "rounded-[24px] border border-white/[0.05] bg-[#1b1b1d] shadow-[0_8px_30px_rgba(0,0,0,0.3)] transition-all duration-300 ease-out hover:border-white/12";
 
   const selectBase = `w-full rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-xs text-white/80 outline-none transition cursor-pointer ${
     isLightTheme ? "focus:border-[#84cc16]/40 focus:ring-1 focus:ring-[#84cc16]/20" : "focus:border-white/30 focus:ring-1 focus:ring-white/10"
