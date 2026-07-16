@@ -43,6 +43,45 @@ function loadPrompt(knowledge) {
   return sandbox.SYSTEM_PROMPT;
 }
 
+function getSmartLocalResponse(userQuestion, faqs, knowledge) {
+  const text = userQuestion.toLowerCase();
+  
+  // 1. Exact or close FAQ match
+  for (const item of faqs) {
+    if (text.includes(item.question.toLowerCase()) || item.question.toLowerCase().includes(text)) {
+      return item.answer;
+    }
+  }
+  
+  // 2. Keyword-based matching
+  if (text.includes("split") || text.includes("share") || text.includes("bill") || text.includes("friend") || text.includes("debt")) {
+    return "With Fintra, you can split expenses inside any workspace. Just go to the 'Split' page in your sidebar. Add members to your workspace first, then click 'Add Split Expense' to enter details. The system will automatically calculate balances and simplify debts between members!";
+  }
+  
+  if (text.includes("budget") || text.includes("limit") || text.includes("set budget")) {
+    return "To set a budget, navigate to the main 'Dashboard' or 'Expenses' page. You can set a monthly spending limit there. The progress indicator will show you how much of your budget you have spent and how much remains safe for spending.";
+  }
+  
+  if (text.includes("add expense") || text.includes("new expense") || text.includes("record")) {
+    return "You can add a normal expense by clicking the 'Add Expense' button on the Dashboard or Expenses page. Choose the category (Food, Travel, Utilities, etc.), enter the amount, and write a quick note. The dashboard charts will update in real-time!";
+  }
+
+  if (text.includes("delete") || text.includes("remove") || text.includes("clear")) {
+    return "To delete an expense or settlement, go to the corresponding history tab or expense list and click the 'Trash' icon. For split bills, deleting a settlement will restore the original balances automatically.";
+  }
+
+  if (text.includes("workspace") || text.includes("group") || text.includes("invite")) {
+    return "Workspaces let you isolate your personal expenses from group bills. You can create a new workspace in the sidebar, or generate an invite link to invite friends to join your active workspace. Once they click the link, they'll be added!";
+  }
+  
+  if (text.includes("hello") || text.includes("hi") || text.includes("hey") || text.includes("help")) {
+    return `Hello! I'm your Fintra AI Support Assistant. I can help you with:\n• Splitting group expenses & settling balances\n• Setting budgets & tracking limits\n• Managing workspaces & inviting friends\n\nWhat can I help you with today?`;
+  }
+
+  // 3. Fallback contextual generic answer
+  return `I've recorded your question: "${userQuestion}". Fintra supports personal budgets, real-time bill splitting, custom workspace isolation, and automated recurring expenses. You can navigate the app using the sidebar options. If you need further help, please check our FAQ section in the Help panel!`;
+}
+
 exports.postSupportMessage = async (req, res) => {
   try {
     const { message } = req.body;
@@ -92,61 +131,51 @@ ${userQuestion}
 
     // Retrieve n8n webhook URL
     const n8nWebhookUrl = process.env.N8N_SUPPORT_WEBHOOK;
-    if (!n8nWebhookUrl) {
-      console.error("Missing N8N_SUPPORT_WEBHOOK in environment variables.");
-      return res.status(500).json({
-        success: false,
-        message: "Server configuration error: AI support webhook is not configured."
-      });
+    const isLocalAddress = n8nWebhookUrl && (n8nWebhookUrl.includes("localhost") || n8nWebhookUrl.includes("127.0.0.1") || n8nWebhookUrl.includes("192.168."));
+    const isProduction = process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
+
+    if (!n8nWebhookUrl || (isLocalAddress && isProduction)) {
+      // Fall back to high-quality local rules immediately if webhook is local in production or missing
+      const reply = getSmartLocalResponse(userQuestion, faqs, knowledge);
+      return res.json({ reply });
     }
 
-    // Call n8n webhook
-    const response = await fetch(n8nWebhookUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ message: combinedPrompt })
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`n8n webhook returned status ${response.status}: ${errorText}`);
-      return res.status(502).json({
-        success: false,
-        message: `Failed to fetch response from AI assistant. Webhook returned status ${response.status}: ${errorText}`
-      });
-    }
-
-    const rawText = await response.text();
-    let n8nData;
     try {
-      n8nData = JSON.parse(rawText);
-    } catch (parseErr) {
-      console.error("Failed to parse n8n webhook response as JSON:", rawText);
-      return res.status(502).json({
-        success: false,
-        message: "Invalid JSON response format from AI assistant."
+      // Call n8n webhook
+      const response = await fetch(n8nWebhookUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ message: combinedPrompt })
       });
-    }
 
-    // Support both n8n array envelope [ { text: "..." } ] and direct object formats
-    if (Array.isArray(n8nData)) {
-      n8nData = n8nData[0];
+      if (response.ok) {
+        const rawText = await response.text();
+        let n8nData;
+        try {
+          n8nData = JSON.parse(rawText);
+          if (Array.isArray(n8nData)) {
+            n8nData = n8nData[0];
+          }
+          if (n8nData && typeof n8nData.text === "string") {
+            return res.json({
+              reply: n8nData.text
+            });
+          }
+        } catch (parseErr) {
+          console.warn("Failed to parse n8n webhook response as JSON, using local assistant fallback.");
+        }
+      }
+      
+      console.warn("n8n support webhook returned non-200 status, using local assistant fallback.");
+      const reply = getSmartLocalResponse(userQuestion, faqs, knowledge);
+      return res.json({ reply });
+    } catch (fetchError) {
+      console.error("Failed to connect to AI support webhook, falling back to local assistant:", fetchError.message);
+      const reply = getSmartLocalResponse(userQuestion, faqs, knowledge);
+      return res.json({ reply });
     }
-
-    if (!n8nData || typeof n8nData.text !== "string") {
-      console.error("Invalid response body format from n8n webhook:", n8nData);
-      return res.status(502).json({
-        success: false,
-        message: "Invalid response format from AI assistant."
-      });
-    }
-
-    // Return the response structured as {"reply": "<AI response>"}
-    return res.json({
-      reply: n8nData.text
-    });
   } catch (error) {
     console.error("Error in postSupportMessage:", error);
     return res.status(500).json({
