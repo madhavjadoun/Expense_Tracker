@@ -31,7 +31,16 @@ app.use(helmet({
     directives: {
       defaultSrc: ["'self'"],
       scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://*.firebaseapp.com", "https://*.googleapis.com"],
-      connectSrc: ["'self'", "https://*.googleapis.com", "https://*.firebaseapp.com", "https://*.firebase.google.com", "wss://*.firebaseio.com", "https://*.vercel.app"],
+      connectSrc: [
+        "'self'", 
+        "https://*.googleapis.com", 
+        "https://*.firebaseapp.com", 
+        "https://*.firebase.google.com", 
+        "wss://*.firebaseio.com", 
+        "https://*.vercel.app",
+        "https://arthaa.live",
+        "https://*.arthaa.live"
+      ],
       imgSrc: ["'self'", "data:", "https://*.firebaseapp.com", "https://*.googleusercontent.com"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
@@ -56,7 +65,8 @@ app.use("/api", limiter);
 const allowedOrigins = [
   "http://localhost:5173",
   "https://madhav-expense-tracker.vercel.app",
-  "https://arthaa.live"
+  "https://arthaa.live",
+  "https://www.arthaa.live"
 ];
 if (process.env.CLIENT_ORIGIN) {
   allowedOrigins.push(process.env.CLIENT_ORIGIN);
@@ -67,7 +77,8 @@ app.use(cors({
     if (!origin) return callback(null, true);
     const isAllowed = allowedOrigins.includes(origin) ||
       allowedOrigins.some(allowed => origin.startsWith(allowed)) ||
-      (origin.endsWith(".vercel.app") && origin.includes("madhav-expense-tracker"));
+      (origin.endsWith(".vercel.app") && origin.includes("madhav-expense-tracker")) ||
+      origin.endsWith("arthaa.live");
     if (isAllowed) {
       callback(null, true);
     } else {

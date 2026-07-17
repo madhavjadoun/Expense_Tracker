@@ -8,8 +8,8 @@ const router = express.Router();
 const SECRET = () => process.env.JWT_SECRET;
 
 // Backend URL (this server) — used for the shareable /join/:token OG page
-const BACKEND_URL = () =>
-  process.env.BACKEND_URL || "https://expense-tracker-rouge-chi-43.vercel.app";
+const BACKEND_URL = (req) =>
+  process.env.BACKEND_URL || (req ? `${req.protocol}://${req.get("host")}` : "https://arthaa.live");
 
 // Frontend URL — where the React app is deployed
 const CLIENT_ORIGIN = () =>
@@ -132,7 +132,7 @@ router.post("/:workspaceId", requireAuth, async (req, res) => {
       { expiresIn: "2d" }
     );
 
-    const inviteLink = `${BACKEND_URL()}/join/${token}`;
+    const inviteLink = `${BACKEND_URL(req)}/join/${token}`;
     return res.status(200).json({ success: true, inviteLink });
 
   } catch (err) {

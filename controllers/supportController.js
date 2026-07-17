@@ -134,8 +134,14 @@ ${userQuestion}
     const isLocalAddress = n8nWebhookUrl && (n8nWebhookUrl.includes("localhost") || n8nWebhookUrl.includes("127.0.0.1") || n8nWebhookUrl.includes("192.168."));
     const isProduction = process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
 
-    if (!n8nWebhookUrl || (isLocalAddress && isProduction)) {
-      // Fall back to high-quality local rules immediately if webhook is local in production or missing
+    if (!n8nWebhookUrl) {
+      console.warn("[SUPPORT] n8n webhook URL is not configured (N8N_SUPPORT_WEBHOOK is missing). Falling back to local assistant.");
+      const reply = getSmartLocalResponse(userQuestion, faqs, knowledge);
+      return res.json({ reply });
+    }
+
+    if (isLocalAddress && isProduction) {
+      console.warn(`[SUPPORT] n8n webhook URL (${n8nWebhookUrl}) is a localhost address in production. Webhooks must be public in production. Falling back to local assistant.`);
       const reply = getSmartLocalResponse(userQuestion, faqs, knowledge);
       return res.json({ reply });
     }
@@ -164,15 +170,16 @@ ${userQuestion}
             });
           }
         } catch (parseErr) {
-          console.warn("Failed to parse n8n webhook response as JSON, using local assistant fallback.");
+          console.warn("[SUPPORT] Failed to parse n8n webhook response as JSON, using local assistant fallback. Error:", parseErr.message);
         }
+      } else {
+        console.warn(`[SUPPORT] n8n webhook at ${n8nWebhookUrl} returned non-200 status (${response.status}), using local assistant fallback.`);
       }
       
-      console.warn("n8n support webhook returned non-200 status, using local assistant fallback.");
       const reply = getSmartLocalResponse(userQuestion, faqs, knowledge);
       return res.json({ reply });
     } catch (fetchError) {
-      console.error("Failed to connect to AI support webhook, falling back to local assistant:", fetchError.message);
+      console.error(`[SUPPORT] Failed to connect to n8n support webhook at ${n8nWebhookUrl}, falling back to local assistant:`, fetchError.message);
       const reply = getSmartLocalResponse(userQuestion, faqs, knowledge);
       return res.json({ reply });
     }

@@ -6,12 +6,12 @@ const router = express.Router();
 const SECRET = () => process.env.JWT_SECRET;
 
 // Backend URL (this server) — used for the shareable /join/:token OG page
-const BACKEND_URL = () =>
-  process.env.BACKEND_URL || "https://expense-tracker-rouge-chi-43.vercel.app";
+const BACKEND_URL = (req) =>
+  process.env.BACKEND_URL || (req ? `${req.protocol}://${req.get("host")}` : "https://arthaa.live");
 
 // Frontend URL — where the React app is deployed
-const CLIENT_ORIGIN = () =>
-  process.env.CLIENT_ORIGIN || "https://madhav-expense-tracker.vercel.app";
+const CLIENT_ORIGIN = (req) =>
+  process.env.CLIENT_ORIGIN || (req ? `${req.protocol}://${req.get("host")}` : "https://arthaa.live");
 
 // ── GET /join/:token ──────────────────────────────────────────────────────────
 // Mounted at /join in server.js → full path: GET /join/:token
@@ -32,9 +32,9 @@ router.get("/:token", (req, res) => {
   const description = expired
     ? "This invite link has expired. Ask for a new one."
     : "You've been invited to collaborate and manage expenses together.";
-  const redirectUrl = `${CLIENT_ORIGIN()}/app/join/${token}`;
-  const imageUrl = `${BACKEND_URL()}/preview.png`;
-  const canonicalUrl = `${BACKEND_URL()}/join/${token}`;
+  const redirectUrl = `${CLIENT_ORIGIN(req)}/app/join/${token}`;
+  const imageUrl = `${BACKEND_URL(req)}/preview.png`;
+  const canonicalUrl = `${BACKEND_URL(req)}/join/${token}`;
 
   const html = `<!DOCTYPE html>
 <html lang="en">
