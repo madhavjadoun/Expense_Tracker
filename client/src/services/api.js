@@ -12,9 +12,8 @@ const getBaseURL = () => {
     if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
       return "http://localhost:5001";
     }
-    return window.location.origin;
   }
-  return "https://arthaa.live";
+  return "https://expense-tracker-rouge-chi-43.vercel.app";
 };
 
 const client = axios.create({
