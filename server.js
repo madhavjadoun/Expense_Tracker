@@ -107,9 +107,10 @@ const corsOptions = {
   allowedHeaders: ["Content-Type", "Authorization"],
 };
 
-app.use(cors(corsOptions));
-
 app.use(express.json({ limit: "1mb" }));
+
+// Apply CORS only to API endpoints to prevent blocking static files
+app.use("/api", cors(corsOptions));
 
 // Rate limiter AFTER CORS
 app.use("/api", limiter);
