@@ -60,7 +60,6 @@ const limiter = rateLimit({
     message: "Too many requests from this IP, please try again after 15 minutes."
   }
 });
-app.use("/api", limiter);
 
 const allowedOrigins = [
   "http://localhost:5173",
@@ -68,26 +67,31 @@ const allowedOrigins = [
   "https://arthaa.live",
   "https://www.arthaa.live"
 ];
+
 if (process.env.CLIENT_ORIGIN) {
   allowedOrigins.push(process.env.CLIENT_ORIGIN);
 }
 
-app.use(cors({
+const corsOptions = {
   origin: function (origin, callback) {
-    if (!origin) return callback(null, true);
-    const isAllowed = allowedOrigins.includes(origin) ||
-      allowedOrigins.some(allowed => origin.startsWith(allowed)) ||
-      (origin.endsWith(".vercel.app") && origin.includes("madhav-expense-tracker")) ||
-      origin.endsWith("arthaa.live");
-    if (isAllowed) {
-      callback(null, true);
-    } else {
-      callback(new Error(`Origin ${origin} not allowed by CORS`));
+    if (!origin || allowedOrigins.includes(origin)) {
+      return callback(null, true);
     }
+
+    console.error("Blocked CORS origin:", origin);
+    return callback(new Error(`Origin ${origin} not allowed by CORS`));
   },
   credentials: true,
-}));
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+};
+
+app.use(cors(corsOptions));
+
 app.use(express.json({ limit: "1mb" }));
+
+// Rate limiter AFTER CORS
+app.use("/api", limiter);
 
 // Serve static files from client/public (preview.png, favicon, etc.)
 const publicDir = path.join(__dirname, "client", "public");
