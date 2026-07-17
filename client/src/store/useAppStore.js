@@ -113,17 +113,6 @@ export const useAppStore = create((set, get) => ({
     EUR: { INR: 91.0, USD: 1.09, EUR: 1 }
   },
 
-  fetchRates: async () => {
-    try {
-      const res = await api.fetchRates();
-      if (res && res.rates) {
-        set({ rates: res.rates });
-      }
-    } catch (e) {
-      console.warn("Failed to fetch exchange rates, using fallback:", e.message);
-    }
-  },
-
 
   getConvertedBudget: (workspaceId) => {
     const isDefault = workspaceId === "default";
@@ -214,8 +203,6 @@ export const useAppStore = create((set, get) => ({
     if (typeof window !== "undefined") {
       localStorage.setItem("activeSessionUid", uid);
     }
-    get().fetchRates();
-
     // Pre-seed budget from localStorage (fast-path, already done in initial state
     // but re-applied here to handle user switching on the same device).
     const cachedBudget = loadCachedBudget(uid);

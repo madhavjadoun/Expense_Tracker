@@ -31,16 +31,7 @@ app.use(helmet({
     directives: {
       defaultSrc: ["'self'"],
       scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://*.firebaseapp.com", "https://*.googleapis.com"],
-      connectSrc: [
-        "'self'", 
-        "https://*.googleapis.com", 
-        "https://*.firebaseapp.com", 
-        "https://*.firebase.google.com", 
-        "wss://*.firebaseio.com", 
-        "https://*.vercel.app",
-        "https://arthaa.live",
-        "https://*.arthaa.live"
-      ],
+      connectSrc: ["'self'", "https://*.googleapis.com", "https://*.firebaseapp.com", "https://*.firebase.google.com", "wss://*.firebaseio.com", "https://*.vercel.app", "https://arthaa.live", "https://*.arthaa.live"],
       imgSrc: ["'self'", "data:", "https://*.firebaseapp.com", "https://*.googleusercontent.com"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
@@ -67,52 +58,28 @@ const allowedOrigins = [
   "https://arthaa.live",
   "https://www.arthaa.live"
 ];
-
 if (process.env.CLIENT_ORIGIN) {
-  const origins = process.env.CLIENT_ORIGIN.split(",").map(o => o.trim());
-  origins.forEach(org => {
-    if (org && !allowedOrigins.includes(org)) {
-      allowedOrigins.push(org);
-    }
-  });
+  allowedOrigins.push(process.env.CLIENT_ORIGIN);
 }
 
-const corsOptions = {
+app.use(cors({
   origin: function (origin, callback) {
     if (!origin) return callback(null, true);
-    
-    const normOrigin = origin.toLowerCase().trim();
-    
-    // Check exact match
-    if (allowedOrigins.includes(normOrigin)) {
-      return callback(null, true);
+    const isAllowed = allowedOrigins.includes(origin) ||
+      (origin.endsWith(".vercel.app") && origin.includes("madhav-expense-tracker")) ||
+      origin.endsWith("arthaa.live");
+    if (isAllowed) {
+      callback(null, true);
+    } else {
+      callback(new Error(`Origin ${origin} not allowed by CORS`));
     }
-    
-    // Check if it's a Vercel preview deployment for this project
-    const isVercelPreview = normOrigin.endsWith(".vercel.app") && 
-      (normOrigin.includes("expense-tracker") || normOrigin.includes("madhav-expense-tracker") || normOrigin.includes("madhavjadouns-projects"));
-      
-    // Check if it ends with arthaa.live
-    const isArthaaDomain = normOrigin.endsWith("arthaa.live") || normOrigin.endsWith("arthaa.live/");
-
-    if (isVercelPreview || isArthaaDomain) {
-      return callback(null, true);
-    }
-
-    console.error("Blocked CORS origin:", origin);
-    return callback(new Error(`Origin ${origin} not allowed by CORS`));
   },
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
-};
+}));
 
 app.use(express.json({ limit: "1mb" }));
-
-// Apply CORS only to API endpoints to prevent blocking static files
-app.use("/api", cors(corsOptions));
-
-// Rate limiter AFTER CORS
 app.use("/api", limiter);
 
 // Serve static files from client/public (preview.png, favicon, etc.)
@@ -127,14 +94,13 @@ app.use(express.static(distDir));
 app.get("/api/health", (req, res) => res.json({ status: "ok" }));
 
 // API routes (all protected by requireAuth → req.userId)
-const expenseRoutes = require("./routes/expenseRoutes");
-const profileRoutes = require("./routes/profileRoutes");
+const expenseRoutes  = require("./routes/expenseRoutes");
+const profileRoutes  = require("./routes/profileRoutes");
 const analyticsRoutes = require("./routes/analyticsRoutes");
-const inviteRoutes = require("./routes/inviteRoutes");
-const joinRoutes = require("./routes/joinRoutes");
+const inviteRoutes   = require("./routes/inviteRoutes");
+const joinRoutes     = require("./routes/joinRoutes");
 const workspaceRoutes = require("./routes/workspaceRoutes");
 const supportRoutes = require("./routes/supportRoutes");
-const currencyRoutes = require("./routes/currencyRoutes");
 
 // Public OG preview route — hit by WhatsApp / social crawlers
 // GET /join/:token → serves OG meta HTML then redirects to React frontend
@@ -147,7 +113,6 @@ app.use("/api/analytics", analyticsRoutes);
 app.use("/api/invite", inviteRoutes);
 app.use("/api/workspaces", workspaceRoutes);
 app.use("/api/support", supportRoutes);
-app.use("/api/currencies", currencyRoutes);
 
 // Catch-all: serve React SPA for any unmatched route (handles /app/join/:token etc.)
 app.get("*", (req, res) => {
@@ -200,4 +165,3 @@ connectDB().then(() => {
     }
   });
 });
-
