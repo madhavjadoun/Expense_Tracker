@@ -69,12 +69,33 @@ const allowedOrigins = [
 ];
 
 if (process.env.CLIENT_ORIGIN) {
-  allowedOrigins.push(process.env.CLIENT_ORIGIN);
+  const origins = process.env.CLIENT_ORIGIN.split(",").map(o => o.trim());
+  origins.forEach(org => {
+    if (org && !allowedOrigins.includes(org)) {
+      allowedOrigins.push(org);
+    }
+  });
 }
 
 const corsOptions = {
   origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (!origin) return callback(null, true);
+    
+    const normOrigin = origin.toLowerCase().trim();
+    
+    // Check exact match
+    if (allowedOrigins.includes(normOrigin)) {
+      return callback(null, true);
+    }
+    
+    // Check if it's a Vercel preview deployment for this project
+    const isVercelPreview = normOrigin.endsWith(".vercel.app") && 
+      (normOrigin.includes("expense-tracker") || normOrigin.includes("madhav-expense-tracker") || normOrigin.includes("madhavjadouns-projects"));
+      
+    // Check if it ends with arthaa.live
+    const isArthaaDomain = normOrigin.endsWith("arthaa.live") || normOrigin.endsWith("arthaa.live/");
+
+    if (isVercelPreview || isArthaaDomain) {
       return callback(null, true);
     }
 
