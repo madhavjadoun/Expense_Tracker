@@ -55,7 +55,8 @@ app.use("/api", limiter);
 
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://madhav-expense-tracker.vercel.app"
+  "https://madhav-expense-tracker.vercel.app",
+  "https://arthaa.live"
 ];
 if (process.env.CLIENT_ORIGIN) {
   allowedOrigins.push(process.env.CLIENT_ORIGIN);
@@ -89,11 +90,11 @@ app.use(express.static(distDir));
 app.get("/api/health", (req, res) => res.json({ status: "ok" }));
 
 // API routes (all protected by requireAuth → req.userId)
-const expenseRoutes  = require("./routes/expenseRoutes");
-const profileRoutes  = require("./routes/profileRoutes");
+const expenseRoutes = require("./routes/expenseRoutes");
+const profileRoutes = require("./routes/profileRoutes");
 const analyticsRoutes = require("./routes/analyticsRoutes");
-const inviteRoutes   = require("./routes/inviteRoutes");
-const joinRoutes     = require("./routes/joinRoutes");
+const inviteRoutes = require("./routes/inviteRoutes");
+const joinRoutes = require("./routes/joinRoutes");
 const workspaceRoutes = require("./routes/workspaceRoutes");
 const supportRoutes = require("./routes/supportRoutes");
 const currencyRoutes = require("./routes/currencyRoutes");
@@ -130,7 +131,7 @@ async function connectDB() {
     // Mongoose connection
     await mongoose.connect(mongoUri);
     console.log("✅ MongoDB successfully connected!");
-    
+
     // Set up connection event listeners for better debugging
     mongoose.connection.on('error', (err) => {
       console.error("❌ MongoDB connection error after initial connection:", err.message);
