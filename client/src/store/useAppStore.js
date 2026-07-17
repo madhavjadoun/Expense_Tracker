@@ -239,7 +239,9 @@ export const useAppStore = create((set, get) => ({
     // Single atomic update — avoids an intermediate render with stale insights.
     set({ budgetMonthly: budget });
 
-    const activeWsId = useWorkspaceStore.getState().activeWorkspaceId;
+    const rawWsId = useWorkspaceStore.getState().activeWorkspaceId;
+    // Guard: ensure it's always a plain string, never an object
+    const activeWsId = (typeof rawWsId === "string" && rawWsId.length > 0) ? rawWsId : "default";
     await get().fetchExpenses(activeWsId);
   },
 
@@ -473,12 +475,14 @@ export const useAppStore = create((set, get) => ({
 
   // --- Expenses (with loading/error + optimistic updates) ---
   fetchExpenses: async (workspaceId) => {
+    // Guard: if workspaceId is accidentally an object (race condition), fall back to "default"
+    const safeWsId = (typeof workspaceId === "string" && workspaceId.length > 0) ? workspaceId : "default";
     set((s) => ({
       loading: { ...s.loading, expenses: true },
       error:   { ...s.error,   expenses: null },
     }));
     try {
-      const raw       = await api.fetchExpenses(workspaceId);
+      const raw       = await api.fetchExpenses(safeWsId);
       const map       = get().workspaceExpenseMap;
       // Re-apply client-side workspaceId to every expense from the backend
       const hydrated  = applyWorkspaceMap(raw, map);
